@@ -32,9 +32,9 @@ import net.ccbluex.liquidbounce.utils.aiming.raycast
 import net.ccbluex.liquidbounce.utils.block.doPlacement
 import net.ccbluex.liquidbounce.utils.block.getBlock
 import net.ccbluex.liquidbounce.utils.block.getState
-import net.ccbluex.liquidbounce.utils.block.targetfinding.BlockPlacementTarget
 import net.ccbluex.liquidbounce.utils.block.targetfinding.BlockPlacementTargetFindingOptions
 import net.ccbluex.liquidbounce.utils.block.targetfinding.CenterTargetPositionFactory
+import net.ccbluex.liquidbounce.utils.block.targetfinding.PlacementPlan
 import net.ccbluex.liquidbounce.utils.block.targetfinding.findBestBlockPlacementTarget
 import net.ccbluex.liquidbounce.utils.client.Chronometer
 import net.ccbluex.liquidbounce.utils.client.SilentHotbar
@@ -65,7 +65,7 @@ internal object NoFallMLG : Choice("MLG") {
 
     private val rotationsConfigurable = tree(RotationsConfigurable(this))
 
-    private var currentTarget: PlacementTarget? = null
+    private var currentTarget: PlacementPlan? = null
     private var lastPlacements = mutableListOf<Pair<BlockPos, Chronometer>>()
 
     private val fallDamageBlockingBlocks = arrayOf(
@@ -93,22 +93,12 @@ internal object NoFallMLG : Choice("MLG") {
         )
     }
 
-    private class PlacementTarget(
-        val targetPos: BlockPos,
-        val placementTarget: BlockPlacementTarget,
-        val hotbarItemSlot: HotbarItemSlot
-    )
-
     val tickHandler = repeatable {
         val target = currentTarget ?: return@repeatable
-        val rotation = RotationManager.serverRotation
 
-        val rayTraceResult = raycast(rotation) ?: return@repeatable
+        val rayTraceResult = raycast() ?: return@repeatable
 
-        if (rayTraceResult.type != HitResult.Type.BLOCK
-            || rayTraceResult.blockPos != target.placementTarget.interactedBlockPos
-            || rayTraceResult.side != target.placementTarget.direction
-        ) {
+        if (target.doesCorrespondTo(rayTraceResult)) {
             return@repeatable
         }
 
@@ -130,8 +120,8 @@ internal object NoFallMLG : Choice("MLG") {
      * 1. Preventing fall damage by placing something
      * 2. Picking up water which we placed earlier to prevent fall damage
      */
-    private fun getCurrentGoal(): PlacementTarget? {
-        getCurrentMLGPlacementTarget()?.let {
+    private fun getCurrentGoal(): PlacementPlan? {
+        getCurrentMLGPlacementPlan()?.let {
             return it
         }
 
@@ -145,8 +135,8 @@ internal object NoFallMLG : Choice("MLG") {
     /**
      * Finds a position to pickup placed water from
      */
-    private fun getCurrentPickupTarget(): PlacementTarget? {
-        val bestPickupItem = Hotbar.findClosestItem(arrayOf(Items.BUCKET)) ?: return null
+    private fun getCurrentPickupTarget(): PlacementPlan? {
+        val bestPickupItem = Hotbar.findClosestItem(Items.BUCKET) ?: return null
 
         // Remove all time outed/invalid pickup targets from the list
         this.lastPlacements.removeIf {
@@ -158,7 +148,7 @@ internal object NoFallMLG : Choice("MLG") {
                 continue
             }
 
-            val possibleTarget = findPlacementTargetAtPos(lastPlacement.first, bestPickupItem)
+            val possibleTarget = findPlacementPlanAtPos(lastPlacement.first, bestPickupItem)
 
             if (possibleTarget != null) {
                 return possibleTarget
@@ -171,9 +161,9 @@ internal object NoFallMLG : Choice("MLG") {
     /**
      * Find a way to prevent fall damage if we are falling.
      */
-    private fun getCurrentMLGPlacementTarget(): PlacementTarget? {
+    private fun getCurrentMLGPlacementPlan(): PlacementPlan? {
         val itemForMLG = Hotbar.findClosestItem(
-            if (cobwebPriority && HOTBAR_SLOTS.find { it.itemStack.item == Items.COBWEB } != null) {
+            items = if (cobwebPriority && HOTBAR_SLOTS.find { it.itemStack.item == Items.COBWEB } != null) {
                 arrayOf(Items.COBWEB)
             } else {
                 itemsForMLG
@@ -190,10 +180,10 @@ internal object NoFallMLG : Choice("MLG") {
             return null
         }
 
-        return findPlacementTargetAtPos(collision.up(), itemForMLG)
+        return findPlacementPlanAtPos(collision.up(), itemForMLG)
     }
 
-    private fun findPlacementTargetAtPos(pos: BlockPos, item: HotbarItemSlot): PlacementTarget? {
+    private fun findPlacementPlanAtPos(pos: BlockPos, item: HotbarItemSlot): PlacementPlan? {
         val options = BlockPlacementTargetFindingOptions(
             listOf(Vec3i(0, 0, 0)),
             item.itemStack,
@@ -202,9 +192,9 @@ internal object NoFallMLG : Choice("MLG") {
             player.pos
         )
 
-        val bestPlacementTarget = findBestBlockPlacementTarget(pos, options) ?: return null
+        val bestPlacementPlan = findBestBlockPlacementTarget(pos, options) ?: return null
 
-        return PlacementTarget(pos, bestPlacementTarget, item)
+        return PlacementPlan(pos, bestPlacementPlan, item)
     }
 
 }
