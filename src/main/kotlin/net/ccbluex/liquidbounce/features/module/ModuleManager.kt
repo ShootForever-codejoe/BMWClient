@@ -24,7 +24,10 @@ import net.ccbluex.liquidbounce.event.Listenable
 import net.ccbluex.liquidbounce.event.events.KeyEvent
 import net.ccbluex.liquidbounce.event.events.WorldChangeEvent
 import net.ccbluex.liquidbounce.event.handler
-import net.ccbluex.liquidbounce.features.module.modules.client.*
+import net.ccbluex.liquidbounce.features.module.modules.client.ModuleAutoConfig
+import net.ccbluex.liquidbounce.features.module.modules.client.ModuleLiquidChat
+import net.ccbluex.liquidbounce.features.module.modules.client.ModuleRichPresence
+import net.ccbluex.liquidbounce.features.module.modules.client.ModuleTargets
 import net.ccbluex.liquidbounce.features.module.modules.combat.*
 import net.ccbluex.liquidbounce.features.module.modules.combat.autoarmor.ModuleAutoArmor
 import net.ccbluex.liquidbounce.features.module.modules.combat.crystalaura.ModuleCrystalAura
@@ -38,6 +41,7 @@ import net.ccbluex.liquidbounce.features.module.modules.`fun`.ModuleHandDerp
 import net.ccbluex.liquidbounce.features.module.modules.`fun`.ModuleSkinDerp
 import net.ccbluex.liquidbounce.features.module.modules.misc.*
 import net.ccbluex.liquidbounce.features.module.modules.misc.antibot.ModuleAntiBot
+import net.ccbluex.liquidbounce.features.module.modules.misc.betterchat.ModuleBetterChat
 import net.ccbluex.liquidbounce.features.module.modules.misc.debugrecorder.ModuleDebugRecorder
 import net.ccbluex.liquidbounce.features.module.modules.movement.*
 import net.ccbluex.liquidbounce.features.module.modules.movement.autododge.ModuleAutoDodge
@@ -128,6 +132,7 @@ object ModuleManager : Listenable, Iterable<Module> by modules {
             ModuleAntiReducedDebugInfo,
             ModuleAntiHunger,
             ModuleClip,
+            ModuleResetVL,
             ModuleDamage,
             ModuleDisabler,
             ModuleForceUnicodeChat,
@@ -161,7 +166,6 @@ object ModuleManager : Listenable, Iterable<Module> by modules {
             ModuleAntiBot,
             ModuleBetterChat,
             ModuleFriendClicker,
-            ModuleKeepChatAfterDeath,
             ModuleNameProtect,
             ModuleNotifier,
             ModuleSpammer,
@@ -285,7 +289,6 @@ object ModuleManager : Listenable, Iterable<Module> by modules {
             // Client
             ModuleAutoConfig,
             ModuleRichPresence,
-            ModuleCapeTransfer,
             ModuleTargets,
             ModuleLiquidChat,
 
