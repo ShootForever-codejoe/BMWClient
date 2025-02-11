@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015 - 2024 CCBlueX
+ * Copyright (c) 2015 - 2025 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,56 +19,63 @@
  */
 package net.ccbluex.liquidbounce
 
-import net.ccbluex.liquidbounce.bmw.*
-import net.ccbluex.liquidbounce.api.ClientUpdate.gitInfo
-import net.ccbluex.liquidbounce.api.ClientUpdate.hasUpdate
-import net.ccbluex.liquidbounce.api.IpInfoApi
-import net.ccbluex.liquidbounce.api.oauth.ClientAccount
-import net.ccbluex.liquidbounce.api.oauth.ClientAccountManager
-import net.ccbluex.liquidbounce.api.oauth.OAuthClient
-import net.ccbluex.liquidbounce.bmw.getTimeFromKey
-import net.ccbluex.liquidbounce.config.AutoConfig
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.runBlocking
+import net.ccbluex.liquidbounce.api.core.withScope
+import net.ccbluex.liquidbounce.api.models.auth.ClientAccount
+import net.ccbluex.liquidbounce.api.services.client.ClientUpdate.gitInfo
+import net.ccbluex.liquidbounce.api.services.client.ClientUpdate.update
+import net.ccbluex.liquidbounce.api.thirdparty.IpInfoApi
+import net.ccbluex.liquidbounce.config.AutoConfig.configs
 import net.ccbluex.liquidbounce.config.ConfigSystem
+import net.ccbluex.liquidbounce.event.EventListener
 import net.ccbluex.liquidbounce.event.EventManager
-import net.ccbluex.liquidbounce.event.Listenable
-import net.ccbluex.liquidbounce.event.events.*
+import net.ccbluex.liquidbounce.event.events.ClientShutdownEvent
+import net.ccbluex.liquidbounce.event.events.ClientStartEvent
 import net.ccbluex.liquidbounce.event.handler
-import net.ccbluex.liquidbounce.event.repeatable
 import net.ccbluex.liquidbounce.features.Reconnect
 import net.ccbluex.liquidbounce.features.command.CommandManager
+import net.ccbluex.liquidbounce.features.cosmetic.ClientAccountManager
 import net.ccbluex.liquidbounce.features.cosmetic.CosmeticService
 import net.ccbluex.liquidbounce.features.itemgroup.ClientItemGroups
-import net.ccbluex.liquidbounce.features.itemgroup.groups.headsCollection
+import net.ccbluex.liquidbounce.features.itemgroup.groups.heads
 import net.ccbluex.liquidbounce.features.misc.AccountManager
 import net.ccbluex.liquidbounce.features.misc.FriendManager
-import net.ccbluex.liquidbounce.features.misc.ProxyManager
+import net.ccbluex.liquidbounce.features.misc.proxy.ProxyManager
 import net.ccbluex.liquidbounce.features.module.ModuleManager
 import net.ccbluex.liquidbounce.features.module.modules.client.ipcConfiguration
+import net.ccbluex.liquidbounce.features.spoofer.SpooferManager
+import net.ccbluex.liquidbounce.integration.IntegrationListener
+import net.ccbluex.liquidbounce.integration.browser.BrowserManager
+import net.ccbluex.liquidbounce.integration.interop.ClientInteropServer
+import net.ccbluex.liquidbounce.integration.interop.protocol.rest.v1.game.ActiveServerList
+import net.ccbluex.liquidbounce.integration.theme.ThemeManager
+import net.ccbluex.liquidbounce.integration.theme.component.ComponentOverlay
 import net.ccbluex.liquidbounce.lang.LanguageManager
-import net.ccbluex.liquidbounce.render.Fonts
+import net.ccbluex.liquidbounce.render.FontManager
+import net.ccbluex.liquidbounce.render.HAS_AMD_VEGA_APU
 import net.ccbluex.liquidbounce.render.ui.ItemImageAtlas
 import net.ccbluex.liquidbounce.script.ScriptManager
+import net.ccbluex.liquidbounce.utils.aiming.PostRotationExecutor
 import net.ccbluex.liquidbounce.utils.aiming.RotationManager
 import net.ccbluex.liquidbounce.utils.block.ChunkScanner
-import net.ccbluex.liquidbounce.utils.block.WorldChangeNotifier
 import net.ccbluex.liquidbounce.utils.client.*
 import net.ccbluex.liquidbounce.utils.combat.CombatManager
 import net.ccbluex.liquidbounce.utils.combat.combatTargetsConfigurable
+import net.ccbluex.liquidbounce.utils.entity.RenderedEntities
+import net.ccbluex.liquidbounce.utils.input.InputTracker
 import net.ccbluex.liquidbounce.utils.inventory.InventoryManager
-import net.ccbluex.liquidbounce.utils.mappings.Remapper
+import net.ccbluex.liquidbounce.utils.mappings.EnvironmentRemapper
 import net.ccbluex.liquidbounce.utils.render.WorldToScreen
-import net.ccbluex.liquidbounce.web.browser.BrowserManager
-import net.ccbluex.liquidbounce.web.integration.IntegrationHandler
-import net.ccbluex.liquidbounce.web.socket.ClientSocket
-import net.ccbluex.liquidbounce.web.theme.ThemeManager
-import net.ccbluex.liquidbounce.web.theme.component.ComponentOverlay
 import net.minecraft.resource.ReloadableResourceManagerImpl
 import net.minecraft.resource.ResourceManager
 import net.minecraft.resource.ResourceReloader
 import net.minecraft.resource.SynchronousResourceReloader
 import org.apache.logging.log4j.LogManager
-import java.time.Duration
-import java.time.LocalDateTime
+import java.io.File
+import kotlin.time.measureTime
 
 /**
  * LiquidBounce
@@ -77,7 +84,7 @@ import java.time.LocalDateTime
  *
  * @author kawaiinekololis (@team CCBlueX)
  */
-object LiquidBounce : Listenable {
+object LiquidBounce : EventListener {
 
     /**
      * CLIENT INFORMATION
@@ -86,7 +93,6 @@ object LiquidBounce : Listenable {
      */
     const val CLIENT_NAME = "LiquidBounce"
     const val CLIENT_AUTHOR = "CCBlueX"
-    const val CLIENT_CLOUD = "https://cloud.liquidbounce.net/LiquidBounce"
 
     val clientVersion = gitInfo["git.build.version"]?.toString() ?: "unknown"
     val clientCommit = gitInfo["git.commit.id.abbrev"]?.let { "git-$it" } ?: "unknown"
@@ -107,25 +113,21 @@ object LiquidBounce : Listenable {
      */
     val logger = LogManager.getLogger(CLIENT_NAME)!!
 
-    /**
-     * Client update information
-     */
-    val updateAvailable by lazy { hasUpdate() }
+    var tasks: List<Deferred<*>>? = null
 
     /**
      * Should be executed to start the client.
      */
     @Suppress("unused")
-    val startHandler = handler<ClientStartEvent> {
+    private val startHandler = handler<ClientStartEvent> {
         runCatching {
             logger.info("Launching $CLIENT_NAME v$clientVersion by $CLIENT_AUTHOR")
-            logger.debug("Loading from cloud: '$CLIENT_CLOUD'")
 
             // Load mappings
-            Remapper.load()
+            EnvironmentRemapper
 
             // Load translations
-            LanguageManager.loadLanguages()
+            LanguageManager.loadDefault()
 
             // Initialize client features
             EventManager
@@ -134,15 +136,16 @@ object LiquidBounce : Listenable {
             ConfigSystem
             combatTargetsConfigurable
 
+            RenderedEntities
             ChunkScanner
-            WorldChangeNotifier
-            MouseStateTracker
+            InputTracker
 
             // Features
             ModuleManager
             CommandManager
             ScriptManager
             RotationManager
+            PacketQueueManager
             InteractionTracker
             CombatManager
             FriendManager
@@ -151,18 +154,22 @@ object LiquidBounce : Listenable {
             InventoryManager
             WorldToScreen
             Reconnect
+            ActiveServerList
             ConfigSystem.root(ClientItemGroups)
             ConfigSystem.root(LanguageManager)
             ConfigSystem.root(ClientAccountManager)
+            ConfigSystem.root(SpooferManager)
             BrowserManager
-            Fonts
+            FontManager
+            PostRotationExecutor
+            TpsObserver
 
             // Register commands and modules
             CommandManager.registerInbuilt()
             ModuleManager.registerInbuilt()
 
             // Load user scripts
-            ScriptManager.loadScripts()
+            ScriptManager.loadAll()
 
             // Load theme and component overlay
             ThemeManager
@@ -172,13 +179,45 @@ object LiquidBounce : Listenable {
             ConfigSystem.loadAll()
 
             // Netty WebSocket
-            ClientSocket.start()
+            ClientInteropServer.start()
 
             // Initialize browser
             logger.info("Refresh Rate: ${mc.window.refreshRate} Hz")
 
-            IntegrationHandler
+            IntegrationListener
             BrowserManager.initBrowser()
+
+            // Start IO tasks
+            withScope {
+                tasks = listOf(
+                    async {
+                        val update = update ?: return@async
+                        logger.info("[Update] Update available: $clientVersion -> ${update.lbVersion}")
+                    },
+                    async { ipcConfiguration },
+                    async { IpInfoApi.original },
+                    async {
+                        if (ClientAccountManager.clientAccount != ClientAccount.EMPTY_ACCOUNT) {
+                            runCatching {
+                                ClientAccountManager.clientAccount.renew()
+                            }.onFailure {
+                                logger.error("Failed to renew client account token.", it)
+                                ClientAccountManager.clientAccount = ClientAccount.EMPTY_ACCOUNT
+                            }.onSuccess {
+                                logger.info("Successfully renewed client account token.")
+                                ConfigSystem.storeConfigurable(ClientAccountManager)
+                            }
+                        }
+                    },
+                    async {
+                        CosmeticService.refreshCarriers(force = true) {
+                            logger.info("Successfully loaded ${CosmeticService.carriers.size} cosmetics carriers.")
+                        }
+                    },
+                    async { heads },
+                    async { configs }
+                )
+            }
 
             // Register resource reloader
             val resourceManager = mc.resourceManager
@@ -193,6 +232,12 @@ object LiquidBounce : Listenable {
             }
 
             ItemImageAtlas
+
+            if (HAS_AMD_VEGA_APU) {
+                logger.info("AMD Vega iGPU detected, enabling different line smooth handling. " +
+                    "If you believe this is a mistake, please create an issue at " +
+                    "https://github.com/CCBlueX/LiquidBounce/issues.")
+            }
         }.onSuccess {
             logger.info("Successfully loaded client!")
         }.onFailure(ErrorHandler::fatal)
@@ -211,67 +256,35 @@ object LiquidBounce : Listenable {
 
         override fun reload(manager: ResourceManager) {
             runCatching {
-                logger.info("Loading fonts...")
-                Fonts.loadQueuedFonts()
-            }.onSuccess {
-                logger.info("Loaded fonts successfully!")
+                // Queue fonts of all themes
+                // TODO: Will be removed with PR #3884 as it is not needed anymore
+                ThemeManager.themesFolder.listFiles()
+                    ?.filter { file -> file.isDirectory }
+                    ?.forEach { file ->
+                        runCatching {
+                            val assetsFolder = File(file, "assets")
+                            if (!assetsFolder.exists()) {
+                                return@forEach
+                            }
+
+                            FontManager.queueFolder(assetsFolder)
+                        }.onFailure {
+                            logger.error("Failed to queue fonts from theme '${file.name}'.", it)
+                        }
+                    }
+
+                // Load fonts
+                val duration = measureTime {
+                    FontManager.createGlyphManager()
+                }
+
+                logger.info("Completed loading fonts in ${duration.inWholeMilliseconds} ms.")
+                logger.info("Fonts: [ ${FontManager.fontFaces.joinToString { face -> face.name }} ]")
             }.onFailure(ErrorHandler::fatal)
 
-            // Check for newest version
-            if (updateAvailable) {
-                logger.info("Update available! Please download the latest version from https://liquidbounce.net/")
-            }
-
-            runCatching {
-                ipcConfiguration.let {
-                    logger.info("Loaded Discord IPC configuration.")
-                }
-            }.onFailure {
-                logger.error("Failed to load Discord IPC configuration.", it)
-            }
-
-            // Refresh local IP info
-            logger.info("Refreshing local IP info...")
-            IpInfoApi.refreshLocalIpInfo()
-
-            // Check if client account is available
-            if (ClientAccountManager.clientAccount != ClientAccount.EMPTY_ACCOUNT) {
-                OAuthClient.runWithScope {
-                    runCatching {
-                        ClientAccountManager.clientAccount.renew()
-                    }.onFailure {
-                        logger.error("Failed to renew client account token.", it)
-                        ClientAccountManager.clientAccount = ClientAccount.EMPTY_ACCOUNT
-                    }.onSuccess {
-                        logger.info("Successfully renewed client account token.")
-                        ConfigSystem.storeConfigurable(ClientAccountManager)
-                    }
-                }
-            }
-
-            // Refresh cosmetic service
-            CosmeticService.refreshCarriers(force = true) {
-                logger.info("Successfully loaded ${CosmeticService.carriers.size} cosmetics carriers.")
-            }
-
-            // Load Head collection
-            headsCollection
-
-            // Load settings list from API
-            runCatching {
-                logger.info("Loading settings list from API...")
-                AutoConfig.configs
-            }.onSuccess {
-                logger.info("Loaded ${it.size} settings from API.")
-            }.onFailure {
-                logger.error("Failed to load settings list from API", it)
-            }
-
-            // Disable conflicting options
-            runCatching {
-                disableConflictingVfpOptions()
-            }.onSuccess {
-                logger.info("Disabled conflicting options.")
+            runBlocking {
+                tasks?.awaitAll()
+                tasks = null
             }
         }
     }
@@ -280,7 +293,7 @@ object LiquidBounce : Listenable {
      * Should be executed to stop the client.
      */
     @Suppress("unused")
-    val shutdownHandler = handler<ClientShutdownEvent> {
+    private val shutdownHandler = handler<ClientShutdownEvent> {
         logger.info("Shutting down client...")
 
         ConfigSystem.storeAll()
@@ -288,52 +301,6 @@ object LiquidBounce : Listenable {
 
         // Shutdown browser as last step
         BrowserManager.shutdownBrowser()
-    }
-
-    private const val NO_KEY_NOTIFICATION = "未激活！请在聊天框发送“.key 激活码”进行激活，|秒后未激活将自动退出世界"
-    var free = true
-    private var keyTimer = -1
-
-    private fun haveKey() : Boolean {
-        if (free) {
-            return true
-        }
-        if (nowKey == "") {
-            return false
-        }
-        val result = getTimeFromKey(nowKey)
-        val now = LocalDateTime.now()
-        return Duration.between(result.startTime, now).toDays() <= result.days
-    }
-
-    val repeatHandler = repeatable {
-        if (inGame && mc.currentScreen != null && keyTimer == -1 && !haveKey()) {
-            keyTimer = 60*20
-        }
-    }
-
-    val worldChangeEventHandler = handler<WorldChangeEvent> {
-        if (keyTimer != -1) {
-            keyTimer = 60*20
-        }
-    }
-
-    val gameTickEventHandler = handler<GameTickEvent> {
-        if (keyTimer > 0) {
-            if (haveKey()) {
-                keyTimer = -1
-            }
-            if (keyTimer % 20 == 0) {
-                notifyAsMessageAndNotification(
-                    NO_KEY_NOTIFICATION.replace("|", (keyTimer / 20).toString()),
-                    NotificationEvent.Severity.ERROR
-                )
-            }
-            keyTimer--
-        } else if (keyTimer == 0) {
-            mc.world?.disconnect()
-            keyTimer = -1
-        }
     }
 
 }

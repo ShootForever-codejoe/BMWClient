@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015 - 2024 CCBlueX
+ * Copyright (c) 2015 - 2025 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,13 +18,14 @@
  */
 package net.ccbluex.liquidbounce.features.module.modules.combat
 
-import net.ccbluex.liquidbounce.config.NamedChoice
-import net.ccbluex.liquidbounce.config.ToggleableConfigurable
+import net.ccbluex.liquidbounce.config.types.NamedChoice
+import net.ccbluex.liquidbounce.config.types.ToggleableConfigurable
 import net.ccbluex.liquidbounce.event.Sequence
-import net.ccbluex.liquidbounce.event.repeatable
+import net.ccbluex.liquidbounce.event.tickHandler
 import net.ccbluex.liquidbounce.features.module.Category
-import net.ccbluex.liquidbounce.features.module.Module
-import net.ccbluex.liquidbounce.utils.combat.ClickScheduler
+import net.ccbluex.liquidbounce.features.module.ClientModule
+import net.ccbluex.liquidbounce.features.module.modules.combat.criticals.ModuleCriticals
+import net.ccbluex.liquidbounce.utils.clicking.ClickScheduler
 import net.ccbluex.liquidbounce.utils.combat.shouldBeAttacked
 import net.minecraft.client.option.KeyBinding
 import net.minecraft.item.AxeItem
@@ -39,7 +40,7 @@ import net.minecraft.util.hit.EntityHitResult
  * Clicks automatically when holding down a mouse button.
  */
 
-object ModuleAutoClicker : Module("AutoClicker", Category.COMBAT, aliases = arrayOf("TriggerBot")) {
+object ModuleAutoClicker : ClientModule("AutoClicker", Category.COMBAT, aliases = arrayOf("TriggerBot")) {
 
     object Left : ToggleableConfigurable(this, "Attack", true) {
 
@@ -140,23 +141,32 @@ object ModuleAutoClicker : Module("AutoClicker", Category.COMBAT, aliases = arra
     val use: Boolean
         get() = mc.options.useKey.isPressed || Right.requiresNoInput
 
-    val tickHandler = repeatable {
+    val tickHandler = tickHandler {
         Left.run {
             if (!enabled || !attack || !isWeaponSelected() || !isOnObjective()) {
                 return@run
             }
 
+            // Check if the player is breaking a block, if so, return
+            if (interaction.isBreakingBlock) {
+                return@run
+            }
+
             val crosshairTarget = mc.crosshairTarget
 
-            if (crosshairTarget is EntityHitResult && ModuleCriticals.shouldWaitForCrit(crosshairTarget.entity)) {
-                return@run
+            if (crosshairTarget is EntityHitResult) {
+                ModuleAutoWeapon.prepare(crosshairTarget.entity)
+
+                if (ModuleCriticals.shouldWaitForCrit(crosshairTarget.entity)) {
+                    return@run
+                }
             }
 
             if (player.usingItem) {
                 val encounterItemUse = encounterItemUse()
 
                 if (encounterItemUse) {
-                    return@repeatable
+                    return@tickHandler
                 }
             }
 
@@ -174,7 +184,9 @@ object ModuleAutoClicker : Module("AutoClicker", Category.COMBAT, aliases = arra
                 return@run
             }
 
-            if (onlyBlock && player.mainHandStack.item !is BlockItem) return@run
+            if (onlyBlock && player.mainHandStack.item !is BlockItem) {
+                return@run
+            }
 
             if (delayStart && needToWait) {
                 needToWait = false

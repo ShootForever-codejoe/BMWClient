@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015 - 2024 CCBlueX
+ * Copyright (c) 2015 - 2025 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,7 +20,9 @@ package net.ccbluex.liquidbounce.utils.aiming
 
 import net.ccbluex.liquidbounce.utils.client.mc
 import net.ccbluex.liquidbounce.utils.client.player
-import net.ccbluex.liquidbounce.utils.entity.eyes
+import net.ccbluex.liquidbounce.utils.client.world
+import net.ccbluex.liquidbounce.utils.entity.rotation
+import net.ccbluex.liquidbounce.utils.math.sq
 import net.minecraft.block.BlockState
 import net.minecraft.block.ShapeContext
 import net.minecraft.entity.Entity
@@ -59,7 +61,7 @@ fun raytraceEntity(
 ): EntityHitResult? {
     val entity = mc.cameraEntity ?: return null
 
-    val cameraVec = entity.eyes
+    val cameraVec = entity.eyePos
     val rotationVec = rotation.rotationVec
 
     val vec3d3 = cameraVec.add(rotationVec.x * range, rotationVec.y * range, rotationVec.z * range)
@@ -80,13 +82,13 @@ fun raytraceEntity(
 
 fun raytraceBlock(
     range: Double,
-    rotation: Rotation,
+    rotation: Rotation = RotationManager.currentRotation ?: player.rotation,
     pos: BlockPos,
     state: BlockState,
 ): BlockHitResult? {
     val entity: Entity = mc.cameraEntity ?: return null
 
-    val start = entity.eyes
+    val start = entity.eyePos
     val rotationVec = rotation.rotationVec
 
     val end = start.add(rotationVec.x * range, rotationVec.y * range, rotationVec.z * range)
@@ -101,19 +103,29 @@ fun raytraceBlock(
 }
 
 fun raycast(
-    rotation: Rotation = RotationManager.serverRotation,
+    rotation: Rotation = RotationManager.currentRotation ?: player.rotation,
     range: Double = max(player.blockInteractionRange, player.entityInteractionRange),
     includeFluids: Boolean = false,
-    tickDelta: Float = 1.0f,
-): BlockHitResult? {
-    val entity = mc.cameraEntity ?: return null
+    tickDelta: Float = 1f,
+): BlockHitResult {
+    return raycast(
+        range = range,
+        includeFluids = includeFluids,
+        start = player.getCameraPosVec(tickDelta),
+        direction = rotation.rotationVec
+    )
+}
 
-    val start = entity.getCameraPosVec(tickDelta)
-    val rotationVec = rotation.rotationVec
+fun raycast(
+    range: Double = max(player.blockInteractionRange, player.entityInteractionRange),
+    includeFluids: Boolean = false,
+    start: Vec3d,
+    direction: Vec3d,
+    entity: Entity = mc.cameraEntity!!,
+): BlockHitResult {
+    val end = start.add(direction.x * range, direction.y * range, direction.z * range)
 
-    val end = start.add(rotationVec.x * range, rotationVec.y * range, rotationVec.z * range)
-
-    return mc.world?.raycast(
+    return world.raycast(
         RaycastContext(
             start,
             end,
@@ -154,11 +166,11 @@ fun facingEnemy(
     range: Double,
     wallsRange: Double,
 ): Boolean {
-    val cameraVec = fromEntity.eyes
+    val cameraVec = fromEntity.eyePos
     val rotationVec = rotation.rotationVec
 
-    val rangeSquared = range * range
-    val wallsRangeSquared = wallsRange * wallsRange
+    val rangeSquared = range.sq()
+    val wallsRangeSquared = wallsRange.sq()
 
     val vec3d3 = cameraVec.add(rotationVec.x * range, rotationVec.y * range, rotationVec.z * range)
     val box = fromEntity.boundingBox.stretch(rotationVec.multiply(range)).expand(1.0, 1.0, 1.0)

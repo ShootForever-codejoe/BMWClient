@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2024 CCBlueX
+ * Copyright (c) 2015 - 2025 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,21 +21,21 @@
 
 package net.ccbluex.liquidbounce.utils.inventory
 
+import net.ccbluex.liquidbounce.event.EventListener
 import net.ccbluex.liquidbounce.event.EventManager
-import net.ccbluex.liquidbounce.event.Listenable
 import net.ccbluex.liquidbounce.event.events.PacketEvent
 import net.ccbluex.liquidbounce.event.events.ScheduleInventoryActionEvent
 import net.ccbluex.liquidbounce.event.events.ScreenEvent
 import net.ccbluex.liquidbounce.event.events.WorldChangeEvent
 import net.ccbluex.liquidbounce.event.handler
-import net.ccbluex.liquidbounce.event.repeatable
-import net.ccbluex.liquidbounce.features.module.modules.player.invcleaner.ContainerItemSlot
-import net.ccbluex.liquidbounce.features.module.modules.player.invcleaner.HotbarItemSlot
-import net.ccbluex.liquidbounce.features.module.modules.player.invcleaner.ItemSlot
+import net.ccbluex.liquidbounce.event.tickHandler
+import net.ccbluex.liquidbounce.features.module.modules.render.ModuleDebug
 import net.ccbluex.liquidbounce.utils.client.*
 import net.ccbluex.liquidbounce.utils.kotlin.EventPriorityConvention
+import net.ccbluex.liquidbounce.utils.kotlin.Priority
 import net.minecraft.client.gui.screen.ingame.GenericContainerScreen
 import net.minecraft.client.gui.screen.ingame.InventoryScreen
+import net.minecraft.item.ItemStack
 import net.minecraft.network.packet.c2s.play.ClickSlotC2SPacket
 import net.minecraft.network.packet.c2s.play.CloseHandledScreenC2SPacket
 import net.minecraft.network.packet.s2c.play.CloseScreenS2CPacket
@@ -51,10 +51,18 @@ import kotlin.random.Random
  *  - Progress Bar
  *  - Off-screen actions
  */
-object InventoryManager : Listenable {
+object InventoryManager : EventListener {
+
+    val isInventoryOpen
+        get() = isInInventoryScreen || isInventoryOpenServerSide
 
     var isInventoryOpenServerSide = false
-        internal set
+        internal set(value) {
+            if (!field && value) {
+                inventoryOpened()
+            }
+            field = value
+        }
 
     var lastClickedSlot: Int = 0
         private set
@@ -72,15 +80,27 @@ object InventoryManager : Listenable {
      * and schedule the inventory actions
      */
     @Suppress("unused")
-    private val repeatingSchedulerExecutor = repeatable {
+    private val repeatingSchedulerExecutor = tickHandler {
         // We are not in-game, so we don't need to do anything and throw away the schedule
         if (!inGame) {
-            return@repeatable
+            return@tickHandler
         }
+
+        ModuleDebug.debugParameter(this, "Inventory Open", isInventoryOpen)
+        ModuleDebug.debugParameter(this, "Inventory Open Server Side", isInventoryOpenServerSide)
 
         var maximumCloseDelay = 0
 
+        var cycles = 0
         do {
+            cycles++
+            // Safety check to prevent infinite loops
+            if (cycles > 100) {
+                chat("InventoryManager has been running for too long ($cycles cycles) on tick, stopping now. " +
+                    "Please report this issue.")
+                break
+            }
+
             requiresUpdate = false
 
             val event = EventManager.callEvent(ScheduleInventoryActionEvent())
@@ -91,7 +111,13 @@ object InventoryManager : Listenable {
             // 2. With inventory open required actions
             val schedule = event.schedule
                 .filter { actionChain -> actionChain.canPerformAction() && actionChain.actions.isNotEmpty() }
-                .sortedByDescending(InventoryActionChain::requiresInventoryOpen)
+                .groupBy(InventoryActionChain::requiresInventoryOpen)
+                .map { it.value.sortedByDescending { actionChain -> actionChain.priority } }
+                .reduceOrNull { acc, inventoryActionChains ->
+                    acc + inventoryActionChains
+                } ?: break
+
+            ModuleDebug.debugParameter(this, "Schedule Size", schedule.size)
 
             // If the schedule is empty, we can break the loop
             if (schedule.isEmpty()) {
@@ -122,13 +148,13 @@ object InventoryManager : Listenable {
                     // Handle player inventory open requirements
                     val requiresPlayerInventory = action.requiresPlayerInventoryOpen()
                     if (requiresPlayerInventory) {
-                        if (!isInventoryOpenServerSide) {
+                        if (!isInventoryOpen) {
                             openInventorySilently()
                             waitTicks(constraints.startDelay.random())
                         }
                     } else if (canCloseMainInventory) {
                         // When all scheduled actions are done, we can close the inventory
-                        if (isInventoryOpenServerSide) {
+                        if (isInventoryOpen) {
                             waitTicks(constraints.closeDelay.random())
                             closeInventorySilently()
                         }
@@ -166,7 +192,7 @@ object InventoryManager : Listenable {
         } while (schedule.isNotEmpty())
 
         // When all scheduled actions are done, we can close the inventory
-        if (isInventoryOpenServerSide && canCloseMainInventory) {
+        if (isInventoryOpen && canCloseMainInventory) {
             waitTicks(maximumCloseDelay)
             closeInventorySilently()
         }
@@ -198,8 +224,12 @@ object InventoryManager : Listenable {
     val packetHandler = handler<PacketEvent>(priority = EventPriorityConvention.READ_FINAL_STATE) { event ->
         val packet = event.packet
 
+        if (event.isCancelled) {
+            return@handler
+        }
+
         // If we actually send a click packet, we can reset the click chronometer
-        if (packet is ClickSlotC2SPacket && !event.isCancelled) {
+        if (packet is ClickSlotC2SPacket) {
             clickOccurred()
 
             if (packet.syncId == 0) {
@@ -218,7 +248,10 @@ object InventoryManager : Listenable {
         }
     }
 
-    val screenHandler = handler<ScreenEvent>(priority = EventPriorityConvention.READ_FINAL_STATE) { event ->
+    @Suppress("unused")
+    private val screenHandler = handler<ScreenEvent>(
+        priority = EventPriorityConvention.READ_FINAL_STATE
+    ) { event ->
         val screen = event.screen
 
         if (event.isCancelled) {
@@ -226,15 +259,18 @@ object InventoryManager : Listenable {
         }
 
         if (screen is InventoryScreen || screen is GenericContainerScreen) {
-            inventoryOpened()
-
-            if (screen is InventoryScreen) {
+            // ViaFabricPlus injects into [tutorialManager.onInventoryOpened()] but we take
+            // the easy way and just listen for the screen event.
+            if (screen is InventoryScreen && isOlderThanOrEqual1_11_1) {
                 isInventoryOpenServerSide = true
             }
+
+            inventoryOpened()
         }
     }
 
-    val handleWorldChange = handler<WorldChangeEvent> {
+    @Suppress("unused")
+    private val handleWorldChange = handler<WorldChangeEvent> {
         isInventoryOpenServerSide = false
     }
 
@@ -367,7 +403,7 @@ data class UseInventoryAction(
 ) : InventoryAction {
 
     override fun canPerformAction(inventoryConstraints: InventoryConstraints) =
-        !InventoryManager.isInventoryOpenServerSide && !isInContainerScreen && !isInInventoryScreen
+        !InventoryManager.isInventoryOpen && !isInContainerScreen && !isInInventoryScreen
 
     override fun performAction(): Boolean {
         useHotbarSlotOrOffhand(hotbarItemSlot)
@@ -395,13 +431,55 @@ data class CloseContainerAction(
 
 }
 
+data class CreativeInventoryAction(
+    val itemStack: ItemStack,
+    val slot: ItemSlot? = null
+) : InventoryAction {
+
+    companion object {
+        fun performThrow(itemStack: ItemStack) = CreativeInventoryAction(itemStack)
+        fun performFillSlot(itemStack: ItemStack, slot: ItemSlot) = CreativeInventoryAction(itemStack, slot)
+    }
+
+    override fun canPerformAction(inventoryConstraints: InventoryConstraints): Boolean {
+        // Check constrains
+        if (!inventoryConstraints.passesRequirements(this)) {
+            return false
+        }
+
+        // Screen is null, which means we are targeting the player inventory
+        if (requiresPlayerInventoryOpen() && player.currentScreenHandler.isPlayerInventory &&
+            !interaction.hasRidingInventory()) {
+            return true
+        }
+
+        return player.isCreative
+    }
+
+    override fun performAction(): Boolean {
+        val slot = slot
+
+        if (slot != null) {
+            val slotId = slot.getIdForServer(null) ?: return false
+            interaction.clickCreativeStack(itemStack, slotId)
+        } else {
+            interaction.dropCreativeStack(itemStack)
+        }
+        return true
+    }
+
+    override fun requiresPlayerInventoryOpen() = false
+
+}
+
 /**
  * A chained inventory action is a list of inventory actions that have to be executed in order
  * and CANNOT be stopped in between
  */
 data class InventoryActionChain(
     val inventoryConstraints: InventoryConstraints,
-    val actions: Array<out InventoryAction>
+    val actions: Array<out InventoryAction>,
+    val priority: Priority
 ) {
 
     fun canPerformAction(): Boolean {

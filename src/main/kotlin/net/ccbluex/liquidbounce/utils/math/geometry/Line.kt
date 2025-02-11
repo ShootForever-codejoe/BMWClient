@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015 - 2024 CCBlueX
+ * Copyright (c) 2015 - 2025 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,15 @@ import kotlin.math.abs
 
 open class Line(val position: Vec3d, val direction: Vec3d) {
 
+    companion object {
+        fun fromPoints(p1: Vec3d, p2: Vec3d, normalized: Boolean = false): Line {
+            val direction = p2.subtract(p1)
+            val finalDirection = if (normalized) direction.normalize() else direction
+
+            return Line(p1, finalDirection)
+        }
+    }
+
     open fun getNearestPointTo(point: Vec3d): Vec3d {
         val plane = NormalizedPlane(point, direction)
 
@@ -47,17 +56,16 @@ open class Line(val position: Vec3d, val direction: Vec3d) {
     fun getPhiForPoint(point: Vec3d): Double {
         val fromPosition = point.subtract(position)
 
-        val possibleCoordinates = mutableListOf(
-            Pair(fromPosition.x, direction.x),
-            Pair(fromPosition.y, direction.y),
-            Pair(fromPosition.z, direction.z)
-        )
-            .filter { !MathHelper.approximatelyEquals(it.second, 0.0) }
+        val possibleCoordinates = arrayOf(
+            doubleArrayOf(fromPosition.x, direction.x),
+            doubleArrayOf(fromPosition.y, direction.y),
+            doubleArrayOf(fromPosition.z, direction.z)
+        ).filter { !MathHelper.approximatelyEquals(it[1], 0.0) }
 
-        val directionAvg = possibleCoordinates.map { it.second }.average()
-        val minAvgDistPair = possibleCoordinates.minByOrNull { abs(it.second - directionAvg) }!!
+        val directionAvg = possibleCoordinates.sumOf { it[1] } / possibleCoordinates.size
+        val minAvgDistPair = possibleCoordinates.minByOrNull { abs(it[1] - directionAvg) }!!
 
-        return minAvgDistPair.first / minAvgDistPair.second
+        return minAvgDistPair[0] / minAvgDistPair[1]
     }
 
     /**
@@ -70,11 +78,11 @@ open class Line(val position: Vec3d, val direction: Vec3d) {
         return Pair(this.getPosition(phi1), other.getPosition(phi2))
     }
 
-    fun getNearestPhisTo(other: Line): Pair<Double, Double>? {
+    private fun getNearestPhisTo(other: Line): DoubleArray? {
         val phi1 = this.calculateNearestPhiTo(other) ?: return null
         val phi2 = other.calculateNearestPhiTo(this) ?: return null
 
-        return Pair(phi1, phi2)
+        return doubleArrayOf(phi1, phi2)
     }
 
     @Suppress("MaxLineLength")
@@ -107,4 +115,7 @@ open class Line(val position: Vec3d, val direction: Vec3d) {
 
         return t2
     }
+
+    override fun toString() = "Line(position=$position, direction=$direction)"
+
 }

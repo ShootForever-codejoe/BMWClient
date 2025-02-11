@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015 - 2024 CCBlueX
+ * Copyright (c) 2015 - 2025 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,16 +18,19 @@
  */
 package net.ccbluex.liquidbounce.utils.aiming
 
-import net.minecraft.entity.player.PlayerEntity
+import net.ccbluex.liquidbounce.utils.aiming.RotationUtil.angleDifference
+import net.minecraft.client.network.ClientPlayerEntity
 
-fun PlayerEntity?.applyRotation(rotation: Rotation) {
-    this ?: return
-
-    rotation.fixedSensitivity().let {
+fun ClientPlayerEntity.setRotation(rotation: Rotation) {
+    rotation.normalize().let { normalizedRotation ->
         prevPitch = pitch
         prevYaw = yaw
+        renderYaw = yaw
+        lastRenderYaw = yaw
 
-        yaw = it.yaw
-        pitch = it.pitch
+        yaw = normalizedRotation.yaw
+        pitch = normalizedRotation.pitch
     }
 }
+
+fun ClientPlayerEntity.withFixedYaw(rotation: Rotation) = rotation.yaw + angleDifference(yaw, rotation.yaw)

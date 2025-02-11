@@ -21,11 +21,11 @@
 
     onMount(() => {
         setTimeout(async () => {
-            const update = await getClientUpdate();
+            const clientUpdate = await getClientUpdate();
 
-            if (update.updateAvailable) {
+            if (clientUpdate.update) {
                 notification.set({
-                    title: `LiquidBounce ${update.newestVersion?.clientVersion} has been released!`,
+                    title: `LiquidBounce ${clientUpdate.update.clientVersion} has been released!`,
                     message: `Download it from liquidbounce.net!`,
                     error: false,
                     delay: 99999999
@@ -66,7 +66,7 @@
             {:else if clientButtonsShown}
                 <MainButton title="Proxy Manager" icon="proxymanager" on:click={() => openScreen("proxymanager")}
                             index={0}/>
-                <MainButton title="ClickGUI" icon="clickgui" on:click={() => openScreen("clickgui")} index={1}/>
+                <MainButton title="Click GUI" icon="clickgui" on:click={() => openScreen("clickgui")} index={1}/>
                 <!-- <MainButton title="Scripts" icon="scripts" index={2}/> -->
                 <MainButton title="Back" icon="back-large" on:click={toggleButtons} index={2}/>
             {/if}
@@ -84,7 +84,6 @@
             <ButtonContainer>
                 <IconButton title="Forum" icon="nodebb" on:click={() => browse("MAINTAINER_FORUM")}/>
                 <IconButton title="GitHub" icon="github" on:click={() => browse("MAINTAINER_GITHUB")}/>
-                <IconButton title="Guilded" icon="guilded" on:click={() => browse("MAINTAINER_GUILDED")}/>
                 <IconButton title="Discord" icon="discord" on:click={() => browse("MAINTAINER_DISCORD")}/>
                 <IconButton title="Twitter" icon="twitter" on:click={() => browse("MAINTAINER_TWITTER")}/>
                 <IconButton title="YouTube" icon="youtube" on:click={() => browse("MAINTAINER_YOUTUBE")}/>

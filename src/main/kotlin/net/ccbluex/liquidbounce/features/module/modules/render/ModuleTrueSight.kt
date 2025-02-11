@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015 - 2024 CCBlueX
+ * Copyright (c) 2015 - 2025 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 package net.ccbluex.liquidbounce.features.module.modules.render
 
 import net.ccbluex.liquidbounce.features.module.Category
-import net.ccbluex.liquidbounce.features.module.Module
+import net.ccbluex.liquidbounce.features.module.ClientModule
 
 /**
  * TrueSight module
@@ -27,7 +27,7 @@ import net.ccbluex.liquidbounce.features.module.Module
  * Allows you to see invisible objects and entities.
  */
 
-object ModuleTrueSight : Module("TrueSight", Category.RENDER) {
+object ModuleTrueSight : ClientModule("TrueSight", Category.RENDER) {
     val barriers by boolean("Barriers", true)
     val entities by boolean("Entities", true)
 }

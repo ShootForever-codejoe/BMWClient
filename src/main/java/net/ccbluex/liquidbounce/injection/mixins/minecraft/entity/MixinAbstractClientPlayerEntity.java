@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015 - 2024 CCBlueX
+ * Copyright (c) 2015 - 2025 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,10 +30,11 @@ public abstract class MixinAbstractClientPlayerEntity {
 
     @ModifyReturnValue(method = "getFovMultiplier", at = @At("RETURN"))
     private float injectFovMultiplier(float original) {
-        if (ModuleNoFov.INSTANCE.getEnabled()) {
-            return ModuleNoFov.INSTANCE.getFov(original);
+        if (ModuleNoFov.INSTANCE.getRunning()) {
+            return ModuleNoFov.INSTANCE.getFovMultiplier(original);
         }
 
         return original;
     }
+
 }

@@ -3,6 +3,7 @@ package net.ccbluex.liquidbounce.features.module.modules.player.invcleaner
 import net.ccbluex.liquidbounce.features.module.modules.player.invcleaner.ItemPacker.ItemAmountContraintProvider.SatisfactionStatus.OVERSATURATED
 import net.ccbluex.liquidbounce.features.module.modules.player.invcleaner.ItemPacker.ItemAmountContraintProvider.SatisfactionStatus.SATISFIED
 import net.ccbluex.liquidbounce.features.module.modules.player.invcleaner.items.ItemFacet
+import net.ccbluex.liquidbounce.utils.inventory.ItemSlot
 import net.minecraft.item.ItemStack
 
 /**
@@ -33,6 +34,7 @@ class ItemPacker {
         itemsToFillIn: List<ItemFacet>,
         hotbarSlotsToFill: List<ItemSlot>?,
         forbiddenSlots: Set<ItemSlot>,
+        forbiddenSlotsToFill: Set<ItemSlot>,
         contraintProvider: ItemAmountContraintProvider
     ): List<InventorySwap> {
         val moves = ArrayList<InventorySwap>()
@@ -75,7 +77,7 @@ class ItemPacker {
             // Now find a fitting slot for the item.
             val targetSlot = fillItemIntoSlot(filledInItemSlot, leftHotbarSlotIterator)
 
-            if (targetSlot != null) {
+            if (targetSlot != null && targetSlot !in forbiddenSlotsToFill) {
                 moves.add(InventorySwap(filledInItemSlot, targetSlot))
             }
         }

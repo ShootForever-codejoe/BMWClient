@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015 - 2024 CCBlueX
+ * Copyright (c) 2015 - 2025 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,8 +22,8 @@ package net.ccbluex.liquidbounce.event.events
 
 import net.ccbluex.liquidbounce.event.Event
 import net.ccbluex.liquidbounce.utils.client.Nameable
-import net.ccbluex.liquidbounce.web.socket.protocol.event.WebSocketEvent
-import net.ccbluex.liquidbounce.web.socket.protocol.rest.game.PlayerData
+import net.ccbluex.liquidbounce.integration.interop.protocol.event.WebSocketEvent
+import net.ccbluex.liquidbounce.integration.interop.protocol.rest.v1.game.PlayerData
 
 @Nameable("fps")
 @WebSocketEvent

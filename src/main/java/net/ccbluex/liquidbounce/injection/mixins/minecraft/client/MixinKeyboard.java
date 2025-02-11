@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015 - 2024 CCBlueX
+ * Copyright (c) 2015 - 2025 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,13 +46,11 @@ public class MixinKeyboard {
     @Inject(method = "onKey", at = @At(value = "FIELD", target = "Lnet/minecraft/client/MinecraftClient;currentScreen:Lnet/minecraft/client/gui/screen/Screen;", shift = At.Shift.BEFORE, ordinal = 0))
     private void hookKeyboardKey(long window, int key, int scancode, int i, int j, CallbackInfo callback) {
         // does if (window == this.client.getWindow().getHandle())
-        EventManager.INSTANCE.callEvent(new KeyboardKeyEvent(key, scancode, i, j));
+        var inputKey = InputUtil.fromKeyCode(key, scancode);
 
+        EventManager.INSTANCE.callEvent(new KeyboardKeyEvent(inputKey, key, scancode, i, j, this.client.currentScreen));
         if (client.currentScreen == null) {
-            var inputKey = InputUtil.fromKeyCode(key, scancode);
-
-            EventManager.INSTANCE.callEvent(new KeyEvent(new KeyEvent.Key(inputKey.getCode(),
-                    inputKey.getTranslationKey()), i, j));
+            EventManager.INSTANCE.callEvent(new KeyEvent(inputKey, i));
         }
     }
 

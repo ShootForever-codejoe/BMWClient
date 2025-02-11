@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2024 CCBlueX
+ * Copyright (c) 2015 - 2025 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@ package net.ccbluex.liquidbounce.features.module.modules.player.autobuff.feature
 
 import net.ccbluex.liquidbounce.event.Sequence
 import net.ccbluex.liquidbounce.features.module.modules.player.autobuff.HealthBasedBuff
-import net.ccbluex.liquidbounce.features.module.modules.player.invcleaner.HotbarItemSlot
+import net.ccbluex.liquidbounce.utils.inventory.HotbarItemSlot
 import net.ccbluex.liquidbounce.utils.client.Chronometer
 import net.ccbluex.liquidbounce.utils.inventory.useHotbarSlotOrOffhand
 import net.minecraft.item.Items

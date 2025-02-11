@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2024 CCBlueX
+ * Copyright (c) 2015 - 2025 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,7 +21,7 @@
 
 package net.ccbluex.liquidbounce.utils.aiming.anglesmooth
 
-import net.ccbluex.liquidbounce.config.Choice
+import net.ccbluex.liquidbounce.config.types.Choice
 import net.ccbluex.liquidbounce.utils.aiming.Rotation
 import net.minecraft.entity.Entity
 import net.minecraft.util.math.Vec3d

@@ -1,7 +1,7 @@
 /*
  * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
  *
- * Copyright (c) 2015-2024 CCBlueX
+ * Copyright (c) 2015 - 2025 CCBlueX
  *
  * LiquidBounce is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -20,31 +20,37 @@
  */
 package net.ccbluex.liquidbounce.features.module.modules.movement.speed.modes.watchdog
 
-import net.ccbluex.liquidbounce.config.Choice
-import net.ccbluex.liquidbounce.config.ChoiceConfigurable
-import net.ccbluex.liquidbounce.event.events.MovementInputEvent
+import net.ccbluex.liquidbounce.config.types.ChoiceConfigurable
+import net.ccbluex.liquidbounce.event.events.PacketEvent
 import net.ccbluex.liquidbounce.event.events.PlayerJumpEvent
 import net.ccbluex.liquidbounce.event.handler
-import net.ccbluex.liquidbounce.event.repeatable
-import net.ccbluex.liquidbounce.features.module.modules.movement.speed.ModuleSpeed
-import net.ccbluex.liquidbounce.features.module.modules.player.ModuleBlink
-import net.ccbluex.liquidbounce.features.module.modules.player.nofall.ModuleNoFall
-import net.ccbluex.liquidbounce.features.module.modules.world.scaffold.ModuleScaffold
-import net.ccbluex.liquidbounce.utils.client.Timer
-import net.ccbluex.liquidbounce.utils.entity.moving
+import net.ccbluex.liquidbounce.event.sequenceHandler
+import net.ccbluex.liquidbounce.event.tickHandler
+import net.ccbluex.liquidbounce.features.module.modules.movement.speed.modes.SpeedBHopBase
 import net.ccbluex.liquidbounce.utils.entity.sqrtSpeed
-import net.ccbluex.liquidbounce.utils.entity.strafe
-import net.ccbluex.liquidbounce.utils.kotlin.Priority
+import net.ccbluex.liquidbounce.utils.entity.withStrafe
+import net.ccbluex.liquidbounce.utils.kotlin.EventPriorityConvention.CRITICAL_MODIFICATION
 import net.minecraft.entity.effect.StatusEffects
-import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket
+import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket
+import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 
 /**
  * @anticheat Watchdog (NCP)
- * @anticheatVersion 28.8.2024
+ * @anticheatVersion 12.12.2023
  * @testedOn hypixel.net
  */
-class SpeedHypixelBHop(override val parent: ChoiceConfigurable<*>) : Choice("HypixelBHop") {
+class SpeedHypixelBHop(override val parent: ChoiceConfigurable<*>) : SpeedBHopBase("HypixelBHop", parent) {
+
+    private val horizontalAcceleration by boolean("HorizontalAcceleration", true)
+    private val verticalAcceleration by boolean("VerticalAcceleration", true)
+
     companion object {
+
+        private const val BASE_HORIZONTAL_MODIFIER = 0.0004
+
+        private const val HORIZONTAL_SPEED_AMPLIFIER = 0.0007
+        private const val VERTICAL_SPEED_AMPLIFIER = 0.0004
+
         /**
          * Vanilla maximum speed
          * w/o: 0.2857671997172534
@@ -54,26 +60,35 @@ class SpeedHypixelBHop(override val parent: ChoiceConfigurable<*>) : Choice("Hyp
          * Speed mod: 0.008003278196411223
          */
         private const val AT_LEAST = 0.281
-        private const val SPEED_EFFECT_CONST = 0.13
+        private const val BASH = 0.2857671997172534
+        private const val SPEED_EFFECT_CONST = 0.008003278196411223
 
     }
 
     private var wasFlagged = false
-    private var airTicks = 0
 
-    val repeatable = repeatable {
+    val repeatable = tickHandler {
         if (player.isOnGround) {
-            player.strafe()
-            airTicks = 0
-            return@repeatable
+            // Strafe when on ground
+            player.velocity = player.velocity.withStrafe()
+            return@tickHandler
         } else {
-            airTicks++
-            if (airTicks == 1) {
-                player.strafe(strength = 1.0)
+            // Not much speed boost, but still a little bit - if someone wants to improve this, feel free to do so
+            val horizontalMod = if (horizontalAcceleration) {
+                BASE_HORIZONTAL_MODIFIER + HORIZONTAL_SPEED_AMPLIFIER *
+                    (player.getStatusEffect(StatusEffects.SPEED)?.amplifier ?: 0)
+            } else {
+                0.0
             }
-            if(airTicks == 5) {
-                player.velocity.y = -0.1523351824467155
+
+            // Vertical acceleration, this makes sense to get a little bit more speed again
+            val yMod = if (verticalAcceleration && player.velocity.y < 0 && player.fallDistance < 1) {
+                VERTICAL_SPEED_AMPLIFIER
+            } else {
+                0.0
             }
+
+            player.velocity = player.velocity.multiply(1.0 + horizontalMod, 1.0 + yMod, 1.0 + horizontalMod)
         }
     }
 
@@ -84,23 +99,39 @@ class SpeedHypixelBHop(override val parent: ChoiceConfigurable<*>) : Choice("Hyp
             0.0
         }
 
-        player.strafe(speed = player.sqrtSpeed.coerceAtLeast(atLeast) - 0.002)
+        player.velocity = player.velocity.withStrafe(speed = player.sqrtSpeed.coerceAtLeast(atLeast))
     }
 
-    val moveHandler = handler<MovementInputEvent> {
-        if (!player.isOnGround || !player.moving) {
-            return@handler
+    /**
+     * Damage Boost
+     */
+    @Suppress("unused")
+    val packetHandler = sequenceHandler<PacketEvent>(priority = CRITICAL_MODIFICATION) { event ->
+        val packet = event.packet
+
+        if (packet is EntityVelocityUpdateS2CPacket && packet.entityId == player.id) {
+            val velocityX = packet.velocityX / 8000.0
+            val velocityY = packet.velocityY / 8000.0
+            val velocityZ = packet.velocityZ / 8000.0
+
+            waitTicks(1)
+
+            // Fall damage velocity
+            val speed = if (velocityX == 0.0 && velocityZ == 0.0 && velocityY == -0.078375) {
+                player.sqrtSpeed.coerceAtLeast(
+                    BASH *
+                        (player.getStatusEffect(StatusEffects.SPEED)?.amplifier ?: 0))
+            } else {
+                player.sqrtSpeed
+            }
+            player.velocity = player.velocity.withStrafe(speed = speed)
+        } else if (packet is PlayerPositionLookS2CPacket) {
+            wasFlagged = true
         }
-
-        if (ModuleSpeed.shouldDelayJump())
-            return@handler
-
-        it.jumping = true
     }
 
     override fun disable() {
         wasFlagged = false
-        airTicks = 0
     }
 
 }

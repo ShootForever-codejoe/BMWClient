@@ -1,10 +1,10 @@
 package net.ccbluex.liquidbounce.utils.aiming
 
-import net.ccbluex.liquidbounce.config.ToggleableConfigurable
-import net.ccbluex.liquidbounce.event.Listenable
+import net.ccbluex.liquidbounce.config.types.ToggleableConfigurable
+import net.ccbluex.liquidbounce.event.EventListener
 import net.ccbluex.liquidbounce.event.events.GameTickEvent
 import net.ccbluex.liquidbounce.event.handler
-import net.ccbluex.liquidbounce.utils.kotlin.EventPriorityConvention
+import net.ccbluex.liquidbounce.utils.kotlin.EventPriorityConvention.FIRST_PRIORITY
 
 /**
  * The slow start modulates the rotation speed based on the time duration
@@ -13,7 +13,7 @@ import net.ccbluex.liquidbounce.utils.kotlin.EventPriorityConvention
  * enhances aiming by providing smooth adjustments, particularly for fast-moving targets,
  * avoiding abrupt or unnatural flicks.
  */
-class SlowStart(owner: Listenable? = null)
+class SlowStart(owner: EventListener? = null)
     : ToggleableConfigurable(owner, "SlowStart", false) {
 
     // Configuration properties
@@ -50,7 +50,7 @@ class SlowStart(owner: Listenable? = null)
         }
 
     @Suppress("unused")
-    private val gameHandler = handler<GameTickEvent>(priority = EventPriorityConvention.FIRST_PRIORITY) {
+    private val gameHandler = handler<GameTickEvent>(priority = FIRST_PRIORITY) {
         ticksElapsed++
     }
 
