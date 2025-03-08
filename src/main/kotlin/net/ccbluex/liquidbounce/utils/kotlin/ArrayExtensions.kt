@@ -60,10 +60,16 @@ infix fun ClosedRange<Double>.step(step: Double): DoubleIterable {
             override fun hasNext(): Boolean = hasNextValue
 
             override fun nextDouble(): Double {
-                if (!hasNextValue) throw NoSuchElementException()
+                if (!hasNextValue) {
+                    throw NoSuchElementException()
+                }
+
                 val nextValue = current
                 current += step
-                if (current > endInclusive) hasNextValue = false
+                if (current > endInclusive) {
+                    hasNextValue = false
+                }
+
                 return nextValue
             }
 
@@ -82,6 +88,14 @@ inline fun range(iterable: DoubleIterable, operation: (Double) -> Unit) {
     }
 }
 
+inline fun range(iterable: IntProgression, operation: (Int) -> Unit) {
+    iterable.iterator().apply {
+        while (hasNext()) {
+            operation(nextInt())
+        }
+    }
+}
+
 inline fun range(iterable1: DoubleIterable, iterable2: DoubleIterable, operation: (Double, Double) -> Unit) {
     range(iterable1) { d1 ->
         range(iterable2) { d2 ->
@@ -90,14 +104,28 @@ inline fun range(iterable1: DoubleIterable, iterable2: DoubleIterable, operation
     }
 }
 
-fun ClosedFloatingPointRange<Float>.random(): Double {
-    require(start.isFinite())
-    require(endInclusive.isFinite())
-    return start + (endInclusive - start) * Math.random()
+inline fun range(
+    iterable1: IntProgression,
+    iterable2: IntProgression,
+    iterable3: IntProgression,
+    operation: (Int, Int, Int) -> Unit
+) {
+    range(iterable1) { d1 ->
+        range(iterable2) { d2 ->
+            range(iterable3) { d3 ->
+                operation(d1, d2, d3)
+            }
+        }
+    }
 }
 
-// Due to name conflicts, we have to rename the function
-fun ClosedFloatingPointRange<Double>.randomDouble(): Double {
+fun ClosedFloatingPointRange<Float>.random(): Float {
+    require(start.isFinite())
+    require(endInclusive.isFinite())
+    return (start + (endInclusive - start) * Math.random()).toFloat()
+}
+
+fun ClosedFloatingPointRange<Double>.random(): Double {
     require(start.isFinite())
     require(endInclusive.isFinite())
     return start + (endInclusive - start) * Math.random()
