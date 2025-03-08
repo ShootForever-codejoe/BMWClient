@@ -422,7 +422,7 @@ object ModuleManager : EventListener, Iterable<ClientModule> by modules {
         )
 
         builtin.forEach { module ->
-            addModule(module)
+            addModule(module as ClientModule)
             module.walkKeyPath()
             module.verifyFallbackDescription()
         }
