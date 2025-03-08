@@ -47,8 +47,6 @@ internal object NoFallMLG : Choice("MLG") {
     override val parent: ChoiceConfigurable<*>
         get() = ModuleNoFall.modes
 
-    private val cobwebPriority by boolean("CobwebPriority", true)
-
     private val minFallDist by float("MinFallDistance", 5f, 2f..50f)
 
     private object PickupWater : ToggleableConfigurable(NoFallMLG, "PickUpWater", true) {
@@ -161,12 +159,7 @@ internal object NoFallMLG : Choice("MLG") {
      * Find a way to prevent fall damage if we are falling.
      */
     private fun getCurrentMLGPlacementPlan(): PlacementPlan? {
-        val itemForMLG = Slots.Hotbar.findClosestItem(
-            items = if (cobwebPriority && Slots.Hotbar.findSlot { it.item == Items.COBWEB } != null) {
-            arrayOf(Items.COBWEB)
-        } else {
-            itemsForMLG
-        })
+        val itemForMLG = Slots.Hotbar.findClosestItem(items = itemsForMLG)
 
         if (player.fallDistance <= minFallDist || itemForMLG == null) {
             return null

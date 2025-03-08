@@ -11,7 +11,7 @@ fun notifyAsMessageAndNotification(content: String, severity: Severity = Severit
 }
 
 fun notifyAsMessage(content: String) {
-    mc.player!!.sendMessage(Text.of("§e[BMW Client]§f $content"))
+    mc.player!!.sendMessage(Text.of("§e[BMW Client]§f $content"), false)
 }
 
 fun notifyAsNotification(content: String, severity: Severity = Severity.INFO) {
