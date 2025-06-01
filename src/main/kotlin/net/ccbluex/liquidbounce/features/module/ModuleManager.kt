@@ -55,6 +55,7 @@ import net.ccbluex.liquidbounce.features.module.modules.movement.autododge.Modul
 import net.ccbluex.liquidbounce.features.module.modules.movement.elytrafly.ModuleElytraFly
 import net.ccbluex.liquidbounce.features.module.modules.movement.fly.ModuleFly
 import net.ccbluex.liquidbounce.features.module.modules.movement.highjump.ModuleHighJump
+import net.ccbluex.liquidbounce.features.module.modules.movement.inventorymove.ModuleInventoryMove
 import net.ccbluex.liquidbounce.features.module.modules.movement.liquidwalk.ModuleLiquidWalk
 import net.ccbluex.liquidbounce.features.module.modules.movement.longjump.ModuleLongJump
 import net.ccbluex.liquidbounce.features.module.modules.movement.noslow.ModuleNoSlow
@@ -271,6 +272,7 @@ object ModuleManager : EventListener, Iterable<ClientModule> by modules {
             ModuleFlagCheck,
             ModulePacketLogger,
             ModuleDebugRecorder,
+            ModuleAntiCheatDetect,
 
             // Movement
             ModuleAirJump,
@@ -343,6 +345,7 @@ object ModuleManager : EventListener, Iterable<ClientModule> by modules {
             ModuleDamageParticles,
             ModuleParticles,
             ModuleESP,
+            ModuleLogoffSpot,
             ModuleFreeCam,
             ModuleFreeLook,
             ModuleFullBright,
