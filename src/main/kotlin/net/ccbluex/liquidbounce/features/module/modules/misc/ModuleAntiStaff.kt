@@ -20,6 +20,7 @@ import net.minecraft.network.packet.s2c.play.PlayerListS2CPacket
  */
 object ModuleAntiStaff : ClientModule("AntiStaff", Category.MISC) {
 
+    private val heypixel by boolean("Heypixel", true)
     private val showInTabList by boolean("ShowInTabList", true)
     private val serverStaffList = hashMapOf<String, Set<String>>()
 
@@ -88,11 +89,6 @@ object ModuleAntiStaff : ClientModule("AntiStaff", Category.MISC) {
         try {
             val staffs = requestStaffList(address)
             serverStaffList[address] = staffs
-        suspend fun loadStaffList(address: String) {
-
-            try {
-                val staffs = requestStaffList(address)
-                serverStaffList[address] = staffs
 
             logger.info("[AntiStaff] Loaded ${staffs.size} staff member for $address")
             notification("AntiStaff", message("staffsLoaded", staffs.size, address),

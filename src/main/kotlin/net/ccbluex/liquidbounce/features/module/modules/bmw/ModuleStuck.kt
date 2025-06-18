@@ -2,17 +2,17 @@ package net.ccbluex.liquidbounce.features.module.modules.bmw
 
 import net.ccbluex.liquidbounce.bmw.*
 import net.ccbluex.liquidbounce.event.events.PacketEvent
-import net.ccbluex.liquidbounce.event.events.GameTickEvent
 import net.ccbluex.liquidbounce.event.events.MovementInputEvent
 import net.ccbluex.liquidbounce.event.handler
+import net.ccbluex.liquidbounce.event.tickHandler
 import net.ccbluex.liquidbounce.features.module.Category
-import net.ccbluex.liquidbounce.features.module.Module
+import net.ccbluex.liquidbounce.features.module.ClientModule
 import net.ccbluex.liquidbounce.utils.client.sendPacketSilently
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerInteractItemC2SPacket
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 
-object ModuleStuck : Module("Stuck", Category.BMW) {
+object ModuleStuck : ClientModule("Stuck", Category.BMW) {
 
     private val autoReset by boolean("AutoReset", false)
     private val resetTicks by int("ResetTicks", 20, 1..200, "ticks")
@@ -21,12 +21,14 @@ object ModuleStuck : Module("Stuck", Category.BMW) {
     private var stuckTicks = 0
     private var isInAir = false
 
+    @Suppress("unused")
     val movementInputEventHandler = handler<MovementInputEvent> {
         player.movement.x = 0.0
         player.movement.y = 0.0
         player.movement.z = 0.0
     }
 
+    @Suppress("unused")
     val packetEventHandler = handler<PacketEvent> { event ->
         if (!player.isOnGround) {
             isInAir = true
@@ -43,7 +45,7 @@ object ModuleStuck : Module("Stuck", Category.BMW) {
             if (event.packet is PlayerInteractItemC2SPacket) {
                 event.cancelEvent()
                 sendPacketSilently(PlayerMoveC2SPacket.LookAndOnGround(
-                    player.yaw, player.pitch, player.isOnGround
+                    player.yaw, player.pitch, player.isOnGround, player.horizontalCollision
                 ))
                 sendPacketSilently(PlayerInteractItemC2SPacket(
                     event.packet.hand, event.packet.sequence, player.yaw, player.pitch
@@ -55,9 +57,10 @@ object ModuleStuck : Module("Stuck", Category.BMW) {
         }
     }
 
-    val gameTickEventHandler = handler<GameTickEvent> {
+    @Suppress("unused")
+    val tickHandler = tickHandler {
         if (!autoReset) {
-            return@handler
+            return@tickHandler
         }
 
         stuckTicks++

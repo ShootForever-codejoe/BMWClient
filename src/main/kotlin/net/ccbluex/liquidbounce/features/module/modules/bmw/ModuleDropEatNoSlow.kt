@@ -3,16 +3,17 @@ package net.ccbluex.liquidbounce.features.module.modules.bmw
 import net.ccbluex.liquidbounce.event.events.PlayerUseMultiplier
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.features.module.Category
-import net.ccbluex.liquidbounce.features.module.Module
+import net.ccbluex.liquidbounce.features.module.ClientModule
 import net.ccbluex.liquidbounce.utils.entity.moving
 import net.minecraft.util.Hand
-import net.minecraft.util.UseAction
+import net.minecraft.item.consume.UseAction
 
-object ModuleDropEatNoSlow : Module("DropEatNoSlow", Category.BMW) {
+object ModuleDropEatNoSlow : ClientModule("DropEatNoSlow", Category.BMW) {
 
     private var dropped = false
 
-    val multiplierEventHandler = handler<PlayerUseMultiplier> { event ->
+    @Suppress("unused")
+    val playerUseMultiplierHandler = handler<PlayerUseMultiplier> { event ->
         if (player.activeItem.useAction != UseAction.EAT || player.itemUseTimeLeft <= 0) {
             dropped = false
             return@handler

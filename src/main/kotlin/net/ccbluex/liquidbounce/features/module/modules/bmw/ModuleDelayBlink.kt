@@ -1,16 +1,16 @@
 package net.ccbluex.liquidbounce.features.module.modules.bmw
 
 import net.ccbluex.liquidbounce.bmw.*
-import net.ccbluex.liquidbounce.event.events.GameTickEvent
 import net.ccbluex.liquidbounce.event.events.PacketEvent
 import net.ccbluex.liquidbounce.event.events.TransferOrigin
 import net.ccbluex.liquidbounce.event.handler
+import net.ccbluex.liquidbounce.event.tickHandler
 import net.ccbluex.liquidbounce.features.module.Category
-import net.ccbluex.liquidbounce.features.module.Module
+import net.ccbluex.liquidbounce.features.module.ClientModule
 import net.ccbluex.liquidbounce.utils.client.sendPacketSilently
 import net.minecraft.network.packet.Packet
 
-object ModuleDelayBlink : Module("DelayBlink", Category.BMW, disableOnQuit = true) {
+object ModuleDelayBlink : ClientModule("DelayBlink", Category.BMW, disableOnQuit = true) {
 
     private val delay by int("Delay", 20, 0..200, "ticks")
     private val displayDelay by boolean("DisplayDelay", true)
@@ -18,7 +18,8 @@ object ModuleDelayBlink : Module("DelayBlink", Category.BMW, disableOnQuit = tru
     private val packets = mutableListOf<Packet<*>>()
     private var ticks = 0
 
-    val gameTickEventHandler = handler<GameTickEvent> {
+    @Suppress("unused")
+    val tickHandler = tickHandler {
         ticks++
         if (ticks > delay) {
             ticks = delay
@@ -28,8 +29,9 @@ object ModuleDelayBlink : Module("DelayBlink", Category.BMW, disableOnQuit = tru
         }
     }
 
+    @Suppress("unused")
     val packetEventHandler = handler<PacketEvent> { event ->
-        if (event.origin == TransferOrigin.RECEIVE) {
+        if (event.origin == TransferOrigin.INCOMING) {
             return@handler
         }
 
@@ -50,4 +52,5 @@ object ModuleDelayBlink : Module("DelayBlink", Category.BMW, disableOnQuit = tru
             sendPacketSilently(it)
         }
     }
+
 }

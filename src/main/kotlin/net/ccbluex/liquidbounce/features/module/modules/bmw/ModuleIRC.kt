@@ -2,19 +2,19 @@ package net.ccbluex.liquidbounce.features.module.modules.bmw
 
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
-import net.ccbluex.liquidbounce.LiquidBounce
 import net.ccbluex.liquidbounce.bmw.*
 import net.ccbluex.liquidbounce.event.events.ChatSendEvent
-import net.ccbluex.liquidbounce.event.events.GameTickEvent
 import net.ccbluex.liquidbounce.event.handler
+import net.ccbluex.liquidbounce.event.tickHandler
 import net.ccbluex.liquidbounce.features.misc.FriendManager
 import net.ccbluex.liquidbounce.features.module.Category
-import net.ccbluex.liquidbounce.features.module.Module
+import net.ccbluex.liquidbounce.features.module.ClientModule
 import net.ccbluex.liquidbounce.utils.client.dropPort
 import net.ccbluex.liquidbounce.utils.client.inGame
 import okhttp3.*
 
-object ModuleIRC : Module("IRC", Category.BMW) {
+@Suppress("unused")
+object ModuleIRC : ClientModule("IRC", Category.BMW) {
 
     private val reconnectForFailureDelay by int("ReconnectForFailureDelay", 20, 1..100, "ticks")
 
@@ -22,19 +22,20 @@ object ModuleIRC : Module("IRC", Category.BMW) {
     private var connected = false
     private var ticks = -1
 
-    val gameTickEventHandler = handler<GameTickEvent> {
+    @Suppress("unused")
+    val tickHandler = tickHandler {
         if (connected || !inGame || mc.currentScreen == null) {
-            return@handler
+            return@tickHandler
         }
         if (ticks != -1 && ticks < reconnectForFailureDelay) {
             ticks++
-            return@handler
+            return@tickHandler
         }
         ticks = 0
         connected = true
 
         val client = OkHttpClient()
-        val request = Request.Builder().url(BMW_IP).build()
+        val request = Request.Builder().url("").build()
         webSocket = client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
                 notifyAsMessage("IRC连接服务器成功")
@@ -43,18 +44,11 @@ object ModuleIRC : Module("IRC", Category.BMW) {
                 messageJson.addProperty("server", network.connection.address.toString().dropPort())
                 messageJson.addProperty("name", player.name.literalString!!)
                 webSocket.send(messageJson.toString())
-
-                messageJson = JsonObject()
-                messageJson.addProperty("func", "get_free")
-                webSocket.send(messageJson.toString())
             }
 
             override fun onMessage(webSocket: WebSocket, text: String) {
                 val messageJson = JsonParser.parseString(text).asJsonObject
                 when (messageJson.get("func").asString) {
-                    "get_free" -> {
-                        LiquidBounce.free = messageJson.get("free").asBoolean
-                    }
                     "send_msg" -> {
                         notifyAsMessage("§aIRC §f| §a${messageJson.get("name").asString}§f: ${messageJson.get("msg").asString}")
                     }
@@ -85,6 +79,7 @@ object ModuleIRC : Module("IRC", Category.BMW) {
         })
     }
 
+    @Suppress("unused")
     val chatSendEventHandler = handler<ChatSendEvent> { event ->
         if (event.message.trimStart()[0] != '#') {
             return@handler

@@ -1,15 +1,15 @@
 package net.ccbluex.liquidbounce.features.module.modules.bmw
 
-import net.ccbluex.liquidbounce.config.NamedChoice
+import net.ccbluex.liquidbounce.config.types.NamedChoice
 import net.ccbluex.liquidbounce.event.events.WorldChangeEvent
-import net.ccbluex.liquidbounce.event.events.AttackEvent
+import net.ccbluex.liquidbounce.event.events.AttackEntityEvent
 import net.ccbluex.liquidbounce.event.handler
-import net.ccbluex.liquidbounce.event.repeatable
+import net.ccbluex.liquidbounce.event.tickHandler
 import net.ccbluex.liquidbounce.features.module.Category
-import net.ccbluex.liquidbounce.features.module.Module
+import net.ccbluex.liquidbounce.features.module.ClientModule
 import net.minecraft.entity.Entity
 
-object ModuleAutoL : Module("AutoL", Category.BMW) {
+object ModuleAutoL : ClientModule("AutoL", Category.BMW) {
 
     enum class WordPatternChoices(override val choiceName: String) : NamedChoice {
         POEM("Poem"),
@@ -22,17 +22,20 @@ object ModuleAutoL : Module("AutoL", Category.BMW) {
 
     private val enemies = mutableListOf<Entity>()
 
-    val worldChangeEvent = handler<WorldChangeEvent> {
+    @Suppress("unused")
+    val worldChangeEventHandler = handler<WorldChangeEvent> {
         enemies.clear()
     }
 
-    val attackEventHandler = handler<AttackEvent> { event ->
-        if (event.enemy.isPlayer && !enemies.contains(event.enemy)) {
-            enemies.add(event.enemy)
+    @Suppress("unused")
+    val attackEventHandler = handler<AttackEntityEvent> { event ->
+        if (event.entity.isPlayer && !enemies.contains(event.entity)) {
+            enemies.add(event.entity)
         }
     }
 
-    val repeatHandler = repeatable {
+    @Suppress("unused")
+    val tickHandler = tickHandler {
         enemies.filter { !it.isAlive }.forEach {
             sayL(it)
             enemies.remove(it)

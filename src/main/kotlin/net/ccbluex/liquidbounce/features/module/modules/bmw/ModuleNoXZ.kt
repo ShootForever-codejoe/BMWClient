@@ -1,27 +1,28 @@
 package net.ccbluex.liquidbounce.features.module.modules.bmw
 
+import net.ccbluex.liquidbounce.event.events.AttackEntityEvent
 import net.ccbluex.liquidbounce.event.events.PacketEvent
-import net.ccbluex.liquidbounce.event.events.AttackEvent
 import net.ccbluex.liquidbounce.event.handler
-import net.ccbluex.liquidbounce.event.repeatable
+import net.ccbluex.liquidbounce.event.tickHandler
 import net.ccbluex.liquidbounce.features.module.Category
-import net.ccbluex.liquidbounce.features.module.Module
+import net.ccbluex.liquidbounce.features.module.ClientModule
 import net.ccbluex.liquidbounce.utils.client.isOlderThanOrEqual1_8
 import net.ccbluex.liquidbounce.utils.client.protocolVersion
 import net.ccbluex.liquidbounce.utils.math.Vec2i
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
 import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket
 import net.minecraft.network.packet.s2c.play.ExplosionS2CPacket
-import net.minecraft.util.UseAction
+import net.minecraft.item.consume.UseAction
 
-object ModuleNoXZ : Module("NoXZ", Category.BMW) {
+object ModuleNoXZ : ClientModule("NoXZ", Category.BMW) {
 
     private val xzMultiple by float("XZMultiple", 0.5f, 0f..1f)
     private val attackTimes by int("AttackTimes", 5, 0..20, "times")
 
     private var velocityInput = false
 
-    val repeatHandler = repeatable {
+    @Suppress("unused")
+    val tickHandler = tickHandler {
         if (protocolVersion.version > 47) {
             if (player.hurtTime == 0) {
                 velocityInput = false
@@ -34,9 +35,10 @@ object ModuleNoXZ : Module("NoXZ", Category.BMW) {
         }
     }
 
-    val attackEventHandler = handler<AttackEvent> { event ->
+    @Suppress("unused")
+    val attackEntityEventHandler = handler<AttackEntityEvent> { event ->
         if (velocityInput
-            && event.enemy.isPlayer
+            && event.entity.isPlayer
             && player.isAlive
             && !player.isSpectator
             && !player.isInFluid
@@ -50,9 +52,9 @@ object ModuleNoXZ : Module("NoXZ", Category.BMW) {
             repeat(attackTimes) {
                 if (isOlderThanOrEqual1_8) {
                     player.swingHand(player.activeHand)
-                    PlayerInteractEntityC2SPacket.attack(event.enemy, player.isSneaking)
+                    PlayerInteractEntityC2SPacket.attack(event.entity, player.isSneaking)
                 } else {
-                    PlayerInteractEntityC2SPacket.attack(event.enemy, player.isSneaking)
+                    PlayerInteractEntityC2SPacket.attack(event.entity, player.isSneaking)
                     player.swingHand(player.activeHand)
                 }
             }
@@ -61,6 +63,7 @@ object ModuleNoXZ : Module("NoXZ", Category.BMW) {
         }
     }
 
+    @Suppress("unused")
     val packetEventHandler = handler<PacketEvent> { event ->
         val packet = event.packet
 

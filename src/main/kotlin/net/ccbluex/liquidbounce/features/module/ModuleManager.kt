@@ -419,7 +419,6 @@ object ModuleManager : EventListener, Iterable<ClientModule> by modules {
             ModuleNoXZ,
             ModuleAutoL,
             ModuleStuck,
-            ModuleTellyBridge,
             ModuleDropEatNoSlow,
             ModuleDelayBlink
         )
