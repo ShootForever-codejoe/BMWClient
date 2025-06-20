@@ -16,7 +16,7 @@ object ModuleStuck : ClientModule("Stuck", Category.BMW) {
 
     private val autoReset by boolean("AutoReset", false)
     private val resetTicks by int("ResetTicks", 20, 1..200, "ticks")
-    private val CancelC03Packet by boolean("CancelC03Packet", true)
+    private val cancelC03Packet by boolean("CancelC03Packet", true)
 
     private var stuckTicks = 0
     private var isInAir = false
@@ -38,7 +38,7 @@ object ModuleStuck : ClientModule("Stuck", Category.BMW) {
                 enabled = false
             }
 
-            if (CancelC03Packet && event.packet is PlayerMoveC2SPacket) {
+            if (cancelC03Packet && event.packet is PlayerMoveC2SPacket) {
                 event.cancelEvent()
             }
 
