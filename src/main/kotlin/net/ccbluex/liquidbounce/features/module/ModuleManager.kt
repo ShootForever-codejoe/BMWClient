@@ -86,6 +86,7 @@ import net.ccbluex.liquidbounce.features.module.modules.world.nuker.ModuleNuker
 import net.ccbluex.liquidbounce.features.module.modules.world.packetmine.ModulePacketMine
 import net.ccbluex.liquidbounce.features.module.modules.world.scaffold.ModuleScaffold
 import net.ccbluex.liquidbounce.features.module.modules.bmw.*
+import net.ccbluex.liquidbounce.features.module.modules.bmw.grimvelocity.ModuleGrimVelocity
 import net.ccbluex.liquidbounce.features.module.modules.world.traps.ModuleAutoTrap
 import net.ccbluex.liquidbounce.script.ScriptApiRequired
 import net.ccbluex.liquidbounce.utils.client.logger
@@ -416,11 +417,11 @@ object ModuleManager : EventListener, Iterable<ClientModule> by modules {
             ModuleLiquidChat,
 
             // BMW
-            ModuleNoXZ,
             ModuleAutoL,
             ModuleStuck,
             ModuleDropEatNoSlow,
-            ModuleDelayBlink
+            ModuleDelayBlink,
+            ModuleGrimVelocity
         )
 
         builtin.forEach { module ->

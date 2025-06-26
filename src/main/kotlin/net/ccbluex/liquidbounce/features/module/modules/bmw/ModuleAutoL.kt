@@ -23,19 +23,19 @@ object ModuleAutoL : ClientModule("AutoL", Category.BMW) {
     private val enemies = mutableListOf<Entity>()
 
     @Suppress("unused")
-    val worldChangeEventHandler = handler<WorldChangeEvent> {
+    private val worldChangeEventHandler = handler<WorldChangeEvent> {
         enemies.clear()
     }
 
     @Suppress("unused")
-    val attackEventHandler = handler<AttackEntityEvent> { event ->
+    private val attackEventHandler = handler<AttackEntityEvent> { event ->
         if (event.entity.isPlayer && !enemies.contains(event.entity)) {
             enemies.add(event.entity)
         }
     }
 
     @Suppress("unused")
-    val tickHandler = tickHandler {
+    private val tickHandler = tickHandler {
         enemies.filter { !it.isAlive }.forEach {
             sayL(it)
             enemies.remove(it)

@@ -9,17 +9,19 @@ import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
 import net.ccbluex.liquidbounce.utils.client.sendPacketSilently
 import net.minecraft.network.packet.Packet
+import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
 
 object ModuleDelayBlink : ClientModule("DelayBlink", Category.BMW, disableOnQuit = true) {
 
     private val delay by int("Delay", 20, 0..200, "ticks")
     private val displayDelay by boolean("DisplayDelay", true)
+    private val autoDisable by boolean("AutoDisable", true)
 
     private val packets = mutableListOf<Packet<*>>()
     private var ticks = 0
 
     @Suppress("unused")
-    val tickHandler = tickHandler {
+    private val tickHandler = tickHandler {
         ticks++
         if (ticks > delay) {
             ticks = delay
@@ -30,7 +32,12 @@ object ModuleDelayBlink : ClientModule("DelayBlink", Category.BMW, disableOnQuit
     }
 
     @Suppress("unused")
-    val packetEventHandler = handler<PacketEvent> { event ->
+    private val packetEventHandler = handler<PacketEvent> { event ->
+        if (autoDisable && event.packet is PlayerInteractEntityC2SPacket) {
+            enabled = false
+            return@handler
+        }
+
         if (event.origin == TransferOrigin.INCOMING) {
             return@handler
         }

@@ -22,14 +22,14 @@ object ModuleStuck : ClientModule("Stuck", Category.BMW) {
     private var isInAir = false
 
     @Suppress("unused")
-    val movementInputEventHandler = handler<MovementInputEvent> {
+    private val movementInputEventHandler = handler<MovementInputEvent> {
         player.movement.x = 0.0
         player.movement.y = 0.0
         player.movement.z = 0.0
     }
 
     @Suppress("unused")
-    val packetEventHandler = handler<PacketEvent> { event ->
+    private val packetEventHandler = handler<PacketEvent> { event ->
         if (!player.isOnGround) {
             isInAir = true
 
@@ -58,7 +58,7 @@ object ModuleStuck : ClientModule("Stuck", Category.BMW) {
     }
 
     @Suppress("unused")
-    val tickHandler = tickHandler {
+    private val tickHandler = tickHandler {
         if (!autoReset) {
             return@tickHandler
         }

@@ -23,7 +23,7 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
     private var ticks = -1
 
     @Suppress("unused")
-    val tickHandler = tickHandler {
+    private val tickHandler = tickHandler {
         if (connected || !inGame || mc.currentScreen == null) {
             return@tickHandler
         }
@@ -80,7 +80,7 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
     }
 
     @Suppress("unused")
-    val chatSendEventHandler = handler<ChatSendEvent> { event ->
+    private val chatSendEventHandler = handler<ChatSendEvent> { event ->
         if (event.message.trimStart()[0] != '#') {
             return@handler
         }

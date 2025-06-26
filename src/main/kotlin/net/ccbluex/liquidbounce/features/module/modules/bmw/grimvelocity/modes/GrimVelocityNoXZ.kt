@@ -1,20 +1,24 @@
-package net.ccbluex.liquidbounce.features.module.modules.bmw
+package net.ccbluex.liquidbounce.features.module.modules.bmw.grimvelocity.modes
 
+import net.ccbluex.liquidbounce.config.types.Choice
+import net.ccbluex.liquidbounce.config.types.ChoiceConfigurable
 import net.ccbluex.liquidbounce.event.events.AttackEntityEvent
 import net.ccbluex.liquidbounce.event.events.PacketEvent
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.event.tickHandler
-import net.ccbluex.liquidbounce.features.module.Category
-import net.ccbluex.liquidbounce.features.module.ClientModule
+import net.ccbluex.liquidbounce.features.module.modules.bmw.grimvelocity.ModuleGrimVelocity
 import net.ccbluex.liquidbounce.utils.client.isOlderThanOrEqual1_8
 import net.ccbluex.liquidbounce.utils.client.protocolVersion
 import net.ccbluex.liquidbounce.utils.math.Vec2i
+import net.minecraft.item.consume.UseAction
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
 import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket
 import net.minecraft.network.packet.s2c.play.ExplosionS2CPacket
-import net.minecraft.item.consume.UseAction
 
-object ModuleNoXZ : ClientModule("NoXZ", Category.BMW) {
+object GrimVelocityNoXZ : Choice("NoXZ") {
+
+    override val parent: ChoiceConfigurable<*>
+        get() = ModuleGrimVelocity.modes
 
     private val xzMultiple by float("XZMultiple", 0.5f, 0f..1f)
     private val attackTimes by int("AttackTimes", 5, 0..20, "times")
@@ -22,7 +26,7 @@ object ModuleNoXZ : ClientModule("NoXZ", Category.BMW) {
     private var velocityInput = false
 
     @Suppress("unused")
-    val tickHandler = tickHandler {
+    private val tickHandler = tickHandler {
         if (protocolVersion.version > 47) {
             if (player.hurtTime == 0) {
                 velocityInput = false
@@ -36,7 +40,7 @@ object ModuleNoXZ : ClientModule("NoXZ", Category.BMW) {
     }
 
     @Suppress("unused")
-    val attackEntityEventHandler = handler<AttackEntityEvent> { event ->
+    private val attackEntityEventHandler = handler<AttackEntityEvent> { event ->
         if (velocityInput
             && event.entity.isPlayer
             && player.isAlive
@@ -64,7 +68,7 @@ object ModuleNoXZ : ClientModule("NoXZ", Category.BMW) {
     }
 
     @Suppress("unused")
-    val packetEventHandler = handler<PacketEvent> { event ->
+    private val packetEventHandler = handler<PacketEvent> { event ->
         val packet = event.packet
 
         if (packet is EntityVelocityUpdateS2CPacket

@@ -13,7 +13,7 @@ object ModuleDropEatNoSlow : ClientModule("DropEatNoSlow", Category.BMW) {
     private var dropped = false
 
     @Suppress("unused")
-    val playerUseMultiplierHandler = handler<PlayerUseMultiplier> { event ->
+    private val playerUseMultiplierHandler = handler<PlayerUseMultiplier> { event ->
         if (player.activeItem.useAction != UseAction.EAT || player.itemUseTimeLeft <= 0) {
             dropped = false
             return@handler
