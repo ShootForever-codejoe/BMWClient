@@ -19,12 +19,18 @@ object ModuleDelayBlink : ClientModule("DelayBlink", Category.BMW, disableOnQuit
 
     private val packets = mutableListOf<Packet<*>>()
     private var ticks = 0
+    private var full = false
 
     @Suppress("unused")
     private val tickHandler = tickHandler {
         ticks++
         if (ticks > delay) {
             ticks = delay
+            if (!full) {
+                full = true
+                if (!displayDelay)
+                    notifyAsMessage("Start Sending the Packets $delay Ticks Ago")
+            }
         }
         if (displayDelay) {
             notifyAsMessage("Blink Delay: $ticks / $delay")
@@ -52,6 +58,10 @@ object ModuleDelayBlink : ClientModule("DelayBlink", Category.BMW, disableOnQuit
     override fun enable() {
         packets.clear()
         ticks = 0
+        full = false
+        if (!displayDelay) {
+            notifyAsMessage("Collecting Packets...")
+        }
     }
 
     override fun disable() {

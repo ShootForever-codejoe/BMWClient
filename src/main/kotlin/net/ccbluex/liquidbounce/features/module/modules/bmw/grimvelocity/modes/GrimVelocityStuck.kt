@@ -1,11 +1,8 @@
 package net.ccbluex.liquidbounce.features.module.modules.bmw.grimvelocity.modes
 
-import net.ccbluex.liquidbounce.bmw.notifyAsMessage
-import net.ccbluex.liquidbounce.bmw.notifyAsNotification
 import net.ccbluex.liquidbounce.config.types.Choice
 import net.ccbluex.liquidbounce.config.types.ChoiceConfigurable
 import net.ccbluex.liquidbounce.event.events.MovementInputEvent
-import net.ccbluex.liquidbounce.event.events.NotificationEvent.Severity
 import net.ccbluex.liquidbounce.event.events.PacketEvent
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.event.tickHandler
@@ -13,6 +10,7 @@ import net.ccbluex.liquidbounce.features.module.modules.bmw.grimvelocity.ModuleG
 import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 
+@Suppress("unused")
 object GrimVelocityStuck : Choice("Stuck") {
 
     override val parent: ChoiceConfigurable<*>
@@ -49,9 +47,6 @@ object GrimVelocityStuck : Choice("Stuck") {
     }
 
     override fun enable() {
-        notifyAsMessage("GrimVelocity-Stuck模式暂时无法使用")
-        notifyAsNotification("GrimVelocity-Stuck模式暂时无法使用", Severity.ERROR)
-        ModuleGrimVelocity.enabled = false
         velocityInput = false
         hurtTime = false
     }
