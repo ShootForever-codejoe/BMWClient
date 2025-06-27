@@ -20,6 +20,7 @@ package net.ccbluex.liquidbounce.features.module.modules.render.murdermystery
 
 import net.ccbluex.liquidbounce.event.events.PacketEvent
 import net.ccbluex.liquidbounce.event.events.TagEntityEvent
+import net.ccbluex.liquidbounce.event.events.WorldChangeEvent
 import net.ccbluex.liquidbounce.event.events.WorldRenderEvent
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.features.module.Category
@@ -65,6 +66,11 @@ object ModuleMurderMystery : ClientModule("MurderMystery", Category.RENDER) {
 
     private fun reset() {
         this.currentMode.reset()
+    }
+
+    @Suppress("unused")
+    val worldChangeEventHandler = handler<WorldChangeEvent> {
+        this.reset()
     }
 
     @Suppress("unused")

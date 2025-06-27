@@ -77,9 +77,6 @@ class NametagTextFormatter(private val entity: Entity) {
             val tagColor = EntityTaggingManager.getTag(this.entity).color
 
             return when {
-                isBot -> Formatting.DARK_AQUA.toTextColor()
-                entity.isInvisible -> Formatting.GOLD.toTextColor()
-                entity.isSneaking -> Formatting.DARK_RED.toTextColor()
                 tagColor != null -> TextColor.fromRgb(tagColor.toARGB())
                 else -> null
             }

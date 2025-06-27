@@ -1,6 +1,6 @@
 package net.ccbluex.liquidbounce.features.module.modules.bmw
 
-import net.ccbluex.liquidbounce.bmw.*
+import net.ccbluex.liquidbounce.bmw.notifyAsMessage
 import net.ccbluex.liquidbounce.event.events.PacketEvent
 import net.ccbluex.liquidbounce.event.events.TransferOrigin
 import net.ccbluex.liquidbounce.event.handler
@@ -24,22 +24,22 @@ object ModuleDelayBlink : ClientModule("DelayBlink", Category.BMW, disableOnQuit
     @Suppress("unused")
     private val tickHandler = tickHandler {
         ticks++
-        if (ticks > delay) {
+        if (ticks >= delay) {
             ticks = delay
             if (!full) {
                 full = true
-                if (!displayDelay)
-                    notifyAsMessage("Start Sending the Packets $delay Ticks Ago")
+                if (displayDelay) notifyAsMessage("[DelayBlink] Delay: $delay / $delay (Ticks)")
+                notifyAsMessage("[DelayBlink] Start Sending the Packets $delay Ticks Ago...")
             }
-        }
-        if (displayDelay) {
-            notifyAsMessage("Blink Delay: $ticks / $delay")
+        } else if (displayDelay) {
+            notifyAsMessage("[DelayBlink] Delay: $ticks / $delay (Ticks)")
         }
     }
 
     @Suppress("unused")
     private val packetEventHandler = handler<PacketEvent> { event ->
         if (autoDisable && event.packet is PlayerInteractEntityC2SPacket) {
+            notifyAsMessage("[DelayBlink] Auto Disable")
             enabled = false
             return@handler
         }
@@ -59,15 +59,14 @@ object ModuleDelayBlink : ClientModule("DelayBlink", Category.BMW, disableOnQuit
         packets.clear()
         ticks = 0
         full = false
-        if (!displayDelay) {
-            notifyAsMessage("Collecting Packets...")
-        }
+        notifyAsMessage("[DelayBlink] Start Collecting Packets...")
     }
 
     override fun disable() {
         packets.forEach {
             sendPacketSilently(it)
         }
+        notifyAsMessage("[DelayBlink] Already Sent All Packets")
     }
 
 }

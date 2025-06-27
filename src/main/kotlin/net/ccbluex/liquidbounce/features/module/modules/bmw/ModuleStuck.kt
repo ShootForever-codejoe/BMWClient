@@ -1,6 +1,6 @@
 package net.ccbluex.liquidbounce.features.module.modules.bmw
 
-import net.ccbluex.liquidbounce.bmw.*
+import net.ccbluex.liquidbounce.bmw.notifyAsMessage
 import net.ccbluex.liquidbounce.event.events.PacketEvent
 import net.ccbluex.liquidbounce.event.events.MovementInputEvent
 import net.ccbluex.liquidbounce.event.handler
@@ -14,6 +14,7 @@ import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 
 object ModuleStuck : ClientModule("Stuck", Category.BMW) {
 
+    private val autoDisable by boolean("AutoDisable", true)
     private val autoReset by boolean("AutoReset", false)
     private val resetTicks by int("ResetTicks", 20, 1..200, "ticks")
     private val cancelC03Packet by boolean("CancelC03Packet", true)
@@ -33,8 +34,8 @@ object ModuleStuck : ClientModule("Stuck", Category.BMW) {
         if (!player.isOnGround) {
             isInAir = true
 
-            if (event.packet is PlayerPositionLookS2CPacket) {
-                notifyAsMessage("Stuck End for S08 Packet")
+            if (event.packet is PlayerPositionLookS2CPacket && autoDisable) {
+                notifyAsMessage("[Stuck] Auto Disable for S08 Packet")
                 enabled = false
             }
 
@@ -51,8 +52,8 @@ object ModuleStuck : ClientModule("Stuck", Category.BMW) {
                     event.packet.hand, event.packet.sequence, player.yaw, player.pitch
                 ))
             }
-        } else if (isInAir) {
-            notifyAsMessage("Stuck End for OnGround")
+        } else if (isInAir && autoDisable) {
+            notifyAsMessage("[Stuck] Auto Disable for OnGround")
             enabled = false
         }
     }
@@ -65,7 +66,7 @@ object ModuleStuck : ClientModule("Stuck", Category.BMW) {
 
         stuckTicks++
         if (stuckTicks >= resetTicks) {
-            notifyAsMessage("Stuck Reset ($stuckTicks ticks)")
+            notifyAsMessage("[Stuck] Auto Reset ($stuckTicks ticks)")
             enabled = false
             enabled = true
         }

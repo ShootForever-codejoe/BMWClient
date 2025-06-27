@@ -2,7 +2,7 @@ package net.ccbluex.liquidbounce.features.module.modules.bmw
 
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
-import net.ccbluex.liquidbounce.bmw.*
+import net.ccbluex.liquidbounce.bmw.notifyAsMessage
 import net.ccbluex.liquidbounce.event.events.ChatSendEvent
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.event.tickHandler
@@ -38,7 +38,7 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
         val request = Request.Builder().url("").build()
         webSocket = client.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
-                notifyAsMessage("IRC连接服务器成功")
+                notifyAsMessage("[IRC] 连接服务器成功")
                 var messageJson = JsonObject()
                 messageJson.addProperty("func", "create_user")
                 messageJson.addProperty("server", network.connection.address.toString().dropPort())
@@ -50,7 +50,7 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
                 val messageJson = JsonParser.parseString(text).asJsonObject
                 when (messageJson.get("func").asString) {
                     "send_msg" -> {
-                        notifyAsMessage("§aIRC §f| §a${messageJson.get("name").asString}§f: ${messageJson.get("msg").asString}")
+                        notifyAsMessage("§aIRC消息 §f| §a${messageJson.get("name").asString}§f: ${messageJson.get("msg").asString}")
                     }
                     "create_user" -> {
                         val name = messageJson.get("name").asString
@@ -70,9 +70,9 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                 if (response == null) {
-                    notifyAsMessage("IRC连接服务器失败")
+                    notifyAsMessage("[IRC] 连接服务器失败")
                 } else {
-                    notifyAsMessage("IRC与服务器断开连接，状态码：${response.code}")
+                    notifyAsMessage("[IRC] 与服务器断开连接，状态码：${response.code}")
                 }
                 connected = false
             }
@@ -86,12 +86,12 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
         }
         event.cancelEvent()
         if (webSocket == null) {
-            notifyAsMessage("IRC发送消息失败，原因：暂未连接服务器")
+            notifyAsMessage("[IRC] 发送消息失败，原因：暂未连接服务器")
             return@handler
         }
         val msg = event.message.trimStart().substring(1).trim()
         if (msg.isEmpty()) {
-            notifyAsMessage("IRC发送消息失败，原因：内容为空")
+            notifyAsMessage("[IRC] 发送消息失败，原因：内容为空")
             return@handler
         }
         val messageJson = JsonObject()
@@ -106,10 +106,10 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
     }
 
     override fun disable() {
-        notifyAsMessage("请勿关闭IRC，否则会重置连接")
         if (webSocket != null) {
             webSocket!!.close(1000, null)
             webSocket = null
+            notifyAsMessage("[IRC] 连接已断开")
         }
     }
 

@@ -46,6 +46,7 @@ import kotlin.math.max
 
 object SubmoduleCrystalPlacer : ToggleableConfigurable(ModuleCrystalAura, "Place", true) {
 
+    val placeOnAnyBlock by boolean("PlaceOnAnyBlock", true)
     private val swingMode by enumChoice("Swing", SwingMode.DO_NOT_HIDE)
     private val switchMode by enumChoice("Switch", SwitchMode.SILENT)
     val oldVersion by boolean("1_12_2", false)

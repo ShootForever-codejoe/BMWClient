@@ -21,6 +21,7 @@ package net.ccbluex.liquidbounce.features.module.modules.combat.crystalaura.plac
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet
 import net.ccbluex.liquidbounce.utils.block.getState
 import net.ccbluex.liquidbounce.utils.client.player
+import net.ccbluex.liquidbounce.features.module.modules.combat.crystalaura.place.SubmoduleCrystalPlacer
 import net.minecraft.block.Blocks
 import net.minecraft.entity.LivingEntity
 import net.minecraft.util.math.BlockPos
@@ -47,7 +48,7 @@ class CandidateCache(private val candidate: BlockPos.Mutable) {
     }
 
     val canPlace by lazy {
-        state.block == Blocks.OBSIDIAN || state.block == Blocks.BEDROCK
+        SubmoduleCrystalPlacer.placeOnAnyBlock || state.block == Blocks.OBSIDIAN || state.block == Blocks.BEDROCK
     }
 
     val up: BlockPos by lazy {
