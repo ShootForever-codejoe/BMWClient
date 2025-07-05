@@ -48,6 +48,8 @@ object ModuleIRC : ClientModule("IRC", Category.BMW, disableOnQuit = true) {
         ServerOMG
     ))
 
+    val enabledCheck by boolean("EnabledCheck", true)
+
     private var webSocket: WebSocket? = null
     private val client = OkHttpClient.Builder()
         .pingInterval(15, TimeUnit.SECONDS)
@@ -56,7 +58,7 @@ object ModuleIRC : ClientModule("IRC", Category.BMW, disableOnQuit = true) {
     private val connecting = AtomicBoolean(false)
     private val connected = AtomicBoolean(false)
 
-    private fun connect() {
+    fun connect() {
         if (connecting.get() || connected.get() || !inGame || mc.currentScreen == null) return
         connecting.set(true)
 
@@ -103,6 +105,7 @@ object ModuleIRC : ClientModule("IRC", Category.BMW, disableOnQuit = true) {
                     connecting.set(false)
                     connected.set(false)
                     notifyAsMessage("[IRC] 连接已断开")
+                    enabled = false
                 }
 
                 override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
@@ -113,12 +116,13 @@ object ModuleIRC : ClientModule("IRC", Category.BMW, disableOnQuit = true) {
                     } else {
                         notifyAsMessage("[IRC] 连接服务器失败，状态码：${response?.code ?: "null"}")
                     }
+                    enabled = false
                 }
             })
         }
     }
 
-    private fun disconnect() {
+    fun disconnect() {
         if (!connecting.get() && connected.get()) {
             webSocket?.close(1000, null)
         }

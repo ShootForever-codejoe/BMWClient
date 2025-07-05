@@ -17,6 +17,7 @@ import kotlin.math.floor
 object ModuleAutoSave : ClientModule("AutoSave", Category.BMW) {
 
     private object AutoStuck : ToggleableConfigurable(ModuleAutoSave, "AutoStuck", true) {
+        val stuckOnlyVoid by boolean("StuckOnlyVoid", true)
         val stuckFallDistance by int("StuckFallDistance", 5, 1..50, "blocks")
     }
 
@@ -70,8 +71,8 @@ object ModuleAutoSave : ClientModule("AutoSave", Category.BMW) {
         for (xOffset in xMinOffset..xMaxOffset) {
             for (zOffset in zMinOffset..zMaxOffset) {
                 for (y in
-                    if (voidDistance == -1) LOWEST_Y..lastGroundY
-                    else lastGroundY - voidDistance..lastGroundY
+                if (voidDistance == -1) LOWEST_Y..lastGroundY
+                else lastGroundY - voidDistance..lastGroundY
                 ) {
                     val block = BlockPos(player.x.toInt() + xOffset, y, player.z.toInt() + zOffset).getBlock()
                     block?.translationKey?.let {
@@ -105,7 +106,7 @@ object ModuleAutoSave : ClientModule("AutoSave", Category.BMW) {
         }
 
         if (AutoStuck.enabled) {
-            if (!player.isOnGround && player.y <= lastGroundY + 1 - AutoStuck.stuckFallDistance) {
+            if ((!AutoStuck.stuckOnlyVoid || aboveVoid()) && !player.isOnGround && player.y <= lastGroundY + 1 - AutoStuck.stuckFallDistance) {
                 if (!stuckSaving && !ModuleStuck.enabled) {
                     ModuleStuck.enabled = true
                     stuckSaving = true
@@ -121,7 +122,8 @@ object ModuleAutoSave : ClientModule("AutoSave", Category.BMW) {
             if (aboveVoid(
                     if (AutoScaffold.scaffoldOnlyVoid) -1
                     else AutoScaffold.scaffoldVoidDistance
-            )) {
+                )
+            ) {
                 if (!scaffoldSaving && !ModuleScaffold.enabled) {
                     ModuleScaffold.enabled = true
                     scaffoldSaving = true

@@ -66,7 +66,7 @@ object ModuleAutoL : ClientModule("AutoL", Category.BMW) {
             message = "${entity.name.literalString!!} $message"
         }
         if (advertisementInEnd) {
-            message += " --BMWClient kook 92333691"
+            message += " --BMWClient 1053719666"
         }
         network.sendChatMessage(message)
     }

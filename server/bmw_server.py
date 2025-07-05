@@ -4,11 +4,11 @@ import time
 from json import dumps, loads
 from collections import defaultdict
 
-users: dict[str, dict[str, websockets.WebSocketServerProtocol]] = defaultdict(dict)
+users: dict[str, dict[str, websockets.ServerConnection]] = defaultdict(dict)
 users_lock = asyncio.Lock()
 
 # 创建用户
-async def create_user(websocket: websockets.WebSocketServerProtocol, message_dict: dict[str, str]) -> bool:
+async def create_user(websocket: websockets.ServerConnection, message_dict: dict[str, str]) -> bool:
     if "server" not in message_dict or "name" not in message_dict:
         print("Error: No 'server' or No 'name'")
         return False
@@ -73,7 +73,7 @@ async def remove_user(user_info: tuple[str, str]):
                     pass
 
 # websocket主进程
-async def handler(websocket: websockets.WebSocketServerProtocol, path: str):
+async def handler(websocket: websockets.ServerConnection):
     user_info = ("", "")
     message_count = 0
     start_time = time.time()
@@ -85,7 +85,7 @@ async def handler(websocket: websockets.WebSocketServerProtocol, path: str):
             current_time = time.time()
         
             if current_time - last_message_time < 0.1:
-                print(f"Send Messages Too Quickly: {websocket.remote_address}")
+                print(f"Send Messages Too Quickly: {websocket.remote_address[0]}")
                 await websocket.close(4001, "Send Messages Too Quickly")
                 break
             
@@ -93,7 +93,7 @@ async def handler(websocket: websockets.WebSocketServerProtocol, path: str):
             elapsed = current_time - start_time
             
             if message_count > 100 and elapsed < 10:
-                print(f"Send Messages Too Much: {websocket.remote_address}")
+                print(f"Send Messages Too Much: {websocket.remote_address[0]}")
                 await websocket.close(4002, "Send Messages Too Much")
                 break
             
@@ -154,11 +154,11 @@ async def main():
         max_queue=100,
         ping_interval=20,
         ping_timeout=20
-    ):
+    ) as server:
         print("BMW Server Started")
         print()
         
-        await asyncio.Future()
+        await server.serve_forever()
 
 if (__name__ == "__main__"):
     asyncio.run(main())

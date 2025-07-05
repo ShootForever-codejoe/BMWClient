@@ -9,11 +9,14 @@ import net.ccbluex.liquidbounce.event.tickHandler
 import net.ccbluex.liquidbounce.features.module.modules.bmw.grimvelocity.ModuleGrimVelocity
 import net.ccbluex.liquidbounce.utils.client.isOlderThanOrEqual1_8
 import net.ccbluex.liquidbounce.utils.client.protocolVersion
+import net.ccbluex.liquidbounce.utils.client.sendPacketSilently
 import net.ccbluex.liquidbounce.utils.math.Vec2i
 import net.minecraft.item.consume.UseAction
+import net.minecraft.network.packet.c2s.play.PlayerInputC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
 import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket
 import net.minecraft.network.packet.s2c.play.ExplosionS2CPacket
+import net.minecraft.util.PlayerInput
 
 object GrimVelocityNoXZ : Choice("NoXZ") {
 
@@ -50,9 +53,12 @@ object GrimVelocityNoXZ : Choice("NoXZ") {
             && !player.isOnFire
             && player.fallDistance <= 1.5
             && player.activeItem.useAction != UseAction.EAT
-            && player.activeItem.useAction != UseAction.DRINK) {
+            && player.activeItem.useAction != UseAction.DRINK
+        ) {
+            if (!player.isSprinting) {
+                sendPacketSilently(PlayerInputC2SPacket(PlayerInput(false, false, false, false, false, false, true)))
+            }
 
-            player.isSprinting = true
             repeat(attackTimes) {
                 if (isOlderThanOrEqual1_8) {
                     player.swingHand(player.activeHand)
@@ -62,6 +68,11 @@ object GrimVelocityNoXZ : Choice("NoXZ") {
                     player.swingHand(player.activeHand)
                 }
             }
+
+            if (!player.isSprinting) {
+                sendPacketSilently(PlayerInputC2SPacket(PlayerInput(false, false, false, false, false, false, true)))
+            }
+
             player.movement.x *= xzMultiple
             player.movement.z *= xzMultiple
         }
@@ -73,11 +84,12 @@ object GrimVelocityNoXZ : Choice("NoXZ") {
 
         if (packet is EntityVelocityUpdateS2CPacket
             && packet.entityId == player.id
-            && Vec2i(packet.velocityX, packet.velocityZ).length() > 1000) {
-
+            && Vec2i(packet.velocityX, packet.velocityZ).length() > 1000
+        ) {
             velocityInput = true
+        }
 
-        } else if (packet is ExplosionS2CPacket && protocolVersion.version >= 755) {
+        if (packet is ExplosionS2CPacket && protocolVersion.version >= 755) {
             event.cancelEvent()
         }
     }

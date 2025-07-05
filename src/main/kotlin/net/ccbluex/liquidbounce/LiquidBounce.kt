@@ -29,6 +29,7 @@ import net.ccbluex.liquidbounce.api.models.auth.ClientAccount
 import net.ccbluex.liquidbounce.api.services.client.ClientUpdate.gitInfo
 import net.ccbluex.liquidbounce.api.services.client.ClientUpdate.update
 import net.ccbluex.liquidbounce.api.thirdparty.IpInfoApi
+import net.ccbluex.liquidbounce.bmw.notifyAsMessage
 import net.ccbluex.liquidbounce.config.AutoConfig.configs
 import net.ccbluex.liquidbounce.config.ConfigSystem
 import net.ccbluex.liquidbounce.config.ConfigSystem.jsonFile
@@ -41,6 +42,7 @@ import net.ccbluex.liquidbounce.event.events.ClientShutdownEvent
 import net.ccbluex.liquidbounce.event.events.ClientStartEvent
 import net.ccbluex.liquidbounce.event.events.ScreenEvent
 import net.ccbluex.liquidbounce.event.handler
+import net.ccbluex.liquidbounce.event.tickHandler
 import net.ccbluex.liquidbounce.features.command.CommandManager
 import net.ccbluex.liquidbounce.features.cosmetic.ClientAccountManager
 import net.ccbluex.liquidbounce.features.cosmetic.CosmeticService
@@ -50,6 +52,7 @@ import net.ccbluex.liquidbounce.features.misc.AccountManager
 import net.ccbluex.liquidbounce.features.misc.FriendManager
 import net.ccbluex.liquidbounce.features.misc.proxy.ProxyManager
 import net.ccbluex.liquidbounce.features.module.ModuleManager
+import net.ccbluex.liquidbounce.features.module.modules.bmw.ModuleIRC
 import net.ccbluex.liquidbounce.features.module.modules.client.ipcConfiguration
 import net.ccbluex.liquidbounce.features.module.modules.combat.backtrack.BacktrackPacketManager
 import net.ccbluex.liquidbounce.features.spoofer.SpooferManager
@@ -421,6 +424,8 @@ object LiquidBounce : EventListener {
         }.onFailure {
             ErrorHandler.fatal(it, additionalMessage = "Client start")
         }
+
+        ModuleIRC.enabled = false
     }
 
     @Suppress("unused")
@@ -457,8 +462,21 @@ object LiquidBounce : EventListener {
      */
     @Suppress("unused")
     private val shutdownHandler = handler<ClientShutdownEvent> {
+        ModuleIRC.enabled = false
+
         shutdownClient()
     }
 
+    private var checkTicks = 0
+    @Suppress("unused")
+    private val tickHandler = tickHandler {
+        if (ModuleIRC.enabledCheck && !ModuleIRC.enabled) {
+            checkTicks++
+            if (checkTicks >= 40) {
+                checkTicks = 0
+                notifyAsMessage("[IRC] 检测到IRC未开启，请手动开启（关闭IRC中的EnabledCheck选项即可关闭提醒）")
+            }
+        }
+    }
 
 }
