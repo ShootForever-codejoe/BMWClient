@@ -1,6 +1,7 @@
 package net.ccbluex.liquidbounce.features.module.modules.bmw
 
 import net.ccbluex.liquidbounce.bmw.notifyAsMessage
+import net.ccbluex.liquidbounce.config.types.ToggleableConfigurable
 import net.ccbluex.liquidbounce.event.events.PacketEvent
 import net.ccbluex.liquidbounce.event.events.MovementInputEvent
 import net.ccbluex.liquidbounce.event.handler
@@ -15,9 +16,16 @@ import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 object ModuleStuck : ClientModule("Stuck", Category.BMW) {
 
     private val autoDisable by boolean("AutoDisable", true)
-    private val autoReset by boolean("AutoReset", false)
-    private val resetTicks by int("ResetTicks", 20, 1..200, "ticks")
+
+    private object AutoReset : ToggleableConfigurable(ModuleAutoSave, "AutoReset", false) {
+        val resetTicks by int("ResetTicks", 20, 1..200, "ticks")
+    }
+
     private val cancelC03Packet by boolean("CancelC03Packet", true)
+
+    init {
+        tree(AutoReset)
+    }
 
     private var stuckTicks = 0
     private var isInAir = false
@@ -60,12 +68,12 @@ object ModuleStuck : ClientModule("Stuck", Category.BMW) {
 
     @Suppress("unused")
     private val tickHandler = tickHandler {
-        if (!autoReset) {
+        if (!AutoReset.enabled) {
             return@tickHandler
         }
 
         stuckTicks++
-        if (stuckTicks >= resetTicks) {
+        if (stuckTicks >= AutoReset.resetTicks) {
             notifyAsMessage("[Stuck] Auto Reset ($stuckTicks ticks)")
             enabled = false
             enabled = true

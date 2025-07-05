@@ -421,7 +421,9 @@ object ModuleManager : EventListener, Iterable<ClientModule> by modules {
             ModuleStuck,
             ModuleDropEatNoSlow,
             ModuleDelayBlink,
-            ModuleGrimVelocity
+            ModuleGrimVelocity,
+            ModuleAutoSave,
+            ModuleIRC
         )
 
         builtin.forEach { module ->
