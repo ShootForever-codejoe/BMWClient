@@ -57,9 +57,7 @@ async def send_msg(message_dict: dict[str, str], user_info: tuple[str, str]) -> 
 # 删除用户
 async def remove_user(user_info: tuple[str, str]):
     server, name = user_info
-
-    print(f"Remove User '{name}' from Server '{server}'")
-
+    
     async with users_lock:
         if server in users and name in users[server]:
             del users[server][name]
@@ -128,6 +126,10 @@ async def handler(websocket: websockets.ServerConnection):
             elif func == "send_msg":
                 # 发送消息
                 await send_msg(message_dict, user_info)
+
+            elif func == "remove_user":
+                # 删除用户
+                await remove_user(user_info)
             
             print()
 

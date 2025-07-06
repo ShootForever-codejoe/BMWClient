@@ -9,6 +9,7 @@ import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
 import net.ccbluex.liquidbounce.features.module.modules.world.scaffold.ModuleScaffold
 import net.ccbluex.liquidbounce.utils.block.getBlock
+import net.ccbluex.liquidbounce.utils.combat.CombatManager
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 import net.minecraft.util.math.BlockPos
 import kotlin.math.ceil
@@ -24,6 +25,7 @@ object ModuleAutoSave : ClientModule("AutoSave", Category.BMW) {
     private object AutoScaffold : ToggleableConfigurable(ModuleAutoSave, "AutoScaffold", true) {
         val scaffoldOnlyVoid by boolean("ScaffoldOnlyVoid", true)
         val scaffoldVoidDistance by int("ScaffoldVoidDistance", 1, 1..50, "blocks")
+        val scaffoldOnlyDuringCombat by boolean("ScaffoldOnlyDuringCombat", true)
     }
 
     init {
@@ -119,7 +121,8 @@ object ModuleAutoSave : ClientModule("AutoSave", Category.BMW) {
         }
 
         if (AutoScaffold.enabled) {
-            if (aboveVoid(
+            if ((!AutoScaffold.scaffoldOnlyDuringCombat || CombatManager.isInCombat)
+                && aboveVoid(
                     if (AutoScaffold.scaffoldOnlyVoid) -1
                     else AutoScaffold.scaffoldVoidDistance
                 )

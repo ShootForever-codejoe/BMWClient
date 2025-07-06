@@ -470,9 +470,14 @@ object LiquidBounce : EventListener {
     private var checkTicks = 0
     @Suppress("unused")
     private val tickHandler = tickHandler {
-        if (ModuleIRC.enabledCheck && !ModuleIRC.enabled) {
+        if (ModuleIRC.enabledCheck) {
+            if (ModuleIRC.enabled || checkTicks == -1) {
+                checkTicks = -1
+                return@tickHandler
+            }
+
             checkTicks++
-            if (checkTicks >= 40) {
+            if (checkTicks >= 100) {
                 checkTicks = 0
                 notifyAsMessage("[IRC] 检测到IRC未开启，请手动开启（关闭IRC中的EnabledCheck选项即可关闭提醒）")
             }
