@@ -55,21 +55,23 @@ object GrimVelocityNoXZ : Choice("NoXZ") {
             && player.activeItem.useAction != UseAction.EAT
             && player.activeItem.useAction != UseAction.DRINK
         ) {
-            if (!player.isSprinting) {
+            val isSprinting = player.isSprinting
+
+            if (!isSprinting) {
                 sendPacketSilently(PlayerInputC2SPacket(PlayerInput(false, false, false, false, false, false, true)))
             }
 
             repeat(attackTimes) {
                 if (isOlderThanOrEqual1_8) {
                     player.swingHand(player.activeHand)
-                    PlayerInteractEntityC2SPacket.attack(event.entity, player.isSneaking)
+                    sendPacketSilently(PlayerInteractEntityC2SPacket.attack(event.entity, player.isSneaking))
                 } else {
-                    PlayerInteractEntityC2SPacket.attack(event.entity, player.isSneaking)
+                    sendPacketSilently(PlayerInteractEntityC2SPacket.attack(event.entity, player.isSneaking))
                     player.swingHand(player.activeHand)
                 }
             }
 
-            if (!player.isSprinting) {
+            if (!isSprinting) {
                 sendPacketSilently(PlayerInputC2SPacket(PlayerInput(false, false, false, false, false, false, true)))
             }
 
@@ -87,6 +89,8 @@ object GrimVelocityNoXZ : Choice("NoXZ") {
             && Vec2i(packet.velocityX, packet.velocityZ).length() > 1000
         ) {
             velocityInput = true
+            event.cancelEvent()
+            player.movement.y = packet.velocityY.toDouble() / 8000.0
         }
 
         if (packet is ExplosionS2CPacket && protocolVersion.version >= 755) {

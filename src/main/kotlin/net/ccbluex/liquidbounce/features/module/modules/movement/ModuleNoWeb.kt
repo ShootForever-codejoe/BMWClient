@@ -43,7 +43,7 @@ object ModuleNoWeb : ClientModule("NoWeb", Category.MOVEMENT) {
         enableLock()
     }
 
-    private val modes = choices("Mode", Air, arrayOf(Air, GrimBreak, Intave14)).apply { tagBy(this) }
+    private val modes = choices("Mode", Heypixel, arrayOf(Air, GrimBreak, Intave14, Heypixel)).apply { tagBy(this) }
 
     val repeatable = tickHandler {
         if (ModuleAvoidHazards.enabled && ModuleAvoidHazards.cobWebs) {
@@ -128,6 +128,16 @@ object ModuleNoWeb : ClientModule("NoWeb", Category.MOVEMENT) {
                         player.velocity = player.velocity.withStrafe(strength = 0.346)
                     }
                 }
+            }
+            return false
+        }
+    }
+
+    object Heypixel : NoWebMode("Heypixel") {
+        override fun handleEntityCollision(pos: BlockPos): Boolean {
+            if (player.moving) {
+                if (player.isOnGround) player.velocity = player.velocity.withStrafe(0.64)
+                if (player.velocity.y > 0) player.velocity.y = -player.velocity.y
             }
             return false
         }

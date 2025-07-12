@@ -53,12 +53,16 @@ object ModuleStuck : ClientModule("Stuck", Category.BMW) {
 
             if (event.packet is PlayerInteractItemC2SPacket) {
                 event.cancelEvent()
-                sendPacketSilently(PlayerMoveC2SPacket.LookAndOnGround(
-                    player.yaw, player.pitch, player.isOnGround, player.horizontalCollision
-                ))
-                sendPacketSilently(PlayerInteractItemC2SPacket(
-                    event.packet.hand, event.packet.sequence, player.yaw, player.pitch
-                ))
+                sendPacketSilently(
+                    PlayerMoveC2SPacket.LookAndOnGround(
+                        player.yaw, player.pitch, player.isOnGround, player.horizontalCollision
+                    )
+                )
+                sendPacketSilently(
+                    PlayerInteractItemC2SPacket(
+                        event.packet.hand, event.packet.sequence, player.yaw, player.pitch
+                    )
+                )
             }
         } else if (isInAir && autoDisable) {
             notifyAsMessage("[Stuck] Auto Disable for OnGround")

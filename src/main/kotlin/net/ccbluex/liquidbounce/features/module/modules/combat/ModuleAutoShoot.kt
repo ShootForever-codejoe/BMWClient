@@ -47,6 +47,7 @@ import net.ccbluex.liquidbounce.utils.inventory.InventoryManager
 import net.ccbluex.liquidbounce.utils.inventory.OffHandSlot
 import net.ccbluex.liquidbounce.utils.inventory.Slots
 import net.ccbluex.liquidbounce.utils.inventory.findClosestSlot
+import net.ccbluex.liquidbounce.utils.item.isConsumable
 import net.ccbluex.liquidbounce.utils.item.isNothing
 import net.ccbluex.liquidbounce.utils.kotlin.Priority
 import net.ccbluex.liquidbounce.utils.render.WorldTargetRenderer
@@ -105,6 +106,7 @@ object ModuleAutoShoot : ClientModule("AutoShoot", Category.COMBAT) {
     private val requiresKillAura by boolean("RequiresKillAura", false)
     private val notDuringCombat by boolean("NotDuringCombat", false)
     val constantLag by boolean("ConstantLag", false)
+    private val notDuringEating by boolean("NotDuringEating", true)
 
     private fun HotbarItemSlot.needsSelection(): Boolean =
         this !is OffHandSlot && this.hotbarSlot != SilentHotbar.serversideSlot
@@ -175,6 +177,10 @@ object ModuleAutoShoot : ClientModule("AutoShoot", Category.COMBAT) {
         val target = targetTracker.target ?: return@tickHandler
 
         if (notDuringCombat && CombatManager.isInCombat) {
+            return@tickHandler
+        }
+
+        if (notDuringEating && player.isUsingItem && player.activeItem.isConsumable) {
             return@tickHandler
         }
 

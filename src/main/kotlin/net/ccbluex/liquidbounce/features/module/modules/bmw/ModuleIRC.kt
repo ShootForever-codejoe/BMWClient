@@ -56,7 +56,7 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
 
     var webSocket: WebSocket? = null
     val client = OkHttpClient.Builder()
-        .pingInterval(15, TimeUnit.SECONDS)
+        .pingInterval(10, TimeUnit.SECONDS)
         .build()
     val request = Request.Builder().url(BMW_SERVER_IP).build()
     val connecting = AtomicBoolean(false)
@@ -66,6 +66,11 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
 
     fun createUser() : Boolean {
         if (network.connection.address.toString().split(":").first() == "local") return true
+        if (server.activeChoice is ServerHeypixel || server.activeChoice is ServerOMG) {
+             if (network.connection.address.toString().dropPort().split("/").last() != "127.0.0.1") {
+                 return true
+             }
+        }
 
         if (!inGame || webSocket == null) return false
 

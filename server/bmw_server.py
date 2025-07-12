@@ -39,7 +39,7 @@ async def send_msg(message_dict: dict[str, str], user_info: tuple[str, str]) -> 
     if "msg" not in message_dict:
         print("Error: No 'msg'")
         return False
-                
+    
     msg = message_dict["msg"]
     async with users_lock:
         for ws in users[user_info[0]].values():
@@ -153,9 +153,9 @@ async def main():
         "0.0.0.0",
         3473,
         max_size=1024*1024,
-        max_queue=100,
-        ping_interval=20,
-        ping_timeout=20
+        max_queue=1024,
+        ping_interval=10,
+        ping_timeout=10
     ) as server:
         print("BMW Server Started")
         print()

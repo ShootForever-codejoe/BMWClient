@@ -7,7 +7,6 @@ import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.event.tickHandler
 import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
-import net.ccbluex.liquidbounce.utils.client.sendPacketSilently
 import net.minecraft.network.packet.Packet
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
 
@@ -51,7 +50,7 @@ object ModuleDelayBlink : ClientModule("DelayBlink", Category.BMW, disableOnQuit
         packets.add(event.packet)
         event.cancelEvent()
         if (ticks >= delay) {
-            sendPacketSilently(packets.removeFirst())
+            network.sendPacket(packets.removeFirst())
         }
     }
 
@@ -64,7 +63,7 @@ object ModuleDelayBlink : ClientModule("DelayBlink", Category.BMW, disableOnQuit
 
     override fun disable() {
         packets.forEach {
-            sendPacketSilently(it)
+            network.sendPacket(it)
         }
         notifyAsMessage("[DelayBlink] Already Sent All Packets")
     }
