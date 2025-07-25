@@ -145,7 +145,11 @@ object ModuleAutoShoot : ClientModule("AutoShoot", Category.COMBAT) {
             return@handler
         }
 
-        if (requiresKillAura && !ModuleKillAura.running) {
+        if (requiresKillAura && (!ModuleKillAura.running || !ModuleKillAura.enabled)) {
+            return@handler
+        }
+
+        if (notDuringEating && player.isUsingItem && player.activeItem.isConsumable) {
             return@handler
         }
 
@@ -177,6 +181,10 @@ object ModuleAutoShoot : ClientModule("AutoShoot", Category.COMBAT) {
         val target = targetTracker.target ?: return@tickHandler
 
         if (notDuringCombat && CombatManager.isInCombat) {
+            return@tickHandler
+        }
+
+        if (requiresKillAura && (!ModuleKillAura.running || !ModuleKillAura.enabled)) {
             return@tickHandler
         }
 

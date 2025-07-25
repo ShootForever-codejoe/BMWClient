@@ -35,11 +35,7 @@ async def create_user(websocket: websockets.ServerConnection, message_dict: dict
     return True
 
 # 发送消息
-async def send_msg(message_dict: dict[str, str], user_info: tuple[str, str]) -> bool:
-    if "msg" not in message_dict:
-        print("Error: No 'msg'")
-        return False
-    
+async def send_msg(message_dict: dict[str, str], user_info: tuple[str, str]):
     msg = message_dict["msg"]
     async with users_lock:
         for ws in users[user_info[0]].values():
@@ -51,8 +47,6 @@ async def send_msg(message_dict: dict[str, str], user_info: tuple[str, str]) -> 
                 }))
             except websockets.ConnectionClosed:
                 pass
-    
-    return True
 
 # 删除用户
 async def remove_user(user_info: tuple[str, str]):
@@ -76,6 +70,9 @@ async def handler(websocket: websockets.ServerConnection):
     message_count = 0
     start_time = time.time()
     last_message_time = 0
+
+    last_send_msg_time = 0
+    last_send_msg = ""
     
     try:
         async for message in websocket:
@@ -84,6 +81,11 @@ async def handler(websocket: websockets.ServerConnection):
         
             if current_time - last_message_time < 0.1:
                 print(f"Send Messages Too Quickly: {websocket.remote_address[0]}")
+                await websocket.send(dumps({
+                    "func": "send_msg",
+                    "name": "错误",
+                    "msg": "请求过快，疑似攻击，已断开连接，可重新开启IRC以重连"
+                }))
                 await websocket.close(4001, "Send Messages Too Quickly")
                 break
             
@@ -92,13 +94,18 @@ async def handler(websocket: websockets.ServerConnection):
             
             if message_count > 100 and elapsed < 10:
                 print(f"Send Messages Too Much: {websocket.remote_address[0]}")
+                await websocket.send(dumps({
+                    "func": "send_msg",
+                    "name": "错误",
+                    "msg": "请求过多，疑似攻击，已断开连接，可重新开启IRC以重连"
+                }))
                 await websocket.close(4002, "Send Messages Too Much")
                 break
             
             if elapsed > 10:
                 message_count = 1
                 start_time = current_time
-            
+
             last_message_time = current_time
 
             print(f"IP: {websocket.remote_address[0]}")
@@ -124,8 +131,22 @@ async def handler(websocket: websockets.ServerConnection):
                     user_info = (message_dict["server"], message_dict["name"])
 
             elif func == "send_msg":
-                # 发送消息
-                await send_msg(message_dict, user_info)
+                if "msg" in message_dict:
+                    current_send_msg_time = time.time()
+                    if (last_send_msg == message_dict["msg"] and current_send_msg_time - last_send_msg_time > 4) \
+                        or (last_send_msg != message_dict["msg"] and current_send_msg_time - last_send_msg_time > 2):
+                        # 发送消息
+                        await send_msg(message_dict, user_info)
+                        last_send_msg = message_dict["msg"]
+                        last_send_msg_time = current_send_msg_time
+                    else:
+                        await websocket.send(dumps({
+                            "func": "send_msg",
+                            "name": "错误",
+                            "msg": "发送消息过快，请不要刷屏"
+                        }))
+                else:
+                    print("Error: No 'msg'")
 
             elif func == "remove_user":
                 # 删除用户

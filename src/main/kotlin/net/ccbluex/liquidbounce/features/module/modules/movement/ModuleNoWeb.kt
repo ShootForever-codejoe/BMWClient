@@ -136,7 +136,7 @@ object ModuleNoWeb : ClientModule("NoWeb", Category.MOVEMENT) {
     object Heypixel : NoWebMode("Heypixel") {
         override fun handleEntityCollision(pos: BlockPos): Boolean {
             if (player.moving) {
-                if (player.isOnGround) player.velocity = player.velocity.withStrafe(0.64)
+                player.velocity = player.velocity.withStrafe(0.64)
                 if (player.velocity.y > 0) player.velocity.y = -player.velocity.y
             }
             return false

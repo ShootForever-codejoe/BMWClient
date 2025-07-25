@@ -4,7 +4,6 @@ import kotlinx.coroutines.Dispatchers
 import net.ccbluex.liquidbounce.api.core.HttpException
 import net.ccbluex.liquidbounce.api.core.withScope
 import net.ccbluex.liquidbounce.api.services.cdn.ClientCdn.requestStaffList
-import net.ccbluex.liquidbounce.bmw.*
 import net.ccbluex.liquidbounce.event.events.NotificationEvent
 import net.ccbluex.liquidbounce.event.events.PacketEvent
 import net.ccbluex.liquidbounce.event.events.ServerConnectEvent
@@ -20,7 +19,6 @@ import net.minecraft.network.packet.s2c.play.PlayerListS2CPacket
  */
 object ModuleAntiStaff : ClientModule("AntiStaff", Category.MISC) {
 
-    private val heypixel by boolean("Heypixel", true)
     private val showInTabList by boolean("ShowInTabList", true)
     private val serverStaffList = hashMapOf<String, Set<String>>()
 
@@ -68,24 +66,14 @@ object ModuleAntiStaff : ClientModule("AntiStaff", Category.MISC) {
             for (entry in entries) {
                 val profile = entry.profile ?: continue
 
-                    if (isStaff(profile.name)) {
-                        if (heypixel) {
-                            notifyAsMessageAndNotification("客服“" + profile.name + "”来了！")
-                        } else {
-                            alert("staffAlert", profile.name)
-                        }
-                    }
+                if (isStaff(profile.name)) {
+                    alert("staffAlert", profile.name)
                 }
             }
         }
+    }
 
     suspend fun loadStaffList(address: String) {
-        if (heypixel) {
-            val staffs = HEYPIXEL_STAFF_LIST
-            serverStaffList[address] = staffs
-            notifyAsNotification("[AntiStaff] 布吉岛客服列表已加载成功！")
-            return
-        }
         try {
             val staffs = requestStaffList(address)
             serverStaffList[address] = staffs

@@ -27,8 +27,7 @@ object ModuleStuck : ClientModule("Stuck", Category.BMW) {
         tree(AutoReset)
     }
 
-    private var stuckTicks = 0
-    private var isInAir = false
+    private var stucking = false
 
     @Suppress("unused")
     private val movementInputEventHandler = handler<MovementInputEvent> {
@@ -40,7 +39,7 @@ object ModuleStuck : ClientModule("Stuck", Category.BMW) {
     @Suppress("unused")
     private val packetEventHandler = handler<PacketEvent> { event ->
         if (!player.isOnGround) {
-            isInAir = true
+            stucking = true
 
             if (event.packet is PlayerPositionLookS2CPacket && autoDisable) {
                 notifyAsMessage("[Stuck] Auto Disable for S08 Packet")
@@ -64,7 +63,7 @@ object ModuleStuck : ClientModule("Stuck", Category.BMW) {
                     )
                 )
             }
-        } else if (isInAir && autoDisable) {
+        } else if (stucking && autoDisable) {
             notifyAsMessage("[Stuck] Auto Disable for OnGround")
             enabled = false
         }
@@ -76,17 +75,14 @@ object ModuleStuck : ClientModule("Stuck", Category.BMW) {
             return@tickHandler
         }
 
-        stuckTicks++
-        if (stuckTicks >= AutoReset.resetTicks) {
-            notifyAsMessage("[Stuck] Auto Reset ($stuckTicks ticks)")
-            enabled = false
-            enabled = true
-        }
+        waitTicks(AutoReset.resetTicks)
+        notifyAsMessage("[Stuck] Auto Reset")
+        enabled = false
+        enabled = true
     }
 
     override fun enable() {
-        stuckTicks = 0
-        isInAir = false
+        stucking = false
     }
 
 }

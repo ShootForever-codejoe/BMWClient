@@ -18,7 +18,9 @@
  */
 package net.ccbluex.liquidbounce.features.module.modules.world
 
+import net.ccbluex.liquidbounce.bmw.HEYPIXEL_END_MESSAGE
 import net.ccbluex.liquidbounce.config.types.NamedChoice
+import net.ccbluex.liquidbounce.event.events.ChatReceiveEvent
 import net.ccbluex.liquidbounce.event.events.DeathEvent
 import net.ccbluex.liquidbounce.event.events.NotificationEvent
 import net.ccbluex.liquidbounce.event.events.PacketEvent
@@ -50,9 +52,14 @@ import java.util.EnumSet
 object ModuleAutoDisable : ClientModule("AutoDisable", Category.WORLD) {
 
     val listOfModules = arrayListOf(ModuleFly, ModuleSpeed, ModuleNoClip, ModuleKillAura)
-    private val disableOn by multiEnumChoice<DisableOn>("On", EnumSet.of(DisableOn.SPECTATOR, DisableOn.CHANGE_WORLD))
-
-    private var wasSpectator = false
+    private val disableOn by multiEnumChoice<DisableOn>(
+        "On",
+        EnumSet.of(
+            DisableOn.SPECTATOR,
+            DisableOn.CHANGE_WORLD,
+            DisableOn.HEYPIXEL_END_MESSAGE
+        )
+    )
 
     @Suppress("unused")
     val flagHandler = handler<PacketEvent> {
@@ -72,16 +79,26 @@ object ModuleAutoDisable : ClientModule("AutoDisable", Category.WORLD) {
     }
 
     @Suppress("unused")
+    private val chatReceiveEventHandler = handler<ChatReceiveEvent> { event ->
+        if (DisableOn.HEYPIXEL_END_MESSAGE in disableOn) {
+            val message = event.message
+
+            if (event.type != ChatReceiveEvent.ChatType.GAME_MESSAGE) {
+                return@handler
+            }
+
+            if (event.message.contains(HEYPIXEL_END_MESSAGE)) {
+                disableModules()
+            }
+        }
+    }
+
+    @Suppress("unused")
     private val tickHandler = tickHandler {
         if (DisableOn.SPECTATOR in disableOn) {
-            if (player.isSpectator || player.abilities.flying) {
-                if (!wasSpectator) {
-                    wasSpectator = true
-                    disableModules()
-                }
-            } else {
-                if (wasSpectator) wasSpectator = false
-            }
+            waitUntil { player.isSpectator || player.abilities.flying }
+            disableModules()
+            waitUntil { !player.isSpectator && !player.abilities.flying }
         }
     }
 
@@ -116,10 +133,7 @@ object ModuleAutoDisable : ClientModule("AutoDisable", Category.WORLD) {
         FLAG("Flag"),
         DEATH("Death"),
         SPECTATOR("Spectator"),
-        CHANGE_WORLD("ChangeWorld")
-    }
-
-    override fun enable() {
-        wasSpectator = false
+        CHANGE_WORLD("ChangeWorld"),
+        HEYPIXEL_END_MESSAGE("HeypixelEndMessage")
     }
 }

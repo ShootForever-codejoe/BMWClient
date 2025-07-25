@@ -56,6 +56,9 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
 
     var webSocket: WebSocket? = null
     val client = OkHttpClient.Builder()
+        .connectTimeout(10, TimeUnit.SECONDS)
+        .readTimeout(10, TimeUnit.SECONDS)
+        .writeTimeout(10, TimeUnit.SECONDS)
         .pingInterval(10, TimeUnit.SECONDS)
         .build()
     val request = Request.Builder().url(BMW_SERVER_IP).build()
@@ -93,10 +96,9 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
     }
 
     fun connect() {
-        if (connecting.get() || connected.get()) return
+        if (!connecting.compareAndSet(false, true) || connected.get()) return
 
         notifyAsMessage("[IRC] 尝试连接服务器……")
-        connecting.set(true)
 
         client.dispatcher.executorService.execute {
             webSocket = client.newWebSocket(request, object : WebSocketListener() {
@@ -110,7 +112,10 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
                     val messageJson = JsonParser.parseString(text).asJsonObject
                     when (messageJson.get("func").asString) {
                         "send_msg" -> {
-                            notifyAsMessage("[IRC] §a${messageJson.get("name").asString}§f: ${messageJson.get("msg").asString}")
+                            notifyAsMessage("[IRC] ${
+                                if (messageJson.get("name").asString == "错误") "§c"
+                                else "§a"
+                            }${messageJson.get("name").asString}§f: ${messageJson.get("msg").asString}")
                         }
 
                         "create_user" -> {
@@ -134,9 +139,8 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
 
                 override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                     connecting.set(false)
-                    if (connected.get()) {
+                    if (connected.compareAndSet(true, false)) {
                         notifyAsMessage("[IRC] 意外与服务器断开连接，状态码：${response?.code ?: "null"}")
-                        connected.set(false)
                     } else {
                         notifyAsMessage("[IRC] 连接服务器失败，状态码：${response?.code ?: "null"}")
                     }
@@ -161,7 +165,6 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
 
         if (!connected.get()) {
             notifyAsMessage("[IRC] 发送消息失败，原因：暂未连接服务器，请重启IRC")
-            connect()
             return@handler
         }
 
@@ -183,17 +186,12 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
 
         if (!connected.get()) {
             notifyAsMessage("[IRC] 暂未连接服务器，请重启IRC")
+            waitTicks(20)
             return@tickHandler
         }
 
-        if (inGame) {
-            if (shouldCreateUser) shouldCreateUser = false
-            else return@tickHandler
-        }
-
-        if (!createUser()) {
-            shouldCreateUser = true
-        }
+        waitUntil { inGame && shouldCreateUser }
+        shouldCreateUser = !createUser()
     }
 
     @Suppress("unused")

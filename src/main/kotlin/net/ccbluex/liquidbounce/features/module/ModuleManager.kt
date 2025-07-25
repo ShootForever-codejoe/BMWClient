@@ -418,12 +418,11 @@ object ModuleManager : EventListener, Iterable<ClientModule> by modules {
 
             // BMW
             ModuleAutoL,
-            ModuleStuck,
-            ModuleDropEatNoSlow,
-            ModuleDelayBlink,
-            ModuleGrimVelocity,
             ModuleAutoSave,
-            ModuleIRC
+            ModuleDelayBlink,
+            ModuleDropEatNoSlow,
+            ModuleIRC,
+            ModuleStuck
         )
 
         builtin.forEach { module ->

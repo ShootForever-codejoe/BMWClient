@@ -22,12 +22,14 @@ import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
 import net.ccbluex.liquidbounce.features.module.modules.player.autoqueue.presets.AutoQueueCustom
 import net.ccbluex.liquidbounce.features.module.modules.player.autoqueue.presets.AutoQueueGommeDuels
+import net.ccbluex.liquidbounce.features.module.modules.player.autoqueue.presets.AutoQueueHeypixel
 import net.ccbluex.liquidbounce.features.module.modules.player.autoqueue.presets.AutoQueueHypixelSW
 
 object ModuleAutoQueue : ClientModule("AutoQueue", Category.PLAYER, aliases = arrayOf("AutoPlay")) {
-    val presets = choices("Presets", AutoQueueHypixelSW, arrayOf(
+    val presets = choices("Presets", AutoQueueHeypixel, arrayOf(
         AutoQueueHypixelSW,
         AutoQueueGommeDuels,
+        AutoQueueHeypixel,
         AutoQueueCustom
     )).apply(::tagBy)
 }
