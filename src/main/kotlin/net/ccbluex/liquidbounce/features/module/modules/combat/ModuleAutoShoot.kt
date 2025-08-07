@@ -55,6 +55,7 @@ import net.ccbluex.liquidbounce.utils.render.trajectory.TrajectoryInfo
 import net.minecraft.entity.LivingEntity
 import net.minecraft.item.Item
 import net.minecraft.item.Items
+import net.minecraft.item.consume.UseAction
 
 /**
  * A module that automatically shoots at the nearest enemy.
@@ -149,7 +150,7 @@ object ModuleAutoShoot : ClientModule("AutoShoot", Category.COMBAT) {
             return@handler
         }
 
-        if (notDuringEating && player.isUsingItem && player.activeItem.isConsumable) {
+        if (notDuringEating && player.activeItem.useAction != UseAction.EAT && player.activeItem.useAction != UseAction.DRINK) {
             return@handler
         }
 
@@ -188,7 +189,7 @@ object ModuleAutoShoot : ClientModule("AutoShoot", Category.COMBAT) {
             return@tickHandler
         }
 
-        if (notDuringEating && player.isUsingItem && player.activeItem.isConsumable) {
+        if (notDuringEating && player.activeItem.useAction != UseAction.EAT && player.activeItem.useAction != UseAction.DRINK) {
             return@tickHandler
         }
 

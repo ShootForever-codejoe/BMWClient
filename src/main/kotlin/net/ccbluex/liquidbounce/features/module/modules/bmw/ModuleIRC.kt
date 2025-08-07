@@ -52,8 +52,6 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
         )
     )
 
-    val enabledCheck by boolean("EnabledCheck", true)
-
     var webSocket: WebSocket? = null
     val client = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
@@ -66,6 +64,7 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
     val connected = AtomicBoolean(false)
 
     private var shouldCreateUser = true
+    val users = mutableListOf<String>()
 
     fun createUser() : Boolean {
         if (network.connection.address.toString().split(":").first() == "local") return true
@@ -120,12 +119,14 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
 
                         "create_user" -> {
                             val name = messageJson.get("name").asString
-                            FriendManager.friends.add(FriendManager.Friend(name, "§a[BMW] §f${name}"))
+                            FriendManager.friends.add(FriendManager.Friend(name, "§a[BMW] §f$name"))
+                            users.add(name)
                         }
 
                         "remove_user" -> {
                             val name = messageJson.get("name").asString
-                            FriendManager.friends.remove(FriendManager.Friend(name, "§a[BMW] §f${name}"))
+                            FriendManager.friends.remove(FriendManager.Friend(name, "§a[BMW] §f$name"))
+                            users.remove(name)
                         }
                     }
                 }
@@ -134,7 +135,7 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
                     connecting.set(false)
                     connected.set(false)
                     notifyAsMessage("[IRC] 连接已断开")
-                    enabled = false
+                    resetUsers()
                 }
 
                 override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
@@ -144,7 +145,7 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
                     } else {
                         notifyAsMessage("[IRC] 连接服务器失败，状态码：${response?.code ?: "null"}")
                     }
-                    enabled = false
+                    resetUsers()
                 }
             })
         }
@@ -156,6 +157,25 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
         }
     }
 
+    fun resetUsers() {
+        users.forEach {
+            FriendManager.friends.remove(FriendManager.Friend(it, "§a[BMW] §f$it"))
+        }
+        users.clear()
+    }
+
+    fun sendMsg(msg: String) {
+        if (!connected.get()) {
+            notifyAsMessage("[IRC] 发送消息失败，原因：暂未连接服务器，请重启IRC")
+            return
+        }
+
+        webSocket!!.send(JsonObject().apply {
+            addProperty("func", "send_msg")
+            addProperty("msg", msg)
+        }.toString())
+    }
+
     @Suppress("unused")
     private val chatSendEventHandler = handler<ChatSendEvent> { event ->
         if (event.message.trimStart()[0] != '#') {
@@ -163,21 +183,13 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
         }
         event.cancelEvent()
 
-        if (!connected.get()) {
-            notifyAsMessage("[IRC] 发送消息失败，原因：暂未连接服务器，请重启IRC")
-            return@handler
-        }
-
         val msg = event.message.trimStart().substring(1).trim()
         if (msg.isEmpty()) {
             notifyAsMessage("[IRC] 发送消息失败，原因：内容为空")
             return@handler
         }
 
-        webSocket!!.send(JsonObject().apply {
-            addProperty("func", "send_msg")
-            addProperty("msg", msg)
-        }.toString())
+        sendMsg(msg)
     }
 
     @Suppress("unused")
@@ -217,6 +229,7 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
 
     override fun disable() {
         disconnect()
+        resetUsers()
     }
 
 }

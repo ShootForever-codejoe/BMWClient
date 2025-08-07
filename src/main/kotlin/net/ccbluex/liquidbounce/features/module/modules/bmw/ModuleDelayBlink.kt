@@ -18,27 +18,24 @@ object ModuleDelayBlink : ClientModule("DelayBlink", Category.BMW, disableOnQuit
     private val autoDisable by boolean("AutoDisable", true)
 
     private val packets = mutableListOf<Packet<*>>()
-    private var ticks = 0
-    private var full = false
+    private var ticks = 1
 
     @Suppress("unused")
     private val tickHandler = tickHandler {
-        ticks++
-        if (ticks >= delay) {
-            ticks = delay
-            if (!full) {
-                full = true
-                if (displayDelay) notifyAsMessage("[DelayBlink] Delay: $delay / $delay (Ticks)")
-                notifyAsMessage("[DelayBlink] Start Sending the Packets $delay Ticks Ago...")
-            }
-        } else if (displayDelay) {
-            notifyAsMessage("[DelayBlink] Delay: $ticks / $delay (Ticks)")
+        while (ticks <= delay) {
+            waitTicks(1)
+            if (displayDelay) notifyAsMessage("[DelayBlink] Delay: $ticks / $delay (Ticks)")
+            ticks++
         }
+        notifyAsMessage("[DelayBlink] Start Sending the Packets $delay Ticks Ago...")
+        waitUntil { ticks == 1 }
     }
 
     @Suppress("unused")
     private val packetEventHandler = handler<PacketEvent> { event ->
         if (autoDisable && event.packet is PlayerInteractEntityC2SPacket) {
+            packets.add(event.packet)
+            event.cancelEvent()
             notifyAsMessage("[DelayBlink] Auto Disable")
             enabled = false
             return@handler
@@ -50,15 +47,14 @@ object ModuleDelayBlink : ClientModule("DelayBlink", Category.BMW, disableOnQuit
 
         packets.add(event.packet)
         event.cancelEvent()
-        if (ticks >= delay) {
+        if (ticks > delay) {
             sendPacketSilently(packets.removeFirst())
         }
     }
 
     override fun enable() {
         packets.clear()
-        ticks = 0
-        full = false
+        ticks = 1
         notifyAsMessage("[DelayBlink] Start Collecting Packets...")
     }
 

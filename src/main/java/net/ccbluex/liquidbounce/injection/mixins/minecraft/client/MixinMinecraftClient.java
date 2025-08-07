@@ -188,14 +188,6 @@ public abstract class MixinMinecraftClient {
         StringBuilder titleBuilder = new StringBuilder(LiquidBounce.CLIENT_NAME);
         titleBuilder.append(" v");
         titleBuilder.append(LiquidBounce.INSTANCE.getClientVersion());
-        titleBuilder.append(" ");
-
-        if (LiquidBounce.IN_DEVELOPMENT) {
-            titleBuilder.append("(dev) ");
-        }
-
-        titleBuilder.append(LiquidBounce.INSTANCE.getClientCommit());
-
         titleBuilder.append(" | ");
 
         // ViaFabricPlus compatibility
