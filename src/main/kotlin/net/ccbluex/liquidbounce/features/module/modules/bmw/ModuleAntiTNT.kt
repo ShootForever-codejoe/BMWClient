@@ -32,7 +32,7 @@ import net.minecraft.util.math.Vec3i
 import kotlin.math.abs
 
 @Suppress("unused")
-object ModuleAntiTNT : ClientModule("AntiTNT", Category.MISC) {
+object ModuleAntiTNT : ClientModule("AntiTNT", Category.BMW) {
 
     // 检测范围
     private val detectionRange by float("DetectionRange", 10.0f, 1.0f..20.0f)

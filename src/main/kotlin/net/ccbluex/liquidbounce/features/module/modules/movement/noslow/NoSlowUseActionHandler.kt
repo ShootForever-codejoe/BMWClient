@@ -21,6 +21,7 @@ package net.ccbluex.liquidbounce.features.module.modules.movement.noslow
 import it.unimi.dsi.fastutil.floats.FloatFloatImmutablePair
 import it.unimi.dsi.fastutil.floats.FloatFloatPair
 import net.ccbluex.liquidbounce.config.types.nesting.ToggleableConfigurable
+import net.ccbluex.liquidbounce.features.module.modules.movement.noslow.modes.NoSlowMode
 
 abstract class NoSlowUseActionHandler(name: String) : ToggleableConfigurable(ModuleNoSlow, name, true) {
 
@@ -32,7 +33,7 @@ abstract class NoSlowUseActionHandler(name: String) : ToggleableConfigurable(Mod
     }
 
     open fun getMultiplier() : FloatFloatPair {
-        if (!this.enabled) {
+        if (!this.enabled || !NoSlowMode.working) {
             return DEFAULT_USE_MUL
         }
 

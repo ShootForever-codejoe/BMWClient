@@ -23,6 +23,7 @@ import net.ccbluex.liquidbounce.config.types.nesting.NoneChoice
 import net.ccbluex.liquidbounce.features.module.modules.movement.noslow.NoSlowUseActionHandler
 import net.ccbluex.liquidbounce.features.module.modules.movement.noslow.modes.shared.NoSlowSharedGrim2360
 import net.ccbluex.liquidbounce.features.module.modules.movement.noslow.modes.shared.NoSlowSharedGrim2364MC18
+import net.ccbluex.liquidbounce.features.module.modules.movement.noslow.modes.shared.NoSlowSharedGrim2371
 import net.ccbluex.liquidbounce.features.module.modules.movement.noslow.modes.shared.NoSlowSharedInvalidHand
 import net.ccbluex.liquidbounce.utils.client.InteractionTracker.isBlocking
 import net.ccbluex.liquidbounce.utils.client.inGame
@@ -42,7 +43,8 @@ internal object NoSlowBlock : NoSlowUseActionHandler("Blocking") {
             NoSlowSharedGrim2360(it),
             NoSlowSharedGrim2364MC18(it),
             NoSlowSharedInvalidHand(it),
-            NoSlowBlockIntave14(it)
+            NoSlowBlockIntave14(it),
+            NoSlowSharedGrim2371(it)
         )
     }
 

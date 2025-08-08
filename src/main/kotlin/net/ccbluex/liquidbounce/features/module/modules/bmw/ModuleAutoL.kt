@@ -16,7 +16,7 @@ object ModuleAutoL : ClientModule("AutoL", Category.BMW) {
         CUSTOM("Custom"),
     }
     private val wordPattern by enumChoice("WordPattern", WordPatternChoices.POEM)
-    private val customMessages by textArray("CustomMessages", mutableListOf())
+    private val customMessages by textList("CustomMessages", mutableListOf())
     private val nameInFront by boolean("NameInFront", true)
     private val advertisementInEnd by boolean("AdvertisementInEnd", true)
 

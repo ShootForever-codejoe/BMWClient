@@ -1,8 +1,8 @@
 package net.ccbluex.liquidbounce.features.module.modules.bmw.grimvelocity.modes
 
 import com.google.common.collect.Queues
-import net.ccbluex.liquidbounce.config.types.Choice
-import net.ccbluex.liquidbounce.config.types.ChoiceConfigurable
+import net.ccbluex.liquidbounce.config.types.nesting.Choice
+import net.ccbluex.liquidbounce.config.types.nesting.ChoiceConfigurable
 import net.ccbluex.liquidbounce.event.events.PacketEvent
 import net.ccbluex.liquidbounce.event.events.PlayerTickEvent
 import net.ccbluex.liquidbounce.event.events.TransferOrigin
@@ -34,7 +34,7 @@ object GrimVelocityFull : Choice("Full") {
     override val parent: ChoiceConfigurable<*>
         get() = ModuleGrimVelocity.modes
 
-    private val maxStuckTicks by int("MaxStuckTicks", 10, 1..100, "ticks")
+    private val maxStuckTicks by int("MaxStuckTicks", 5, 1..100, "ticks")
 
     private const val BLOCK_HIT_PITCH = 89.79f
 
