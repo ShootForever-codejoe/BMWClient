@@ -15,6 +15,8 @@ import net.ccbluex.liquidbounce.utils.aiming.data.Rotation
 import net.ccbluex.liquidbounce.utils.aiming.utils.raycast
 import net.ccbluex.liquidbounce.utils.client.PacketSnapshot
 import net.ccbluex.liquidbounce.utils.client.handlePacket
+import net.ccbluex.liquidbounce.utils.inventory.InventoryManager
+import net.minecraft.client.gui.screen.ingame.GenericContainerScreen
 import net.minecraft.item.consume.UseAction
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
@@ -98,6 +100,8 @@ object GrimVelocityFull : Choice("Full") {
             && packet.entityId == player.id
             && player.activeItem.useAction != UseAction.EAT
             && player.activeItem.useAction != UseAction.DRINK
+            && !InventoryManager.isInventoryOpen
+            && mc.currentScreen !is GenericContainerScreen
         ) {
             canCancel = true
         }
@@ -107,6 +111,8 @@ object GrimVelocityFull : Choice("Full") {
             && canCancel
             && player.activeItem.useAction != UseAction.EAT
             && player.activeItem.useAction != UseAction.DRINK
+            && !InventoryManager.isInventoryOpen
+            && mc.currentScreen !is GenericContainerScreen
         ) {
             event.cancelEvent()
             delay = true
