@@ -18,8 +18,8 @@
  */
 package net.ccbluex.liquidbounce.features.module.modules.movement
 
-import net.ccbluex.liquidbounce.config.types.Choice
-import net.ccbluex.liquidbounce.config.types.ChoiceConfigurable
+import net.ccbluex.liquidbounce.config.types.nesting.Choice
+import net.ccbluex.liquidbounce.config.types.nesting.ChoiceConfigurable
 import net.ccbluex.liquidbounce.event.events.NotificationEvent
 import net.ccbluex.liquidbounce.event.tickHandler
 import net.ccbluex.liquidbounce.features.module.Category
@@ -43,7 +43,7 @@ object ModuleNoWeb : ClientModule("NoWeb", Category.MOVEMENT) {
         enableLock()
     }
 
-    private val modes = choices("Mode", Heypixel, arrayOf(Air, GrimBreak, Intave14, Heypixel)).apply { tagBy(this) }
+    private val modes = choices("Mode", Heypixel, arrayOf(Air, GrimBreak, Intave14, Vulcan, Heypixel)).apply { tagBy(this) }
 
     val repeatable = tickHandler {
         if (ModuleAvoidHazards.enabled && ModuleAvoidHazards.cobWebs) {
@@ -133,6 +133,27 @@ object ModuleNoWeb : ClientModule("NoWeb", Category.MOVEMENT) {
         }
     }
 
+    /**
+     * Bypassing Vulcan't Anti Cheat's All Version(6/27/2025)
+     *
+     * @author XeContrast
+     */
+
+    object Vulcan : NoWebMode("Vulcan") {
+        override val parent: ChoiceConfigurable<NoWebMode>
+            get() = modes
+
+        private val strength by float("Strength", 0.23f,0.01f..0.8f)
+
+        override fun handleEntityCollision(pos: BlockPos): Boolean {
+            if (player.moving) {
+                if (player.isOnGround) player.velocity = player.velocity.withStrafe(strength.toDouble())
+                if (player.velocity.y > 0) player.velocity.y = -player.velocity.y
+            }
+            return false
+        }
+    }
+
     object Heypixel : NoWebMode("Heypixel") {
         override fun handleEntityCollision(pos: BlockPos): Boolean {
             if (player.moving) {
@@ -142,4 +163,5 @@ object ModuleNoWeb : ClientModule("NoWeb", Category.MOVEMENT) {
             return false
         }
     }
+
 }

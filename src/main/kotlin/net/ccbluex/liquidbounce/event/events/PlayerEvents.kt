@@ -51,12 +51,13 @@ object PlayerPostTickEvent : Event()
 object PlayerMovementTickEvent : Event()
 
 @Nameable("playerNetworkMovementTick")
-class PlayerNetworkMovementTickEvent(val state: EventState,
-                                     var x: Double,
-                                     var y: Double,
-                                     var z: Double,
-                                     var ground: Boolean
-                                    ): Event()
+class PlayerNetworkMovementTickEvent(
+    val state: EventState,
+    var x: Double,
+    var y: Double,
+    var z: Double,
+    var ground: Boolean
+) : Event()
 
 @Nameable("playerPushOut")
 class PlayerPushOutEvent : CancellableEvent()
@@ -65,7 +66,7 @@ class PlayerPushOutEvent : CancellableEvent()
 class PlayerMoveEvent(val type: MovementType, var movement: Vec3d) : Event()
 
 @Nameable("playerJump")
-class PlayerJumpEvent(var motion: Float) : CancellableEvent()
+class PlayerJumpEvent(var motion: Float, var yaw: Float) : CancellableEvent()
 
 @Nameable("playerAfterJump")
 object PlayerAfterJumpEvent : Event()
@@ -76,8 +77,14 @@ class PlayerUseMultiplier(var forward: Float, var sideways: Float) : Event()
 @Nameable("playerSneakMultiplier")
 class PlayerSneakMultiplier(var multiplier: Double) : Event()
 
+/**
+ * Warning: UseHotbarSlotOrOffHand won't stimulate this event
+ */
+@Nameable("playerInteractItem")
+class PlayerInteractItemEvent : CancellableEvent()
+
 @Nameable("playerInteractedItem")
-class PlayerInteractedItem(val player: PlayerEntity, val hand: Hand, val actionResult: ActionResult) : Event()
+class PlayerInteractedItemEvent(val player: PlayerEntity, val hand: Hand, val actionResult: ActionResult) : Event()
 
 @Nameable("playerStrafe")
 class PlayerVelocityStrafe(val movementInput: Vec3d, val speed: Float, val yaw: Float, var velocity: Vec3d) : Event()
