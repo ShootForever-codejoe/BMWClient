@@ -727,5 +727,13 @@
   "liquidbounce.module.autoPearl.description": "跟随敌人珍珠的轨迹瞄准并投掷珍珠。",
   "liquidbounce.module.replenish.description": "自动用物品栏中的物品填充快捷栏，使物品数量保持设定的阈值。",
   "liquidbounce.module.anchor.description": "让你移动到水晶PvP的安全点里。",
-  "liquidbounce.module.antiCheatDetect.messages.description": "Anti Cheat Detect 将尝试在你下次加入任何服务器/游戏时，通过监测 ping 参数来检测服务器的反作弊系统。请注意，结果可能不准确，特别是当服务器上有多个反作弊系统时。"
+  "liquidbounce.module.antiCheatDetect.messages.description": "Anti Cheat Detect 将尝试在你下次加入任何服务器/游戏时，通过监测 ping 参数来检测服务器的反作弊系统。请注意，结果可能不准确，特别是当服务器上有多个反作弊系统时。",
+  "liquidbounce.module.autoL.description": "自动嘲讽你打死的敌人。",
+  "liquidbounce.module.autoReport.description": "自动举报你打不过的敌人。",
+  "liquidbounce.module.autoSave.description": "自动搭方块或卡空自救。",
+  "liquidbounce.module.delayBlink.description": "在别人眼里你的行动比真实的行动慢一些。",
+  "liquidbounce.module.dropEatNoSlow.description": "吃东西的时候扔掉一个以实现无减速。",
+  "liquidbounce.module.IRC.description": "可以与BMWClient的其他用户聊天，并且KillAura不会打其他用户。",
+  "liquidbounce.module.stuck": "卡在空中防止掉进虚空。",
+  "liquidbounce.module.grimVelocity": "绕过GrimAC的反击退。"
 }

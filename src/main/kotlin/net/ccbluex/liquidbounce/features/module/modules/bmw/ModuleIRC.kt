@@ -135,7 +135,7 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
                     connecting.set(false)
                     connected.set(false)
                     notifyAsMessage("[IRC] 连接已断开")
-                    resetUsers()
+                    reset()
                 }
 
                 override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
@@ -145,7 +145,7 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
                     } else {
                         notifyAsMessage("[IRC] 连接服务器失败，状态码：${response?.code ?: "null"}")
                     }
-                    resetUsers()
+                    reset()
                 }
             })
         }
@@ -157,11 +157,12 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
         }
     }
 
-    fun resetUsers() {
+    fun reset() {
         users.forEach {
             FriendManager.friends.remove(FriendManager.Friend(it, "§a[BMW] §f$it"))
         }
         users.clear()
+        shouldCreateUser = true
     }
 
     fun sendMsg(msg: String) {
@@ -223,13 +224,12 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
     }
 
     override fun enable() {
-        shouldCreateUser = true
         connect()
     }
 
     override fun disable() {
         disconnect()
-        resetUsers()
+        reset()
     }
 
 }

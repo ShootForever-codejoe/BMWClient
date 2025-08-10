@@ -1,6 +1,7 @@
 package net.ccbluex.liquidbounce.features.module.modules.bmw.grimvelocity.modes
 
 import com.google.common.collect.Queues
+import net.ccbluex.liquidbounce.bmw.notifyAsMessage
 import net.ccbluex.liquidbounce.config.types.nesting.Choice
 import net.ccbluex.liquidbounce.config.types.nesting.ChoiceConfigurable
 import net.ccbluex.liquidbounce.event.events.PacketEvent
@@ -8,7 +9,6 @@ import net.ccbluex.liquidbounce.event.events.PlayerTickEvent
 import net.ccbluex.liquidbounce.event.events.TransferOrigin
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.event.sequenceHandler
-import net.ccbluex.liquidbounce.event.tickHandler
 import net.ccbluex.liquidbounce.features.module.modules.bmw.grimvelocity.ModuleGrimVelocity
 import net.ccbluex.liquidbounce.utils.aiming.RotationManager
 import net.ccbluex.liquidbounce.utils.aiming.data.Rotation
@@ -35,6 +35,8 @@ object GrimVelocityFull : Choice("Full") {
         get() = ModuleGrimVelocity.modes
 
     private val maxStuckTicks by int("MaxStuckTicks", 5, 1..100, "ticks")
+    private val onlyOnGround by boolean("OnlyOnGround", true)
+    private val debug by boolean("Debug", false)
 
     private const val BLOCK_HIT_PITCH = 89.79f
 
@@ -44,23 +46,23 @@ object GrimVelocityFull : Choice("Full") {
     private var waitForUpdate = false
     private var hitResult: BlockHitResult? = null
     private var shouldSkip = false
+    private var stuckTicks = 0
     private val delayedPacketQueue = Queues.newConcurrentLinkedQueue<PacketSnapshot>()
 
-    private fun reset() {
-        if (!delayedPacketQueue.isEmpty()) {
-            delayedPacketQueue.forEach { handlePacket(it.packet) }
-            delayedPacketQueue.clear()
-        }
+    override fun enable() {
         canCancel = false
         delay = false
         needClick = false
         waitForUpdate = false
         hitResult = null
         shouldSkip = false
+        stuckTicks = 0
+        delayedPacketQueue.clear()
     }
 
     override fun disable() {
-        reset()
+        delayedPacketQueue.forEach { handlePacket(it.packet) }
+        delayedPacketQueue.clear()
     }
 
     @Suppress("unused")
@@ -79,7 +81,7 @@ object GrimVelocityFull : Choice("Full") {
             return@sequenceHandler
         }
 
-        if (packet is BlockUpdateS2CPacket && packet.pos.equals(player.blockPos)) {
+        if (waitForUpdate && packet is BlockUpdateS2CPacket && packet.pos.equals(player.blockPos)) {
             waitTicks(1)
             waitForUpdate = false
             needClick = false
@@ -96,13 +98,7 @@ object GrimVelocityFull : Choice("Full") {
             return@sequenceHandler
         }
 
-        if (packet is EntityDamageS2CPacket
-            && packet.entityId == player.id
-            && player.activeItem.useAction != UseAction.EAT
-            && player.activeItem.useAction != UseAction.DRINK
-            && !InventoryManager.isInventoryOpen
-            && mc.currentScreen !is GenericContainerScreen
-        ) {
+        if (packet is EntityDamageS2CPacket && packet.entityId == player.id) {
             canCancel = true
         }
 
@@ -113,6 +109,7 @@ object GrimVelocityFull : Choice("Full") {
             && player.activeItem.useAction != UseAction.DRINK
             && !InventoryManager.isInventoryOpen
             && mc.currentScreen !is GenericContainerScreen
+            && (!onlyOnGround || player.isOnGround)
         ) {
             event.cancelEvent()
             delay = true
@@ -158,6 +155,7 @@ object GrimVelocityFull : Choice("Full") {
                 )
             }
 
+            stuckTicks = 0
             waitForUpdate = true
             hitResult = null
             needClick = false
@@ -165,19 +163,15 @@ object GrimVelocityFull : Choice("Full") {
 
         if (waitForUpdate) {
             event.cancelEvent()
+            stuckTicks++
+            if (stuckTicks > maxStuckTicks) {
+                waitForUpdate = false
+                needClick = false
+                if (debug) notifyAsMessage("[IRC] Max Stuck Ticks")
+            }
         }
 
         shouldSkip = false
-    }
-
-    @Suppress("unused")
-    private val tickHandler = tickHandler {
-        waitUntil { waitForUpdate }
-        repeat(maxStuckTicks) {
-            waitTicks(1)
-            if (!waitForUpdate) return@tickHandler
-        }
-        reset()
     }
 
 }

@@ -6,6 +6,10 @@ import net.ccbluex.liquidbounce.event.events.MovementInputEvent
 import net.ccbluex.liquidbounce.event.events.PacketEvent
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.features.module.modules.bmw.grimvelocity.ModuleGrimVelocity
+import net.ccbluex.liquidbounce.features.module.modules.combat.killaura.ModuleKillAura
+import net.ccbluex.liquidbounce.utils.inventory.InventoryManager
+import net.minecraft.client.gui.screen.ingame.GenericContainerScreen
+import net.minecraft.network.packet.s2c.play.EntityDamageS2CPacket
 import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket
 import net.minecraft.network.packet.s2c.play.ExplosionS2CPacket
 
@@ -15,10 +19,15 @@ object GrimVelocityJumpReset : Choice("JumpReset") {
         get() = ModuleGrimVelocity.modes
 
     private var jump = false
+    private var damage = false
 
     @Suppress("unused")
     private val movementInputEventHandler = handler<MovementInputEvent> { event ->
-        if (jump) {
+        if (jump
+            && !InventoryManager.isInventoryOpen
+            && mc.currentScreen !is GenericContainerScreen
+            && ModuleKillAura.targetTracker.target != null
+        ) {
             event.jump = true
             jump = false
         }
@@ -32,17 +41,22 @@ object GrimVelocityJumpReset : Choice("JumpReset") {
 
         val packet = event.packet
 
-        if (packet is EntityVelocityUpdateS2CPacket && packet.entityId == player.id) {
-            jump = true
+        if (packet is EntityDamageS2CPacket && packet.entityId == player.id) {
+            damage = true
         }
 
-        if (packet is ExplosionS2CPacket) {
+        if (damage && (
+                (packet is EntityVelocityUpdateS2CPacket && packet.entityId == player.id)
+                    || packet is ExplosionS2CPacket)
+        ) {
             jump = true
+            damage = false
         }
     }
 
     override fun enable() {
         jump = false
+        damage = false
     }
 
 }
