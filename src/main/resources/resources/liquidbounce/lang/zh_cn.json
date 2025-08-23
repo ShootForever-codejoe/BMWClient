@@ -734,6 +734,7 @@
   "liquidbounce.module.delayBlink.description": "在别人眼里你的行动比真实的行动慢一些。",
   "liquidbounce.module.dropEatNoSlow.description": "吃东西的时候扔掉一个以实现无减速。",
   "liquidbounce.module.IRC.description": "可以与BMWClient的其他用户聊天，并且KillAura不会打其他用户。",
-  "liquidbounce.module.stuck": "卡在空中防止掉进虚空。",
-  "liquidbounce.module.grimVelocity": "绕过GrimAC的反击退。"
+  "liquidbounce.module.stuck.description": "卡在空中防止掉进虚空。",
+  "liquidbounce.module.grimVelocity.description": "绕过GrimAC的反击退。",
+  "liquidbounce.module.fireballFly.description": "延迟火球的击退以实现飞行的效果。"
 }

@@ -7,9 +7,10 @@ import net.ccbluex.liquidbounce.features.module.modules.bmw.grimvelocity.modes.*
 object ModuleGrimVelocity : ClientModule("GrimVelocity", Category.BMW) {
 
     val modes = choices(
-        "Mode", GrimVelocityFull, arrayOf(
+        "Mode", GrimVelocityNoXZ, arrayOf(
             GrimVelocityJumpReset,
-            GrimVelocityFull
+            GrimVelocityFull,
+            GrimVelocityNoXZ
         )
     ).apply(::tagBy)
 

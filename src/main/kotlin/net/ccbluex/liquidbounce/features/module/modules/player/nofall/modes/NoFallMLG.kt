@@ -58,6 +58,7 @@ internal object NoFallMLG : Choice("MLG") {
     }
 
     private val rotationsConfigurable = tree(RotationsConfigurable(this))
+    private val onlyWeb by boolean("OnlyWeb", false)
 
     private var currentTarget: PlacementPlan? = null
     private var lastPlacements = mutableListOf<Pair<BlockPos, Chronometer>>()
@@ -177,7 +178,11 @@ internal object NoFallMLG : Choice("MLG") {
      * Find a way to prevent fall damage if we are falling.
      */
     private fun getCurrentMLGPlacementPlan(): PlacementPlan? {
-        val itemForMLG = Slots.OffhandWithHotbar.findClosestSlot(items = itemsForMLG)
+        val itemForMLG = if (onlyWeb) {
+            Slots.OffhandWithHotbar.findClosestSlot(Items.COBWEB)
+        } else {
+            Slots.OffhandWithHotbar.findClosestSlot(items = itemsForMLG)
+        }
 
         if (player.fallDistance <= minFallDist || itemForMLG == null) {
             return null

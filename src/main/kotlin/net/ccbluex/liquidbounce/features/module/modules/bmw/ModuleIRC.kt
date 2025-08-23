@@ -4,10 +4,13 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import net.ccbluex.liquidbounce.bmw.BMW_SERVER_IP
 import net.ccbluex.liquidbounce.bmw.notifyAsMessage
+import net.ccbluex.liquidbounce.bmw.notifyAsMessageAndNotification
 import net.ccbluex.liquidbounce.config.types.nesting.Choice
 import net.ccbluex.liquidbounce.config.types.nesting.ChoiceConfigurable
+import net.ccbluex.liquidbounce.event.events.AttackEntityEvent
 import net.ccbluex.liquidbounce.event.events.ChatSendEvent
 import net.ccbluex.liquidbounce.event.events.DisconnectEvent
+import net.ccbluex.liquidbounce.event.events.NotificationEvent
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.event.tickHandler
 import net.ccbluex.liquidbounce.features.misc.FriendManager
@@ -141,9 +144,9 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
                 override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                     connecting.set(false)
                     if (connected.compareAndSet(true, false)) {
-                        notifyAsMessage("[IRC] 意外与服务器断开连接，状态码：${response?.code ?: "null"}")
+                        notifyAsMessage("[IRC] 意外与服务器断开连接")
                     } else {
-                        notifyAsMessage("[IRC] 连接服务器失败，状态码：${response?.code ?: "null"}")
+                        notifyAsMessage("[IRC] 连接服务器失败")
                     }
                     reset()
                 }
@@ -167,7 +170,7 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
 
     fun sendMsg(msg: String) {
         if (!connected.get()) {
-            notifyAsMessage("[IRC] 发送消息失败，原因：暂未连接服务器，请重启IRC")
+            notifyAsMessage("[IRC] 发送消息失败，原因：暂未连接服务器，请重启或关闭IRC")
             return
         }
 
@@ -198,7 +201,7 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
         if (connecting.get()) return@tickHandler
 
         if (!connected.get()) {
-            notifyAsMessage("[IRC] 暂未连接服务器，请重启IRC")
+            notifyAsMessage("[IRC] 暂未连接服务器，请重启或关闭IRC")
             waitTicks(20)
             return@tickHandler
         }
@@ -212,7 +215,7 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
         if (connecting.get()) return@handler
 
         if (!connected.get()) {
-            notifyAsMessage("[IRC] 暂未连接服务器，请重启IRC")
+            notifyAsMessage("[IRC] 暂未连接服务器，请重启或关闭IRC")
             return@handler
         }
 
@@ -221,6 +224,13 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
         }.toString())
 
         shouldCreateUser = true
+    }
+
+    @Suppress("unused")
+    private val attackEntityEventHandler = handler<AttackEntityEvent> { event ->
+        if (event.entity.name.literalString in users) {
+            notifyAsMessageAndNotification("[IRC] 请勿攻击其他BMW用户，你必须关闭IRC再攻击", NotificationEvent.Severity.ERROR)
+        }
     }
 
     override fun enable() {

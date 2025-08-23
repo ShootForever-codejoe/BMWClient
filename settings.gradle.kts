@@ -35,4 +35,4 @@ pluginManagement {
     }
 }
 
-rootProject.name = "LiquidBounce"
+rootProject.name = "BMWClient"

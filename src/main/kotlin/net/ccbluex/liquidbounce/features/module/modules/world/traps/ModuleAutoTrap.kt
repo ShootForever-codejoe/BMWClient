@@ -52,6 +52,7 @@ object ModuleAutoTrap : ClientModule("AutoTrap", Category.WORLD, aliases = array
     private val webTrapPlanner = tree(WebTrapPlanner(this))
     val targetTracker = tree(TargetTracker(range = range))
     private val rotationsConfigurable = tree(RotationsConfigurable(this))
+    private val onlyWeb by boolean("OnlyWeb", false)
 
     private var currentPlan: BlockChangeIntent<*>? = null
 
@@ -74,7 +75,11 @@ object ModuleAutoTrap : ClientModule("AutoTrap", Category.WORLD, aliases = array
         val enemies = targetTracker.targets()
         TrapPlayerSimulation.runSimulations(enemies)
 
-        currentPlan = webTrapPlanner.plan(enemies) ?: ignitionTrapPlanner.plan(enemies)
+        currentPlan = if (onlyWeb) {
+            webTrapPlanner.plan(enemies)
+        } else {
+            webTrapPlanner.plan(enemies) ?: ignitionTrapPlanner.plan(enemies)
+        }
         currentPlan?.let { intent ->
             RotationManager.setRotationTarget(
                 (intent.blockChangeInfo as BlockChangeInfo.PlaceBlock).blockPlacementTarget.rotation,

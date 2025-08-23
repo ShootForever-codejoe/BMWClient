@@ -50,6 +50,8 @@ import net.ccbluex.liquidbounce.features.misc.AccountManager
 import net.ccbluex.liquidbounce.features.misc.FriendManager
 import net.ccbluex.liquidbounce.features.misc.proxy.ProxyManager
 import net.ccbluex.liquidbounce.features.module.ModuleManager
+import net.ccbluex.liquidbounce.features.module.modules.bmw.delayblink.DelayBlinkPacketManager
+import net.ccbluex.liquidbounce.features.module.modules.bmw.fireballfly.FireballFlyPacketManager
 import net.ccbluex.liquidbounce.features.module.modules.client.ipcConfiguration
 import net.ccbluex.liquidbounce.features.module.modules.combat.backtrack.BacktrackPacketManager
 import net.ccbluex.liquidbounce.features.spoofer.SpooferManager
@@ -235,6 +237,10 @@ object LiquidBounce : EventListener {
         PostRotationExecutor
         ServerObserver
         ItemImageAtlas
+
+        // Modules
+        DelayBlinkPacketManager
+        FireballFlyPacketManager
     }
 
     /**

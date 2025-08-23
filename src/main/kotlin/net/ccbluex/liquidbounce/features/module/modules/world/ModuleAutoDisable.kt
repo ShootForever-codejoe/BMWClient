@@ -30,7 +30,7 @@ import net.ccbluex.liquidbounce.event.tickHandler
 import net.ccbluex.liquidbounce.features.command.commands.module.CommandAutoDisable
 import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
-import net.ccbluex.liquidbounce.features.module.modules.bmw.ModuleDelayBlink
+import net.ccbluex.liquidbounce.features.module.modules.bmw.delayblink.ModuleDelayBlink
 import net.ccbluex.liquidbounce.features.module.modules.bmw.ModuleStuck
 import net.ccbluex.liquidbounce.features.module.modules.combat.killaura.ModuleKillAura
 import net.ccbluex.liquidbounce.features.module.modules.movement.ModuleNoClip
@@ -51,7 +51,17 @@ import java.util.EnumSet
  */
 object ModuleAutoDisable : ClientModule("AutoDisable", Category.WORLD) {
 
-    val listOfModules = arrayListOf(ModuleFly, ModuleSpeed, ModuleNoClip, ModuleKillAura)
+    val listOfModules = arrayListOf(
+        ModuleFly,
+        ModuleSpeed,
+        ModuleNoClip,
+        ModuleKillAura,
+        ModuleScaffold,
+        ModuleDelayBlink,
+        ModuleBlink,
+        ModuleStuck
+    )
+
     private val disableOn by multiEnumChoice<DisableOn>(
         "On",
         EnumSet.of(
@@ -75,7 +85,7 @@ object ModuleAutoDisable : ClientModule("AutoDisable", Category.WORLD) {
 
     @Suppress("unused")
     private val worldChangeEventHandler = handler<WorldChangeEvent> {
-        if (DisableOn.CHANGE_WORLD in disableOn) disableModules()
+        if (DisableOn.CHANGE_WORLD in disableOn) disableAndNotify("world change")
     }
 
     @Suppress("unused")
@@ -88,7 +98,7 @@ object ModuleAutoDisable : ClientModule("AutoDisable", Category.WORLD) {
             }
 
             if (event.message.contains(HEYPIXEL_END_MESSAGE)) {
-                disableModules()
+                disableAndNotify("heypixel end message")
             }
         }
     }
@@ -97,36 +107,16 @@ object ModuleAutoDisable : ClientModule("AutoDisable", Category.WORLD) {
     private val tickHandler = tickHandler {
         if (DisableOn.SPECTATOR in disableOn) {
             waitUntil { player.isSpectator || player.abilities.flying }
-            disableModules()
+            disableAndNotify("spectator")
             waitUntil { !player.isSpectator && !player.abilities.flying }
         }
     }
 
     private fun disableAndNotify(reason: String) {
-        val modules = listOfModules.filter {
-            module -> module.running
-        }
-
-        if (modules.isNotEmpty()) {
-            for (module in modules) {
-                module.enabled = false
-            }
-            notification("Notifier", "Disabled modules due to $reason", NotificationEvent.Severity.INFO)
-        }
-    }
-
-    private fun disableModules() {
-        val modules = arrayOf(
-            ModuleKillAura,
-            ModuleScaffold,
-            ModuleDelayBlink,
-            ModuleBlink,
-            ModuleStuck
-        )
-
-        for (module in modules) {
+        for (module in listOfModules) {
             module.enabled = false
         }
+        notification("Notifier", "Disabled modules due to $reason", NotificationEvent.Severity.INFO)
     }
 
     private enum class DisableOn(override val choiceName: String) : NamedChoice {

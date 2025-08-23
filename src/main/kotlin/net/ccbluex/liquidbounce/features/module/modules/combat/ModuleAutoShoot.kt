@@ -56,7 +56,6 @@ import net.ccbluex.liquidbounce.utils.render.trajectory.TrajectoryInfo
 import net.minecraft.entity.LivingEntity
 import net.minecraft.item.Item
 import net.minecraft.item.Items
-import net.minecraft.item.consume.UseAction
 
 /**
  * A module that automatically shoots at the nearest enemy.
@@ -102,13 +101,13 @@ object ModuleAutoShoot : ClientModule("AutoShoot", Category.COMBAT) {
     private val targetRenderer = tree(WorldTargetRenderer(this))
 
     private val selectSlotAutomatically by boolean("SelectSlotAutomatically", true)
-    private val tickUntilSlotReset by int("TicksUntillSlotReset", 1, 0..20)
+    private val tickUntilSlotReset by int("TicksUntilSlotReset", 1, 0..20)
     private val considerInventory by boolean("ConsiderInventory", true)
 
     private val requiresKillAura by boolean("RequiresKillAura", false)
     private val notDuringCombat by boolean("NotDuringCombat", false)
     val constantLag by boolean("ConstantLag", false)
-    private val notDuringEating by boolean("NotDuringEating", true)
+    private val notDuringUsingItem by boolean("NotDuringUsingItem", true)
     private val notDuringScaffold by boolean("NotDuringScaffold", true)
     private val notDuringStuck by boolean("NotDuringStuck", true)
 
@@ -153,7 +152,7 @@ object ModuleAutoShoot : ClientModule("AutoShoot", Category.COMBAT) {
             return@handler
         }
 
-        if (notDuringEating && player.activeItem.useAction != UseAction.EAT && player.activeItem.useAction != UseAction.DRINK) {
+        if (notDuringUsingItem && player.usingItem) {
             return@handler
         }
 
@@ -195,7 +194,7 @@ object ModuleAutoShoot : ClientModule("AutoShoot", Category.COMBAT) {
             return@tickHandler
         }
 
-        if (notDuringEating && player.activeItem.useAction != UseAction.EAT && player.activeItem.useAction != UseAction.DRINK) {
+        if (notDuringUsingItem && player.usingItem) {
             return@tickHandler
         }
 

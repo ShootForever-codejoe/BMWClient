@@ -32,12 +32,12 @@ object ModuleAutoSave : ClientModule("AutoSave", Category.BMW) {
         })
     }
 
-    private object AutoStuck : ToggleableConfigurable(ModuleAutoSave, "AutoStuck", true) {
+    private object AutoStuck : ToggleableConfigurable(this, "AutoStuck", true) {
         val stuckOnlyVoid by boolean("StuckOnlyVoid", true)
         val stuckFallDistance by int("StuckFallDistance", 5, 1..50, "blocks")
     }
 
-    private object AutoScaffold : ToggleableConfigurable(ModuleAutoSave, "AutoScaffold", true) {
+    private object AutoScaffold : ToggleableConfigurable(this, "AutoScaffold", true) {
         val scaffoldOnlyVoid by boolean("ScaffoldOnlyVoid", true)
         val scaffoldVoidDistance by int("ScaffoldVoidDistance", 1, 1..50, "blocks")
         val scaffoldWhen by multiEnumChoice<ScaffoldWhen>(

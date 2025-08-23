@@ -17,7 +17,7 @@ object ModuleStuck : ClientModule("Stuck", Category.BMW) {
 
     private val autoDisable by boolean("AutoDisable", true)
 
-    private object AutoReset : ToggleableConfigurable(ModuleAutoSave, "AutoReset", false) {
+    private object AutoReset : ToggleableConfigurable(this, "AutoReset", false) {
         val resetTicks by int("ResetTicks", 20, 1..200, "ticks")
     }
 
