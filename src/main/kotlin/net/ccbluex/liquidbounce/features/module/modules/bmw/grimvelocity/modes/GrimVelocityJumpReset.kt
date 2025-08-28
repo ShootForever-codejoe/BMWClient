@@ -33,12 +33,9 @@ object GrimVelocityJumpReset : Choice("JumpReset") {
     @Suppress("unused")
     private val movementInputEventHandler = handler<MovementInputEvent> { event ->
         if (velocityInput) {
-            if (!InventoryManager.isInventoryOpen
-                && mc.currentScreen !is GenericContainerScreen
-                && (!requireKillAura || (ModuleKillAura.enabled
-                    && ModuleKillAura.running
-                    && ModuleKillAura.targetTracker.target != null))
-            ) event.jump = true
+            if (!InventoryManager.isInventoryOpen && mc.currentScreen !is GenericContainerScreen) {
+                event.jump = true
+            }
             velocityInput = false
         }
     }
@@ -60,12 +57,14 @@ object GrimVelocityJumpReset : Choice("JumpReset") {
         }
 
         if (damage && packet is EntityVelocityUpdateS2CPacket && packet.entityId == player.id) {
-            if (delayInAir && !player.isOnGround) {
-                delayPackets = true
-                event.cancelEvent()
-                packets.add(packet)
-            } else {
-                velocityInput = true
+            if (!requireKillAura || (ModuleKillAura.running && ModuleKillAura.targetTracker.target != null)) {
+                if (delayInAir && !player.isOnGround) {
+                    delayPackets = true
+                    event.cancelEvent()
+                    packets.add(packet)
+                } else {
+                    velocityInput = true
+                }
             }
             damage = false
         }

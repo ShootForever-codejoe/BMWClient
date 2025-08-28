@@ -11,14 +11,17 @@ import net.ccbluex.liquidbounce.event.events.AttackEntityEvent
 import net.ccbluex.liquidbounce.event.events.ChatSendEvent
 import net.ccbluex.liquidbounce.event.events.DisconnectEvent
 import net.ccbluex.liquidbounce.event.events.NotificationEvent
+import net.ccbluex.liquidbounce.event.events.TagEntityEvent
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.event.tickHandler
-import net.ccbluex.liquidbounce.features.misc.FriendManager
 import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
+import net.ccbluex.liquidbounce.render.engine.type.Color4b
 import net.ccbluex.liquidbounce.utils.client.dropPort
 import net.ccbluex.liquidbounce.utils.client.inGame
+import net.ccbluex.liquidbounce.utils.kotlin.Priority
 import okhttp3.*
+import java.awt.Color
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -71,10 +74,11 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
 
     fun createUser() : Boolean {
         if (network.connection.address.toString().split(":").first() == "local") return true
-        if (server.activeChoice is ServerHeypixel || server.activeChoice is ServerOMG) {
-             if (network.connection.address.toString().dropPort().split("/").last() != "127.0.0.1") {
-                 return true
-             }
+        if ((server.activeChoice is ServerHeypixel || server.activeChoice is ServerOMG)
+            && network.connection.address.toString().dropPort().split("/").last() != "127.0.0.1"
+        ) {
+            notifyAsMessage(ModuleIRC, "你在IRC里选择了${server.activeChoice.name}服务器，但你并未使用脱盒！")
+            return true
         }
 
         if (!inGame || webSocket == null) return false
@@ -91,7 +95,8 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
                     else -> ""
                 }
             )
-            addProperty("name", player.name.literalString!!)
+            addProperty("name", player.name.string)
+            addProperty("version", "7.1.1")
         }.toString())
 
         return true
@@ -100,21 +105,22 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
     fun connect() {
         if (!connecting.compareAndSet(false, true) || connected.get()) return
 
-        notifyAsMessage("[IRC] 尝试连接服务器……")
+        notifyAsMessage(ModuleIRC, "尝试连接服务器……")
 
         client.dispatcher.executorService.execute {
             webSocket = client.newWebSocket(request, object : WebSocketListener() {
                 override fun onOpen(webSocket: WebSocket, response: Response) {
                     connecting.set(false)
                     connected.set(true)
-                    notifyAsMessage("[IRC] 连接服务器成功")
+                    notifyAsMessage(ModuleIRC, "连接服务器成功")
                 }
 
                 override fun onMessage(webSocket: WebSocket, text: String) {
                     val messageJson = JsonParser.parseString(text).asJsonObject
                     when (messageJson.get("func").asString) {
                         "send_msg" -> {
-                            notifyAsMessage("[IRC] ${
+
+                            notifyAsMessage(ModuleIRC, "${
                                 if (messageJson.get("name").asString == "错误") "§c"
                                 else "§a"
                             }${messageJson.get("name").asString}§f: ${messageJson.get("msg").asString}")
@@ -122,13 +128,11 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
 
                         "create_user" -> {
                             val name = messageJson.get("name").asString
-                            FriendManager.friends.add(FriendManager.Friend(name, "§a[BMW] §f$name"))
                             users.add(name)
                         }
 
                         "remove_user" -> {
                             val name = messageJson.get("name").asString
-                            FriendManager.friends.remove(FriendManager.Friend(name, "§a[BMW] §f$name"))
                             users.remove(name)
                         }
                     }
@@ -137,16 +141,16 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
                 override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
                     connecting.set(false)
                     connected.set(false)
-                    notifyAsMessage("[IRC] 连接已断开")
+                    notifyAsMessage(ModuleIRC, "连接已断开")
                     reset()
                 }
 
                 override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                     connecting.set(false)
                     if (connected.compareAndSet(true, false)) {
-                        notifyAsMessage("[IRC] 意外与服务器断开连接")
+                        notifyAsMessage(ModuleIRC, "意外与服务器断开连接")
                     } else {
-                        notifyAsMessage("[IRC] 连接服务器失败")
+                        notifyAsMessage(ModuleIRC, "连接服务器失败")
                     }
                     reset()
                 }
@@ -161,16 +165,13 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
     }
 
     fun reset() {
-        users.forEach {
-            FriendManager.friends.remove(FriendManager.Friend(it, "§a[BMW] §f$it"))
-        }
         users.clear()
         shouldCreateUser = true
     }
 
     fun sendMsg(msg: String) {
         if (!connected.get()) {
-            notifyAsMessage("[IRC] 发送消息失败，原因：暂未连接服务器，请重启或关闭IRC")
+            notifyAsMessage(ModuleIRC, "发送消息失败，原因：暂未连接服务器，请重启或关闭IRC")
             return
         }
 
@@ -189,7 +190,7 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
 
         val msg = event.message.trimStart().substring(1).trim()
         if (msg.isEmpty()) {
-            notifyAsMessage("[IRC] 发送消息失败，原因：内容为空")
+            notifyAsMessage(ModuleIRC, "发送消息失败，原因：内容为空")
             return@handler
         }
 
@@ -201,7 +202,7 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
         if (connecting.get()) return@tickHandler
 
         if (!connected.get()) {
-            notifyAsMessage("[IRC] 暂未连接服务器，请重启或关闭IRC")
+            notifyAsMessage(ModuleIRC, "暂未连接服务器，请重启或关闭IRC")
             waitTicks(20)
             return@tickHandler
         }
@@ -215,7 +216,7 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
         if (connecting.get()) return@handler
 
         if (!connected.get()) {
-            notifyAsMessage("[IRC] 暂未连接服务器，请重启或关闭IRC")
+            notifyAsMessage(ModuleIRC, "暂未连接服务器，请重启或关闭IRC")
             return@handler
         }
 
@@ -228,9 +229,17 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
 
     @Suppress("unused")
     private val attackEntityEventHandler = handler<AttackEntityEvent> { event ->
-        if (event.entity.name.literalString in users) {
-            notifyAsMessageAndNotification("[IRC] 请勿攻击其他BMW用户，你必须关闭IRC再攻击", NotificationEvent.Severity.ERROR)
+        if (event.entity.name.string in users) {
+            notifyAsMessageAndNotification(ModuleIRC, "请勿攻击其他BMW用户，你必须关闭IRC再攻击", NotificationEvent.Severity.ERROR)
         }
+    }
+
+    @Suppress("unused")
+    private val tagEntityEventHandler = handler<TagEntityEvent> { event ->
+        if (event.entity.name.string !in users) return@handler
+
+        event.dontTarget()
+        event.color(Color4b(Color.cyan), Priority.IMPORTANT_FOR_USAGE_2)
     }
 
     override fun enable() {

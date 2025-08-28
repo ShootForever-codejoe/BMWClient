@@ -150,12 +150,13 @@ object ModuleFireballFly : ClientModule("FireballFly", Category.BMW, disableOnQu
 
             interactItem(Hand.MAIN_HAND)
             fireballCount--
-            notifyAsMessage("[Fireball Fly] Thrown a Fireball (${totalFireballCount - fireballCount} / $totalFireballCount)")
+            notifyAsMessage(ModuleFireballFly, "Thrown a fireball (${totalFireballCount - fireballCount} / $totalFireballCount)")
 
             if (fireballCount != 0) {
                 waitTicks(fireballDelay - if (Jump.enabled) Jump.jumpDelay else 0)
                 canThrow = true
             } else {
+                notifyAsMessage(ModuleFireballFly, "Release")
                 canRotate = false
                 waitTicks(delay + 5)
                 enabled = false

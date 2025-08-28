@@ -148,7 +148,7 @@ object ModuleAutoShoot : ClientModule("AutoShoot", Category.COMBAT) {
             return@handler
         }
 
-        if (requiresKillAura && (!ModuleKillAura.running || !ModuleKillAura.enabled)) {
+        if (requiresKillAura && !ModuleKillAura.running) {
             return@handler
         }
 
@@ -190,7 +190,7 @@ object ModuleAutoShoot : ClientModule("AutoShoot", Category.COMBAT) {
             return@tickHandler
         }
 
-        if (requiresKillAura && (!ModuleKillAura.running || !ModuleKillAura.enabled)) {
+        if (requiresKillAura && !ModuleKillAura.running) {
             return@tickHandler
         }
 

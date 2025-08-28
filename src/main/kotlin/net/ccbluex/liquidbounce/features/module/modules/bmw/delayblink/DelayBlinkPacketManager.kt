@@ -35,7 +35,7 @@ object DelayBlinkPacketManager : EventListener {
             }
             clear = false
             enabled = false
-            notifyAsMessage("[DelayBlink] Already Handled All Packets")
+            notifyAsMessage(ModuleDelayBlink, "Already handled all packets")
             return@handler
         }
 
@@ -57,7 +57,7 @@ object DelayBlinkPacketManager : EventListener {
 
         if (ModuleDelayBlink.autoDisable && event.packet is PlayerInteractEntityC2SPacket) {
             ModuleDelayBlink.enabled = false
-            notifyAsMessage("[DelayBlink] Auto Disable")
+            notifyAsMessage(ModuleDelayBlink, "Auto disable")
         }
 
         if ((ModuleDelayBlink.DelayPacketTypes.OUTGOING in ModuleDelayBlink.delayPacketTypes
@@ -77,7 +77,7 @@ object DelayBlinkPacketManager : EventListener {
         packets.clear()
         ticks = 0
         full = false
-        notifyAsMessage("[DelayBlink] Start Collecting Packets...")
+        notifyAsMessage(ModuleDelayBlink, "Start collecting packets...")
         waitUntil { !enabled }
     }
 
@@ -87,9 +87,11 @@ object DelayBlinkPacketManager : EventListener {
 
         ticks++
         if (ticks <= ModuleDelayBlink.delay) {
-            if (ModuleDelayBlink.displayDelay) notifyAsMessage("[DelayBlink] Delay: $ticks / ${ModuleDelayBlink.delay} (Ticks)")
+            if (ModuleDelayBlink.displayDelay) {
+                notifyAsMessage(ModuleDelayBlink, "Delay: $ticks / ${ModuleDelayBlink.delay} ticks")
+            }
         } else if (!full) {
-            notifyAsMessage("[DelayBlink] Start Handling the Packets ${ModuleDelayBlink.delay} Ticks Ago...")
+            notifyAsMessage(ModuleDelayBlink, "Start handling the packets ${ModuleDelayBlink.delay} ticks ago...")
             full = true
         }
     }

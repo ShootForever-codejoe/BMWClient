@@ -29,6 +29,7 @@ import net.ccbluex.liquidbounce.api.models.auth.ClientAccount
 import net.ccbluex.liquidbounce.api.services.client.ClientUpdate.gitInfo
 import net.ccbluex.liquidbounce.api.services.client.ClientUpdate.update
 import net.ccbluex.liquidbounce.api.thirdparty.IpInfoApi
+import net.ccbluex.liquidbounce.bmw.HeypixelSWKillEventListener
 import net.ccbluex.liquidbounce.config.AutoConfig
 import net.ccbluex.liquidbounce.config.ConfigSystem
 import net.ccbluex.liquidbounce.config.ConfigSystem.jsonFile
@@ -238,9 +239,10 @@ object LiquidBounce : EventListener {
         ServerObserver
         ItemImageAtlas
 
-        // Modules
+        // BMW
         DelayBlinkPacketManager
         FireballFlyPacketManager
+        HeypixelSWKillEventListener
     }
 
     /**

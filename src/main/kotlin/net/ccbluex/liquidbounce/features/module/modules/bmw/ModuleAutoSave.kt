@@ -1,6 +1,5 @@
 package net.ccbluex.liquidbounce.features.module.modules.bmw
 
-import net.ccbluex.liquidbounce.config.types.NamedChoice
 import net.ccbluex.liquidbounce.config.types.nesting.ToggleableConfigurable
 import net.ccbluex.liquidbounce.event.events.PacketEvent
 import net.ccbluex.liquidbounce.event.events.WorldChangeEvent
@@ -14,23 +13,10 @@ import net.ccbluex.liquidbounce.utils.combat.CombatManager
 import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 import net.minecraft.util.math.BlockPos
-import java.util.EnumSet
 import kotlin.math.ceil
 import kotlin.math.floor
 
 object ModuleAutoSave : ClientModule("AutoSave", Category.BMW) {
-
-    private enum class ScaffoldWhen(
-        override val choiceName: String,
-        val meets: () -> Boolean
-    ) : NamedChoice {
-        DURING_COMBAT("DuringCombat", {
-            CombatManager.isInCombat
-        }),
-        RECEIVE_HIT("ReceiveHit", {
-            receiveHitTicks > 0
-        })
-    }
 
     private object AutoStuck : ToggleableConfigurable(this, "AutoStuck", true) {
         val stuckOnlyVoid by boolean("StuckOnlyVoid", true)
@@ -40,13 +26,6 @@ object ModuleAutoSave : ClientModule("AutoSave", Category.BMW) {
     private object AutoScaffold : ToggleableConfigurable(this, "AutoScaffold", true) {
         val scaffoldOnlyVoid by boolean("ScaffoldOnlyVoid", true)
         val scaffoldVoidDistance by int("ScaffoldVoidDistance", 1, 1..50, "blocks")
-        val scaffoldWhen by multiEnumChoice<ScaffoldWhen>(
-            "ScaffoldWhen",
-            EnumSet.of(
-                ScaffoldWhen.RECEIVE_HIT,
-                ScaffoldWhen.DURING_COMBAT
-            )
-        )
     }
 
     init {
@@ -96,7 +75,7 @@ object ModuleAutoSave : ClientModule("AutoSave", Category.BMW) {
             for (zOffset in zRange) {
                 for (y in if (voidDistance == -1) LOWEST_Y..lastGroundY else lastGroundY - voidDistance..lastGroundY) {
                     val block = BlockPos(player.x.toInt() + xOffset, y, player.z.toInt() + zOffset).getBlock()
-                    if (block?.translationKey != "block.minecraft.air") {
+                    if (block == null || block.translationKey != "block.minecraft.air") {
                         return false
                     }
                 }
@@ -163,7 +142,8 @@ object ModuleAutoSave : ClientModule("AutoSave", Category.BMW) {
         }
 
         if (AutoScaffold.enabled) {
-            if (AutoScaffold.scaffoldWhen.all { it.meets() }
+            if (CombatManager.isInCombat
+                && receiveHitTicks > 0
                 && aboveVoid(
                     if (AutoScaffold.scaffoldOnlyVoid) -1
                     else AutoScaffold.scaffoldVoidDistance

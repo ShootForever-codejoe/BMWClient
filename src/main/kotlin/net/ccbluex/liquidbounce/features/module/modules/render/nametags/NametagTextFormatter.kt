@@ -18,6 +18,7 @@
  */
 package net.ccbluex.liquidbounce.features.module.modules.render.nametags
 
+import net.ccbluex.liquidbounce.features.module.modules.bmw.ModuleIRC
 import net.ccbluex.liquidbounce.features.module.modules.misc.antibot.ModuleAntiBot
 import net.ccbluex.liquidbounce.utils.client.asText
 import net.ccbluex.liquidbounce.utils.client.bold
@@ -30,7 +31,6 @@ import net.ccbluex.liquidbounce.utils.entity.ping
 import net.minecraft.entity.Entity
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.player.PlayerEntity
-import net.minecraft.text.MutableText
 import net.minecraft.text.Text
 import net.minecraft.text.TextColor
 import net.minecraft.util.Formatting
@@ -52,7 +52,13 @@ class NametagTextFormatter(private val entity: Entity) {
         val nameColor = this.nameColor
 
         val nameText: Text = if (nameColor != null) {
-            name.string.asText().withColor(nameColor)
+            var nameString = name.string
+            if (ModuleIRC.running) {
+                for (user in ModuleIRC.users) {
+                    nameString = nameString.replace(user, "[BMW] $user")
+                }
+            }
+            nameString.asText().withColor(nameColor)
         } else {
             name
         }
@@ -76,10 +82,7 @@ class NametagTextFormatter(private val entity: Entity) {
         get() {
             val tagColor = EntityTaggingManager.getTag(this.entity).color
 
-            return when {
-                tagColor != null -> TextColor.fromRgb(tagColor.toARGB())
-                else -> null
-            }
+            return tagColor?.toARGB()?.let { TextColor.fromRgb(it) }
         }
 
     private val distanceText: Text
@@ -128,8 +131,4 @@ class NametagTextFormatter(private val entity: Entity) {
             return "$actualHealth HP".asText().formatted(healthColor)
 
         }
-}
-
-private fun Formatting.toTextColor(): TextColor {
-    return TextColor.fromFormatting(this)!!
 }

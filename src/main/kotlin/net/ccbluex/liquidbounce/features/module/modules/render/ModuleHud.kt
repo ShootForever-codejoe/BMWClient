@@ -67,7 +67,7 @@ object ModuleHud : ClientModule("HUD", Category.RENDER, state = true, hide = tru
     private val blur by boolean("Blur", true)
 
     @Suppress("unused")
-    private val spaceSeperatedNames by boolean("SpaceSeperatedNames", true).onChange { state ->
+    val spaceSeperatedNames by boolean("SpaceSeperatedNames", true).onChange { state ->
         EventManager.callEvent(SpaceSeperatedNamesChangeEvent(state))
         state
     }

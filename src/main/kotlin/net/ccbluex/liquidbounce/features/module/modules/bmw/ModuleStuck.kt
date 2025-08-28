@@ -42,7 +42,7 @@ object ModuleStuck : ClientModule("Stuck", Category.BMW) {
             stucking = true
 
             if (event.packet is PlayerPositionLookS2CPacket && autoDisable) {
-                notifyAsMessage("[Stuck] Auto Disable for S08 Packet")
+                notifyAsMessage(ModuleStuck, "Auto disable for S08 packet")
                 enabled = false
             }
 
@@ -64,7 +64,7 @@ object ModuleStuck : ClientModule("Stuck", Category.BMW) {
                 )
             }
         } else if (stucking && autoDisable) {
-            notifyAsMessage("[Stuck] Auto Disable for OnGround")
+            notifyAsMessage(ModuleStuck, "Auto disable for being on ground")
             enabled = false
         }
     }
@@ -76,7 +76,7 @@ object ModuleStuck : ClientModule("Stuck", Category.BMW) {
         }
 
         waitTicks(AutoReset.resetTicks)
-        notifyAsMessage("[Stuck] Auto Reset")
+        notifyAsMessage(ModuleStuck, "Auto reset")
         enabled = false
         enabled = true
     }
