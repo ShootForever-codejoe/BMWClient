@@ -53,9 +53,10 @@ class NametagTextFormatter(private val entity: Entity) {
 
         val nameText: Text = if (nameColor != null) {
             var nameString = name.string
-            if (ModuleIRC.running) {
+            if (ModuleIRC.running && "[BMW] " !in nameString) {
                 for (user in ModuleIRC.users) {
                     nameString = nameString.replace(user, "[BMW] $user")
+                    if ("[BMW] " in nameString) break
                 }
             }
             nameString.asText().withColor(nameColor)

@@ -36,8 +36,8 @@ object GrimVelocityNoXZ : Choice("NoXZ") {
     private val debug by boolean("Debug", false)
 
     private object Cooldown : ToggleableConfigurable(this, "Cooldown", true) {
-        val maxAttackCount by int("MaxAttackCount", 20, 0..100)
-        val cooldownTicks by int("CooldownTicks", 10, 0..100, "ticks")
+        val maxAttackCount by int("MaxAttackCount", 30, 0..100)
+        val cooldownTicks by int("CooldownTicks", 20, 0..100, "ticks")
         val byHighCPSWarning by boolean("ByHighCPSWarning", true)
     }
 
@@ -92,9 +92,6 @@ object GrimVelocityNoXZ : Choice("NoXZ") {
                 && player.isAlive
                 && !player.isSpectator
                 && !player.abilities.flying
-                && !player.isInFluid
-                && !player.isClimbing
-                && !player.isOnFire
                 && !player.usingItem
             ) {
                 player.setVelocity(
@@ -138,6 +135,7 @@ object GrimVelocityNoXZ : Choice("NoXZ") {
 
                         if (entityHitResult == null) {
                             attacked = false
+                            reset()
                             if (debug) notifyAsMessage(ModuleGrimVelocity, "Fail to attack the target")
                             break
                         }
@@ -170,7 +168,10 @@ object GrimVelocityNoXZ : Choice("NoXZ") {
     @Suppress("unused")
     private val movementInputEventHandler = handler<MovementInputEvent> { event ->
         if (jumpReset && jump) {
-            if (!InventoryManager.isInventoryOpen && mc.currentScreen !is GenericContainerScreen) {
+            if (!InventoryManager.isInventoryOpen
+                && mc.currentScreen !is GenericContainerScreen
+                && player.isOnGround
+            ) {
                 event.jump = true
             }
             jump = false

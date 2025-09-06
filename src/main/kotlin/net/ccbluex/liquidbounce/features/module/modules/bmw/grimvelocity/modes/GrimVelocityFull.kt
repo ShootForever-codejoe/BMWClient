@@ -136,10 +136,6 @@ object GrimVelocityFull : Choice("Full") {
                 delayedPacketQueue.forEach { handlePacket(it.packet) }
                 delayedPacketQueue.clear()
 
-                if (interaction.interactBlock(player, Hand.MAIN_HAND, hitResult) == ActionResult.SUCCESS) {
-                    player.swingHand(Hand.MAIN_HAND)
-                }
-
                 if (RotationManager.serverRotation.pitch != pitch) {
                     network.sendPacket(
                         PlayerMoveC2SPacket.LookAndOnGround(
@@ -156,6 +152,10 @@ object GrimVelocityFull : Choice("Full") {
                             player.horizontalCollision
                         )
                     )
+                }
+
+                if (interaction.interactBlock(player, Hand.MAIN_HAND, hitResult) == ActionResult.SUCCESS) {
+                    player.swingHand(Hand.MAIN_HAND)
                 }
 
                 waitForUpdate = true

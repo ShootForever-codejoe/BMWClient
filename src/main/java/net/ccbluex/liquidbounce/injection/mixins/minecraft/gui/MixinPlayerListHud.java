@@ -25,6 +25,7 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.llamalad7.mixinextras.sugar.ref.LocalIntRef;
 import net.ccbluex.liquidbounce.features.misc.FriendManager;
+import net.ccbluex.liquidbounce.features.module.modules.bmw.ModuleIRC;
 import net.ccbluex.liquidbounce.features.module.modules.misc.ModuleAntiStaff;
 import net.ccbluex.liquidbounce.features.module.modules.misc.ModuleBetterTab;
 import net.ccbluex.liquidbounce.features.module.modules.misc.Visibility;
@@ -35,6 +36,7 @@ import net.minecraft.client.gui.hud.PlayerListHud;
 import net.minecraft.client.network.PlayerListEntry;
 import net.minecraft.text.Text;
 import net.minecraft.util.Colors;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.math.MathHelper;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -182,6 +184,16 @@ public abstract class MixinPlayerListHud {
     private Text modifyPlayerName(Text original, PlayerListEntry entry) {
         if (ModuleAntiStaff.INSTANCE.shouldShowAsStaffOnTab(entry.getProfile().getName())) {
             return original.copy().append(Text.literal(" - (Staff)").withColor(Colors.LIGHT_RED));
+        }
+
+        String nameString = original.getString();
+        if (ModuleIRC.INSTANCE.getRunning() && !nameString.contains("[BMW] ")) {
+            for (String user: ModuleIRC.INSTANCE.getUsers()) {
+                String newNameString = nameString.replace(user, "[BMW] " + user);
+                if (newNameString.contains("[BMW] ")) {
+                    return Text.literal(newNameString).withColor(Colors.CYAN);
+                }
+            }
         }
 
         return original;

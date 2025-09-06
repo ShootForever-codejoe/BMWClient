@@ -48,8 +48,7 @@ import net.ccbluex.liquidbounce.utils.render.WorldTargetRenderer
 object ModuleCrystalAura : ClientModule(
     "CrystalAura",
     Category.COMBAT,
-    aliases = arrayOf("AutoCrystal"),
-    disableOnQuit = true
+    aliases = arrayOf("AutoCrystal")
 ) {
 
     val targetTracker = tree(TargetTracker(

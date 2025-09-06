@@ -33,7 +33,10 @@ object GrimVelocityJumpReset : Choice("JumpReset") {
     @Suppress("unused")
     private val movementInputEventHandler = handler<MovementInputEvent> { event ->
         if (velocityInput) {
-            if (!InventoryManager.isInventoryOpen && mc.currentScreen !is GenericContainerScreen) {
+            if (!InventoryManager.isInventoryOpen
+                && mc.currentScreen !is GenericContainerScreen
+                && player.isOnGround
+            ) {
                 event.jump = true
             }
             velocityInput = false

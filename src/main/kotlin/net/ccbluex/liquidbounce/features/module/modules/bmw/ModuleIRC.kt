@@ -16,6 +16,7 @@ import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.event.tickHandler
 import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
+import net.ccbluex.liquidbounce.features.module.modules.combat.killaura.ModuleKillAura
 import net.ccbluex.liquidbounce.render.engine.type.Color4b
 import net.ccbluex.liquidbounce.utils.client.dropPort
 import net.ccbluex.liquidbounce.utils.client.inGame
@@ -119,7 +120,6 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
                     val messageJson = JsonParser.parseString(text).asJsonObject
                     when (messageJson.get("func").asString) {
                         "send_msg" -> {
-
                             notifyAsMessage(ModuleIRC, "${
                                 if (messageJson.get("name").asString == "错误") "§c"
                                 else "§a"
@@ -128,12 +128,16 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
 
                         "create_user" -> {
                             val name = messageJson.get("name").asString
-                            users.add(name)
+                            if (!users.contains(name)) {
+                                users.add(name)
+                            }
                         }
 
                         "remove_user" -> {
                             val name = messageJson.get("name").asString
-                            users.remove(name)
+                            if (users.contains(name)) {
+                                users.remove(name)
+                            }
                         }
                     }
                 }
@@ -229,7 +233,7 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
 
     @Suppress("unused")
     private val attackEntityEventHandler = handler<AttackEntityEvent> { event ->
-        if (event.entity.name.string in users) {
+        if (event.entity.name.string in users && (!ModuleKillAura.running || ModuleKillAura.targetTracker.target == null)) {
             notifyAsMessageAndNotification(ModuleIRC, "请勿攻击其他BMW用户，你必须关闭IRC再攻击", NotificationEvent.Severity.ERROR)
         }
     }

@@ -14,9 +14,11 @@ import net.ccbluex.liquidbounce.utils.aiming.RotationsConfigurable
 import net.ccbluex.liquidbounce.utils.aiming.data.Rotation
 import net.ccbluex.liquidbounce.utils.client.PacketSnapshot
 import net.ccbluex.liquidbounce.utils.client.SilentHotbar
+import net.ccbluex.liquidbounce.utils.inventory.Slots
+import net.ccbluex.liquidbounce.utils.inventory.findClosestSlot
 import net.ccbluex.liquidbounce.utils.inventory.interactItem
 import net.ccbluex.liquidbounce.utils.kotlin.Priority
-import net.minecraft.item.FireChargeItem
+import net.minecraft.item.Items
 import net.minecraft.network.packet.Packet
 import net.minecraft.network.packet.c2s.play.ChatMessageC2SPacket
 import net.minecraft.network.packet.c2s.play.CommandExecutionC2SPacket
@@ -26,7 +28,6 @@ import net.minecraft.network.packet.s2c.play.HealthUpdateS2CPacket
 import net.minecraft.network.packet.s2c.play.PlaySoundS2CPacket
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 import net.minecraft.sound.SoundEvents
-import net.minecraft.util.Hand
 import net.minecraft.util.math.MathHelper
 
 object ModuleFireballFly : ClientModule("FireballFly", Category.BMW, disableOnQuit = true) {
@@ -72,7 +73,7 @@ object ModuleFireballFly : ClientModule("FireballFly", Category.BMW, disableOnQu
             }
 
             is PlayerPositionLookS2CPacket, is DisconnectS2CPacket -> {
-                clear(true)
+                processPackets()
                 return@handler
             }
 
@@ -84,7 +85,7 @@ object ModuleFireballFly : ClientModule("FireballFly", Category.BMW, disableOnQu
 
             is HealthUpdateS2CPacket -> {
                 if (packet.health <= 0) {
-                    clear(true)
+                    processPackets()
                     return@handler
                 }
             }
@@ -117,52 +118,42 @@ object ModuleFireballFly : ClientModule("FireballFly", Category.BMW, disableOnQu
         }
     }
 
-    private fun clear(handlePackets: Boolean = true) {
-        if (handlePackets) {
-            processPackets()
-        } else {
-            delayedPacketQueue.clear()
-        }
-    }
-
-    private fun findFireballSlot(): Int? {
-        return (0..8).firstOrNull {
-            val stack = player.inventory.getStack(it)
-            stack.item is FireChargeItem
-        }
-    }
-
     @Suppress("unused")
     private val tickHandler = tickHandler {
-        val bestMainHandSlot = findFireballSlot()
-        if (bestMainHandSlot != null) {
-            SilentHotbar.selectSlotSilently(this, bestMainHandSlot, slotResetDelay)
+        if (!canThrow) return@tickHandler
+        canThrow = false
+
+        val fireballItem = Slots.OffhandWithHotbar.findClosestSlot(Items.FIRE_CHARGE)
+        if (fireballItem != null) {
+            SilentHotbar.selectSlotSilently(this, fireballItem, slotResetDelay)
         } else {
             SilentHotbar.resetSlot(this)
+            enabled = false
+            return@tickHandler
         }
-        if (canThrow) {
+
+        if (Jump.enabled) {
+            if (player.isOnGround) player.jump()
+            waitTicks(Jump.jumpDelay)
+        }
+
+        interactItem(fireballItem.useHand)
+        fireballCount--
+        notifyAsMessage(
+            ModuleFireballFly,
+            "Thrown a fireball (${totalFireballCount - fireballCount} / $totalFireballCount)"
+        )
+
+        if (fireballCount != 0) {
+            waitTicks(fireballDelay - if (Jump.enabled) Jump.jumpDelay else 0)
+            canThrow = true
+        } else {
+            notifyAsMessage(ModuleFireballFly, "Release")
+            canRotate = false
+            waitTicks(delay + 5)
+            enabled = false
+            processPackets()
             canThrow = false
-
-            if (Jump.enabled) {
-                if (player.isOnGround) player.jump()
-                waitTicks(Jump.jumpDelay)
-            }
-
-            interactItem(Hand.MAIN_HAND)
-            fireballCount--
-            notifyAsMessage(ModuleFireballFly, "Thrown a fireball (${totalFireballCount - fireballCount} / $totalFireballCount)")
-
-            if (fireballCount != 0) {
-                waitTicks(fireballDelay - if (Jump.enabled) Jump.jumpDelay else 0)
-                canThrow = true
-            } else {
-                notifyAsMessage(ModuleFireballFly, "Release")
-                canRotate = false
-                waitTicks(delay + 5)
-                enabled = false
-                clear(true)
-                canThrow = false
-            }
         }
     }
 
@@ -171,23 +162,21 @@ object ModuleFireballFly : ClientModule("FireballFly", Category.BMW, disableOnQu
     }
 
     override fun enable() {
-        clear(false)
-        val bestMainHandSlot = findFireballSlot()
-        if (bestMainHandSlot != null) {
-            val count = player.inventory.getStack(bestMainHandSlot).count
+        val fireballItem = Slots.OffhandWithHotbar.findClosestSlot(Items.FIRE_CHARGE)
+        if (fireballItem != null) {
+            val count = fireballItem.itemStack.count
             fireballCount = if (count < maxFireballCount) count else maxFireballCount
             totalFireballCount = fireballCount
             delay = fireballCount * fireballDelay
             canThrow = true
             canRotate = true
         } else {
-            canThrow = false
-            canRotate = false
+            enabled = false
         }
     }
 
     override fun disable() {
-        clear(true)
+        processPackets()
         canThrow = false
         canRotate = false
     }

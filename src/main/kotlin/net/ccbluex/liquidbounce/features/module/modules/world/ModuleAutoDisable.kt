@@ -21,7 +21,9 @@ package net.ccbluex.liquidbounce.features.module.modules.world
 import net.ccbluex.liquidbounce.bmw.HEYPIXEL_END_MESSAGE
 import net.ccbluex.liquidbounce.config.types.NamedChoice
 import net.ccbluex.liquidbounce.event.events.ChatReceiveEvent
+import net.ccbluex.liquidbounce.event.events.ClientShutdownEvent
 import net.ccbluex.liquidbounce.event.events.DeathEvent
+import net.ccbluex.liquidbounce.event.events.DisconnectEvent
 import net.ccbluex.liquidbounce.event.events.NotificationEvent
 import net.ccbluex.liquidbounce.event.events.PacketEvent
 import net.ccbluex.liquidbounce.event.events.WorldChangeEvent
@@ -32,6 +34,7 @@ import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
 import net.ccbluex.liquidbounce.features.module.modules.bmw.delayblink.ModuleDelayBlink
 import net.ccbluex.liquidbounce.features.module.modules.bmw.ModuleStuck
+import net.ccbluex.liquidbounce.features.module.modules.bmw.fireballfly.ModuleFireballFly
 import net.ccbluex.liquidbounce.features.module.modules.combat.killaura.ModuleKillAura
 import net.ccbluex.liquidbounce.features.module.modules.movement.ModuleNoClip
 import net.ccbluex.liquidbounce.features.module.modules.movement.fly.ModuleFly
@@ -59,7 +62,8 @@ object ModuleAutoDisable : ClientModule("AutoDisable", Category.WORLD) {
         ModuleScaffold,
         ModuleDelayBlink,
         ModuleBlink,
-        ModuleStuck
+        ModuleStuck,
+        ModuleFireballFly
     )
 
     private val disableOn by multiEnumChoice<DisableOn>(
@@ -67,7 +71,8 @@ object ModuleAutoDisable : ClientModule("AutoDisable", Category.WORLD) {
         EnumSet.of(
             DisableOn.SPECTATOR,
             DisableOn.CHANGE_WORLD,
-            DisableOn.HEYPIXEL_END_MESSAGE
+            DisableOn.HEYPIXEL_END_MESSAGE,
+            DisableOn.QUIT
         )
     )
 
@@ -112,6 +117,20 @@ object ModuleAutoDisable : ClientModule("AutoDisable", Category.WORLD) {
         }
     }
 
+    @Suppress("unused")
+    private val disconnectEventHandler = handler<DisconnectEvent> {
+        if (DisableOn.QUIT in disableOn) {
+            disableAndNotify("quit")
+        }
+    }
+
+    @Suppress("unused")
+    private val clientShutdownEventHandler = handler<ClientShutdownEvent> {
+        if (DisableOn.QUIT in disableOn) {
+            disableAndNotify("quit")
+        }
+    }
+
     private fun disableAndNotify(reason: String) {
         for (module in listOfModules) {
             module.enabled = false
@@ -124,6 +143,7 @@ object ModuleAutoDisable : ClientModule("AutoDisable", Category.WORLD) {
         DEATH("Death"),
         SPECTATOR("Spectator"),
         CHANGE_WORLD("ChangeWorld"),
-        HEYPIXEL_END_MESSAGE("HeypixelEndMessage")
+        HEYPIXEL_END_MESSAGE("HeypixelEndMessage"),
+        QUIT("Quit")
     }
 }

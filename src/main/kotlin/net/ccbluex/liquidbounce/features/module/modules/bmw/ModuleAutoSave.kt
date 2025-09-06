@@ -24,14 +24,16 @@ object ModuleAutoSave : ClientModule("AutoSave", Category.BMW) {
     }
 
     private object AutoScaffold : ToggleableConfigurable(this, "AutoScaffold", true) {
-        val scaffoldOnlyVoid by boolean("ScaffoldOnlyVoid", true)
-        val scaffoldVoidDistance by int("ScaffoldVoidDistance", 1, 1..50, "blocks")
+        val scaffoldOnlyVoid by boolean("ScaffoldOnlyVoid", false)
+        val scaffoldVoidDistance by int("ScaffoldVoidDistance", 15, 1..50, "blocks")
     }
 
     init {
         tree(AutoStuck)
         tree(AutoScaffold)
     }
+
+    private val pauseOnFlag by int("PauseOnFlag", 20, 0..100, "ticks")
 
     private const val LOWEST_Y = -64
     private const val BLOCK_EDGE = 0.3
@@ -42,6 +44,7 @@ object ModuleAutoSave : ClientModule("AutoSave", Category.BMW) {
     private var scaffoldSaving = false
     private var wasSpectator = false
     private var receiveHitTicks = 0
+    private var pauseTicks = 0
 
     private fun reset(disable: Boolean) {
         if (disable) {
@@ -53,6 +56,7 @@ object ModuleAutoSave : ClientModule("AutoSave", Category.BMW) {
         stuckSaving = false
         scaffoldSaving = false
         receiveHitTicks = 0
+        pauseTicks = 0
     }
 
     private fun aboveVoid(voidDistance: Int = -1): Boolean {
@@ -75,7 +79,7 @@ object ModuleAutoSave : ClientModule("AutoSave", Category.BMW) {
             for (zOffset in zRange) {
                 for (y in if (voidDistance == -1) LOWEST_Y..lastGroundY else lastGroundY - voidDistance..lastGroundY) {
                     val block = BlockPos(player.x.toInt() + xOffset, y, player.z.toInt() + zOffset).getBlock()
-                    if (block == null || block.translationKey != "block.minecraft.air") {
+                    if (block?.translationKey != "block.minecraft.air") {
                         return false
                     }
                 }
@@ -96,6 +100,7 @@ object ModuleAutoSave : ClientModule("AutoSave", Category.BMW) {
 
         if (packet is PlayerPositionLookS2CPacket) {
             reset(true)
+            pauseTicks = pauseOnFlag
         }
 
         if (packet is EntityVelocityUpdateS2CPacket && packet.entityId == player.id) {
@@ -115,6 +120,7 @@ object ModuleAutoSave : ClientModule("AutoSave", Category.BMW) {
             if (wasSpectator) wasSpectator = false
         }
 
+        if (pauseTicks > 0) pauseTicks--
         if (receiveHitTicks > 0) receiveHitTicks--
         if (player.hurtTime > 0) {
             receiveHitTicks = RECEIVE_HIT_TICKS
@@ -123,6 +129,8 @@ object ModuleAutoSave : ClientModule("AutoSave", Category.BMW) {
         if (player.isOnGround) {
             lastGroundY = player.y.toInt() - 1
         }
+
+        if (pauseTicks > 0) return@tickHandler
 
         if (AutoStuck.enabled) {
             if (player.y >= LOWEST_Y + 2
