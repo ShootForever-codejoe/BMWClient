@@ -10,8 +10,14 @@ object ModuleGrimVelocity : ClientModule("GrimVelocity", Category.BMW) {
         "Mode", GrimVelocityNoXZ, arrayOf(
             GrimVelocityJumpReset,
             GrimVelocityFull,
-            GrimVelocityNoXZ
+            GrimVelocityNoXZ,
+            GrimVelocityDelay
         )
     ).apply(::tagBy)
+
+    private val stopBacktrack by boolean("StopBacktrack", true)
+
+    val shouldStopBacktrack: Boolean
+        get() = stopBacktrack && modes.activeChoice.shouldStopBacktrack && running
 
 }

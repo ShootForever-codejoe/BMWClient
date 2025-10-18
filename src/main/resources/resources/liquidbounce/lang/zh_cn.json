@@ -736,5 +736,6 @@
   "liquidbounce.module.iRC.description": "可以与BMWClient的其他用户聊天，并且KillAura不会打其他用户。",
   "liquidbounce.module.stuck.description": "卡在空中防止掉进虚空。",
   "liquidbounce.module.grimVelocity.description": "绕过GrimAC的反击退。",
-  "liquidbounce.module.fireballFly.description": "延迟火球的击退以实现飞行的效果。"
+  "liquidbounce.module.fireballFly.description": "延迟火球的击退以实现飞行的效果。",
+  "liquidbounce.module.autoBreakOut.description": "自动出笼。"
 }

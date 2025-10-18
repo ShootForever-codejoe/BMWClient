@@ -16,7 +16,7 @@ object ModuleAutoL : ClientModule("AutoL", Category.BMW) {
 
     private object Normal : Choice("Normal") {
         override val parent: ChoiceConfigurable<*>
-            get() = modes
+            get() = mode
 
         private val enemies = mutableListOf<Entity>()
 
@@ -47,7 +47,7 @@ object ModuleAutoL : ClientModule("AutoL", Category.BMW) {
 
     private object HeypixelSW : Choice("HeypixelSW") {
         override val parent: ChoiceConfigurable<*>
-            get() = modes
+            get() = mode
 
         @Suppress("unused")
         private val heypixelSWKillEventHandler =
@@ -58,7 +58,7 @@ object ModuleAutoL : ClientModule("AutoL", Category.BMW) {
         }
     }
 
-    val modes = choices(
+    private val mode = choices(
         "Mode",
         HeypixelSW,
         arrayOf(

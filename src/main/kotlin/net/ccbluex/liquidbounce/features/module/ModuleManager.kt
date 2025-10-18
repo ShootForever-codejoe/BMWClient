@@ -429,7 +429,8 @@ object ModuleManager : EventListener, Iterable<ClientModule> by modules {
             ModuleStuck,
             ModuleGrimVelocity,
             ModuleAutoReport,
-            ModuleFireballFly
+            ModuleFireballFly,
+            ModuleAutoBreakOut
         )
 
         builtin.forEach { module ->

@@ -1,13 +1,14 @@
 package net.ccbluex.liquidbounce.features.module.modules.bmw
 
 import net.ccbluex.liquidbounce.bmw.notifyAsMessage
+import net.ccbluex.liquidbounce.bmw.sendPacketNoEvent
 import net.ccbluex.liquidbounce.event.events.PacketEvent
 import net.ccbluex.liquidbounce.event.events.MovementInputEvent
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.event.tickHandler
 import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
-import net.ccbluex.liquidbounce.utils.client.sendPacketSilently
+import net.ccbluex.liquidbounce.utils.movement.DirectionalInput
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket
@@ -19,7 +20,9 @@ object ModuleStuck : ClientModule("Stuck", Category.BMW, disableOnQuit = true) {
     private val autoDisable by boolean("AutoDisable", true)
 
     @Suppress("unused")
-    private val movementInputEventHandler = handler<MovementInputEvent> {
+    private val movementInputEventHandler = handler<MovementInputEvent> { event ->
+        event.directionalInput = DirectionalInput.NONE
+        event.jump = false
         player.movement.x = 0.0
         player.movement.y = 0.0
         player.movement.z = 0.0
@@ -30,7 +33,7 @@ object ModuleStuck : ClientModule("Stuck", Category.BMW, disableOnQuit = true) {
         val packet = event.packet
 
         if (packet is PlayerPositionLookS2CPacket && autoDisable) {
-            notifyAsMessage(ModuleStuck, "Auto disable for s08 packet")
+            notifyAsMessage(ModuleStuck, "Auto disable for flag")
             enabled = false
         }
 
@@ -40,12 +43,14 @@ object ModuleStuck : ClientModule("Stuck", Category.BMW, disableOnQuit = true) {
 
         if (packet is PlayerInteractItemC2SPacket) {
             event.cancelEvent()
-            sendPacketSilently(
+            sendPacketNoEvent(
+                ModuleStuck,
                 PlayerMoveC2SPacket.LookAndOnGround(
                     player.yaw, player.pitch, player.isOnGround, player.horizontalCollision
                 )
             )
-            sendPacketSilently(
+            sendPacketNoEvent(
+                ModuleStuck,
                 PlayerInteractItemC2SPacket(
                     packet.hand, packet.sequence, player.yaw, player.pitch
                 )
@@ -54,22 +59,24 @@ object ModuleStuck : ClientModule("Stuck", Category.BMW, disableOnQuit = true) {
 
         if (packet is PlayerInteractEntityC2SPacket) {
             event.cancelEvent()
-            sendPacketSilently(
+            sendPacketNoEvent(
+                ModuleStuck,
                 PlayerMoveC2SPacket.LookAndOnGround(
                     player.yaw, player.pitch, player.isOnGround, player.horizontalCollision
                 )
             )
-            sendPacketSilently(packet)
+            sendPacketNoEvent(ModuleStuck, packet)
         }
 
         if (packet is PlayerInteractBlockC2SPacket) {
             event.cancelEvent()
-            sendPacketSilently(
+            sendPacketNoEvent(
+                ModuleStuck,
                 PlayerMoveC2SPacket.LookAndOnGround(
                     player.yaw, player.pitch, player.isOnGround, player.horizontalCollision
                 )
             )
-            sendPacketSilently(packet)
+            sendPacketNoEvent(ModuleStuck, packet)
         }
     }
 

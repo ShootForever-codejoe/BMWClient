@@ -28,6 +28,7 @@ import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.event.tickHandler
 import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
+import net.ccbluex.liquidbounce.features.module.modules.bmw.grimvelocity.ModuleGrimVelocity
 import net.ccbluex.liquidbounce.render.drawSolidBox
 import net.ccbluex.liquidbounce.render.engine.type.Color4b
 import net.ccbluex.liquidbounce.render.renderEnvironmentForWorld
@@ -359,7 +360,8 @@ object ModuleBacktrack : ClientModule("Backtrack", Category.COMBAT) {
             currentChance < chance &&
             chronometer.hasElapsed() &&
             !shouldPause() &&
-            !attackChronometer.hasElapsed(lastAttackTimeToWork.toLong())
+            !attackChronometer.hasElapsed(lastAttackTimeToWork.toLong()) &&
+            !ModuleGrimVelocity.shouldStopBacktrack
     }
 
     fun isLagging() = running && !arePacketQueuesEmpty

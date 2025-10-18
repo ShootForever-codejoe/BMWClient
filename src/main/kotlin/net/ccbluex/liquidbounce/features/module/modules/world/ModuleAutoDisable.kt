@@ -18,7 +18,7 @@
  */
 package net.ccbluex.liquidbounce.features.module.modules.world
 
-import net.ccbluex.liquidbounce.bmw.HEYPIXEL_END_MESSAGE
+import net.ccbluex.liquidbounce.bmw.HEYPIXEL_SW_END_MESSAGE
 import net.ccbluex.liquidbounce.config.types.NamedChoice
 import net.ccbluex.liquidbounce.event.events.ChatReceiveEvent
 import net.ccbluex.liquidbounce.event.events.ClientShutdownEvent
@@ -102,7 +102,7 @@ object ModuleAutoDisable : ClientModule("AutoDisable", Category.WORLD) {
                 return@handler
             }
 
-            if (event.message.contains(HEYPIXEL_END_MESSAGE)) {
+            if (event.message.contains(HEYPIXEL_SW_END_MESSAGE)) {
                 disableAndNotify("heypixel end message")
             }
         }

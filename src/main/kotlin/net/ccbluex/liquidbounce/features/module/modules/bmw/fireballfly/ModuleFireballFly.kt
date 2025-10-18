@@ -1,5 +1,6 @@
 package net.ccbluex.liquidbounce.features.module.modules.bmw.fireballfly
 
+import com.google.common.collect.Queues
 import net.ccbluex.liquidbounce.bmw.notifyAsMessage
 import net.ccbluex.liquidbounce.config.types.nesting.ToggleableConfigurable
 import net.ccbluex.liquidbounce.event.events.PacketEvent
@@ -23,10 +24,14 @@ import net.minecraft.network.packet.Packet
 import net.minecraft.network.packet.c2s.play.ChatMessageC2SPacket
 import net.minecraft.network.packet.c2s.play.CommandExecutionC2SPacket
 import net.minecraft.network.packet.s2c.common.DisconnectS2CPacket
+import net.minecraft.network.packet.s2c.common.KeepAliveS2CPacket
+import net.minecraft.network.packet.s2c.play.ChatMessageS2CPacket
+import net.minecraft.network.packet.s2c.play.GameJoinS2CPacket
 import net.minecraft.network.packet.s2c.play.GameMessageS2CPacket
 import net.minecraft.network.packet.s2c.play.HealthUpdateS2CPacket
 import net.minecraft.network.packet.s2c.play.PlaySoundS2CPacket
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
+import net.minecraft.network.packet.s2c.play.PlayerRespawnS2CPacket
 import net.minecraft.sound.SoundEvents
 import net.minecraft.util.math.MathHelper
 
@@ -50,8 +55,8 @@ object ModuleFireballFly : ClientModule("FireballFly", Category.BMW, disableOnQu
         tree(Rotations)
     }
 
-    private val delayedPacketQueue = mutableListOf<PacketSnapshot>()
-    val packetProcessQueue = mutableListOf<Packet<*>>()
+    private val delayedPacketQueue = Queues.newConcurrentLinkedQueue<PacketSnapshot>()
+    val packetProcessQueue = Queues.newConcurrentLinkedQueue<Packet<*>>()
 
     private var canThrow = false
     private var canRotate = false
@@ -61,18 +66,23 @@ object ModuleFireballFly : ClientModule("FireballFly", Category.BMW, disableOnQu
 
     @Suppress("unused")
     private val packetHandler = handler<PacketEvent> { event ->
-        if (event.origin != TransferOrigin.INCOMING || event.isCancelled) {
+        if (event.origin != TransferOrigin.INCOMING) {
             return@handler
         }
 
         val packet = event.packet
 
         when (packet) {
-            is ChatMessageC2SPacket, is GameMessageS2CPacket, is CommandExecutionC2SPacket -> {
+            is ChatMessageS2CPacket,
+            is GameMessageS2CPacket,
+            is KeepAliveS2CPacket -> {
                 return@handler
             }
 
-            is PlayerPositionLookS2CPacket, is DisconnectS2CPacket -> {
+            is PlayerPositionLookS2CPacket,
+            is DisconnectS2CPacket,
+            is PlayerRespawnS2CPacket,
+            is GameJoinS2CPacket -> {
                 processPackets()
                 return@handler
             }

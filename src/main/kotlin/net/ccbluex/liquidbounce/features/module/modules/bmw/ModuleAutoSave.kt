@@ -7,6 +7,7 @@ import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.event.tickHandler
 import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
+import net.ccbluex.liquidbounce.features.module.modules.bmw.fireballfly.ModuleFireballFly
 import net.ccbluex.liquidbounce.features.module.modules.world.scaffold.ModuleScaffold
 import net.ccbluex.liquidbounce.utils.block.getBlock
 import net.ccbluex.liquidbounce.utils.combat.CombatManager
@@ -37,7 +38,7 @@ object ModuleAutoSave : ClientModule("AutoSave", Category.BMW) {
 
     private const val LOWEST_Y = -64
     private const val BLOCK_EDGE = 0.3
-    private const val RECEIVE_HIT_TICKS = 50
+    private const val RECEIVE_HIT_TICKS = 30
 
     private var lastGroundY = LOWEST_Y
     private var stuckSaving = false
@@ -103,7 +104,9 @@ object ModuleAutoSave : ClientModule("AutoSave", Category.BMW) {
             pauseTicks = pauseOnFlag
         }
 
-        if (packet is EntityVelocityUpdateS2CPacket && packet.entityId == player.id) {
+        if (packet is EntityVelocityUpdateS2CPacket && packet.entityId == player.id
+            && !ModuleFireballFly.running
+        ) {
             receiveHitTicks = RECEIVE_HIT_TICKS
         }
     }
@@ -150,8 +153,7 @@ object ModuleAutoSave : ClientModule("AutoSave", Category.BMW) {
         }
 
         if (AutoScaffold.enabled) {
-            if (CombatManager.isInCombat
-                && receiveHitTicks > 0
+            if ((CombatManager.isInCombat || receiveHitTicks > 0)
                 && aboveVoid(
                     if (AutoScaffold.scaffoldOnlyVoid) -1
                     else AutoScaffold.scaffoldVoidDistance

@@ -1,7 +1,7 @@
 package net.ccbluex.liquidbounce.features.module.modules.player.autoqueue.presets
 
 import kotlinx.coroutines.delay
-import net.ccbluex.liquidbounce.bmw.HEYPIXEL_END_MESSAGE
+import net.ccbluex.liquidbounce.bmw.HEYPIXEL_SW_END_MESSAGE
 import net.ccbluex.liquidbounce.config.types.nesting.Choice
 import net.ccbluex.liquidbounce.config.types.nesting.ChoiceConfigurable
 import net.ccbluex.liquidbounce.event.events.ChatReceiveEvent
@@ -25,7 +25,7 @@ object AutoQueueHeypixelSW : Choice("HeypixelSW") {
             return@sequenceHandler
         }
 
-        if (event.message.contains(HEYPIXEL_END_MESSAGE)) {
+        if (event.message.contains(HEYPIXEL_SW_END_MESSAGE)) {
             if (!spectatorCheck || (!player.isSpectator && !player.abilities.flying)) {
                 delay((delay * 1000f).toLong())
                 network.sendCommand("again")
