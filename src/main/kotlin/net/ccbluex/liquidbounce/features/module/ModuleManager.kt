@@ -18,13 +18,19 @@
  */
 package net.ccbluex.liquidbounce.features.module
 
+import it.unimi.dsi.fastutil.objects.ObjectRBTreeSet
+import net.ccbluex.fastutil.mapToArray
+import net.ccbluex.liquidbounce.config.AutoConfig
 import net.ccbluex.liquidbounce.config.ConfigSystem
+import net.ccbluex.liquidbounce.config.types.VALUE_NAME_ORDER
 import net.ccbluex.liquidbounce.event.EventListener
 import net.ccbluex.liquidbounce.event.events.DisconnectEvent
 import net.ccbluex.liquidbounce.event.events.KeyboardKeyEvent
 import net.ccbluex.liquidbounce.event.events.MouseButtonEvent
 import net.ccbluex.liquidbounce.event.events.WorldChangeEvent
 import net.ccbluex.liquidbounce.event.handler
+import net.ccbluex.liquidbounce.event.sequenceHandler
+import net.ccbluex.liquidbounce.event.tickUntil
 import net.ccbluex.liquidbounce.features.module.modules.client.*
 import net.ccbluex.liquidbounce.features.module.modules.combat.*
 import net.ccbluex.liquidbounce.features.module.modules.combat.aimbot.ModuleAutoBow
@@ -42,11 +48,13 @@ import net.ccbluex.liquidbounce.features.module.modules.exploit.dupe.ModuleDupe
 import net.ccbluex.liquidbounce.features.module.modules.exploit.phase.ModulePhase
 import net.ccbluex.liquidbounce.features.module.modules.exploit.servercrasher.ModuleServerCrasher
 import net.ccbluex.liquidbounce.features.module.modules.`fun`.*
+import net.ccbluex.liquidbounce.features.module.modules.`fun`.notebot.ModuleNotebot
 import net.ccbluex.liquidbounce.features.module.modules.misc.*
 import net.ccbluex.liquidbounce.features.module.modules.misc.antibot.ModuleAntiBot
 import net.ccbluex.liquidbounce.features.module.modules.misc.betterchat.ModuleBetterChat
 import net.ccbluex.liquidbounce.features.module.modules.misc.debugrecorder.ModuleDebugRecorder
 import net.ccbluex.liquidbounce.features.module.modules.misc.nameprotect.ModuleNameProtect
+import net.ccbluex.liquidbounce.features.module.modules.misc.reporthelper.ModuleReportHelper
 import net.ccbluex.liquidbounce.features.module.modules.movement.*
 import net.ccbluex.liquidbounce.features.module.modules.movement.autododge.ModuleAutoDodge
 import net.ccbluex.liquidbounce.features.module.modules.movement.elytrafly.ModuleElytraFly
@@ -56,6 +64,7 @@ import net.ccbluex.liquidbounce.features.module.modules.movement.inventorymove.M
 import net.ccbluex.liquidbounce.features.module.modules.movement.liquidwalk.ModuleLiquidWalk
 import net.ccbluex.liquidbounce.features.module.modules.movement.longjump.ModuleLongJump
 import net.ccbluex.liquidbounce.features.module.modules.movement.noslow.ModuleNoSlow
+import net.ccbluex.liquidbounce.features.module.modules.movement.noweb.ModuleNoWeb
 import net.ccbluex.liquidbounce.features.module.modules.movement.speed.ModuleSpeed
 import net.ccbluex.liquidbounce.features.module.modules.movement.spider.ModuleSpider
 import net.ccbluex.liquidbounce.features.module.modules.movement.step.ModuleReverseStep
@@ -81,6 +90,7 @@ import net.ccbluex.liquidbounce.features.module.modules.world.autofarm.ModuleAut
 import net.ccbluex.liquidbounce.features.module.modules.world.fucker.ModuleFucker
 import net.ccbluex.liquidbounce.features.module.modules.world.nuker.ModuleNuker
 import net.ccbluex.liquidbounce.features.module.modules.world.packetmine.ModulePacketMine
+import net.ccbluex.liquidbounce.features.module.modules.render.ModuleProtectionZones
 import net.ccbluex.liquidbounce.features.module.modules.world.scaffold.ModuleScaffold
 import net.ccbluex.liquidbounce.features.module.modules.bmw.*
 import net.ccbluex.liquidbounce.features.module.modules.bmw.delayblink.ModuleDelayBlink
@@ -88,22 +98,18 @@ import net.ccbluex.liquidbounce.features.module.modules.bmw.fireballfly.ModuleFi
 import net.ccbluex.liquidbounce.features.module.modules.bmw.grimvelocity.ModuleGrimVelocity
 import net.ccbluex.liquidbounce.features.module.modules.world.traps.ModuleAutoTrap
 import net.ccbluex.liquidbounce.script.ScriptApiRequired
+import net.ccbluex.liquidbounce.utils.client.inGame
 import net.ccbluex.liquidbounce.utils.client.logger
 import net.ccbluex.liquidbounce.utils.client.mc
 import net.ccbluex.liquidbounce.utils.input.InputBind
-import net.ccbluex.liquidbounce.utils.kotlin.mapArray
-import net.ccbluex.liquidbounce.utils.kotlin.sortedInsert
 import org.lwjgl.glfw.GLFW
 
-/**
- * Should be sorted by Module::name
- */
-private val modules = ArrayList<ClientModule>(256)
+private val modules = ObjectRBTreeSet<ClientModule>(VALUE_NAME_ORDER)
 
 /**
  * A fairly simple module manager
  */
-object ModuleManager : EventListener, Iterable<ClientModule> by modules {
+object ModuleManager : EventListener, Collection<ClientModule> by modules {
 
     val modulesConfigurable = ConfigSystem.root("modules", modules)
 
@@ -151,23 +157,27 @@ object ModuleManager : EventListener, Iterable<ClientModule> by modules {
      * Handles world change and enables modules that are not enabled yet
      */
     @Suppress("unused")
-    private val handleWorldChange = handler<WorldChangeEvent> { event ->
+    private val handleWorldChange = sequenceHandler<WorldChangeEvent> { event ->
         // Delayed start handling
         if (event.world != null) {
-            for (module in modules) {
-                if (!module.enabled || module.calledSinceStartup) continue
+            tickUntil { inGame }
+            AutoConfig.withLoading {
+                for (module in modules) {
+                    if (!module.enabled || module.calledSinceStartup) continue
 
-                try {
-                    module.calledSinceStartup = true
-                    module.enable()
-                } catch (e: Exception) {
-                    logger.error("Failed to enable module ${module.name}", e)
+                    try {
+                        module.calledSinceStartup = true
+                        // inGame is false here, so use onToggle0
+                        module.onToggled(true)
+                    } catch (e: Exception) {
+                        logger.error("Failed to enable module ${module.name}", e)
+                    }
                 }
             }
         }
 
         // Store modules configuration after world change, happens on disconnect as well
-        ConfigSystem.storeConfigurable(modulesConfigurable)
+        ConfigSystem.store(modulesConfigurable)
     }
 
     /**
@@ -199,6 +209,7 @@ object ModuleManager : EventListener, Iterable<ClientModule> by modules {
             ModuleAutoClicker,
             ModuleAutoLeave,
             ModuleAutoBuff,
+            ModuleAutoRod,
             ModuleAutoWeapon,
             ModuleFakeLag,
             ModuleCriticals,
@@ -242,16 +253,19 @@ object ModuleManager : EventListener, Iterable<ClientModule> by modules {
             ModuleTimeShift,
             ModuleTeleport,
             ModulePhase,
+            ModuleYggdrasilSignatureFix,
 
             // Fun
             ModuleDankBobbing,
             ModuleDerp,
+            ModuleNotebot,
             ModuleSkinDerp,
             ModuleHandDerp,
             ModuleTwerk,
             ModuleVomit,
 
             // Misc
+            ModuleGUICloser,
             ModuleBookBot,
             ModuleAntiBot,
             ModuleBetterTab,
@@ -267,6 +281,7 @@ object ModuleManager : EventListener, Iterable<ClientModule> by modules {
             ModuleTeams,
             ModuleElytraSwap,
             ModuleAutoChatGame,
+            ModuleReportHelper,
             ModuleTargetLock,
             ModuleAutoPearl,
             ModuleAntiStaff,
@@ -294,6 +309,7 @@ object ModuleManager : EventListener, Iterable<ClientModule> by modules {
             ModuleLongJump,
             ModuleNoClip,
             ModuleNoJumpDelay,
+            ModuleNoPose,
             ModuleNoPush,
             ModuleNoSlow,
             ModuleNoWeb,
@@ -320,6 +336,7 @@ object ModuleManager : EventListener, Iterable<ClientModule> by modules {
             ModuleAutoBreak,
             ModuleAutoFish,
             ModuleAutoRespawn,
+            ModuleAutoWindCharge,
             ModuleOffhand,
             ModuleAutoShop,
             ModuleAutoWalk,
@@ -329,8 +346,11 @@ object ModuleManager : EventListener, Iterable<ClientModule> by modules {
             ModuleFastExp,
             ModuleFastUse,
             ModuleInventoryCleaner,
+            ModuleNoBlockInteract,
+            ModuleNoEntityInteract,
             ModuleNoFall,
             ModuleNoRotateSet,
+            ModuleNoSlotSet,
             ModuleReach,
             ModuleAutoQueue,
             ModuleSmartEat,
@@ -340,6 +360,7 @@ object ModuleManager : EventListener, Iterable<ClientModule> by modules {
             // Render
             ModuleAnimations,
             ModuleAntiBlind,
+            ModuleBetterInventory,
             ModuleBlockESP,
             ModuleBlockOutline,
             ModuleBreadcrumbs,
@@ -350,6 +371,7 @@ object ModuleManager : EventListener, Iterable<ClientModule> by modules {
             ModuleESP,
             ModuleLogoffSpot,
             ModuleFreeCam,
+            ModuleSmoothCamera,
             ModuleFreeLook,
             ModuleFullBright,
             ModuleHoleESP,
@@ -369,7 +391,6 @@ object ModuleManager : EventListener, Iterable<ClientModule> by modules {
             ModuleNoBob,
             ModuleNoFov,
             ModuleNoHurtCam,
-            ModuleNoSignRender,
             ModuleNoSwing,
             ModuleCustomAmbience,
             ModuleProphuntESP,
@@ -388,8 +409,10 @@ object ModuleManager : EventListener, Iterable<ClientModule> by modules {
             ModuleItemChams,
             ModuleCrystalView,
             ModuleSkinChanger,
+            ModuleProtectionZones,
 
             // World
+            ModuleAirPlace,
             ModuleAutoBuild,
             ModuleAutoDisable,
             ModuleAutoFarm,
@@ -441,17 +464,21 @@ object ModuleManager : EventListener, Iterable<ClientModule> by modules {
     }
 
     fun addModule(module: ClientModule) {
+        if (!modules.add(module)) {
+            error("Module '${module.name}' is already registered.")
+        }
         module.initConfigurable()
-        module.init()
-        modules.sortedInsert(module, ClientModule::name)
+        module.onRegistration()
     }
 
     fun removeModule(module: ClientModule) {
+        if (!modules.remove(module)) {
+            error("Module '${module.name}' is not registered.")
+        }
         if (module.running) {
-            module.disable()
+            module.onDisabled()
         }
         module.unregister()
-        modules -= module
     }
 
     fun clear() {
@@ -463,11 +490,11 @@ object ModuleManager : EventListener, Iterable<ClientModule> by modules {
      */
     @JvmName("getCategories")
     @ScriptApiRequired
-    fun getCategories() = Category.entries.mapArray { it.readableName }
+    fun getCategories() = Category.entries.mapToArray { it.choiceName }
 
     @JvmName("getModules")
     @ScriptApiRequired
-    fun getModules(): Iterable<ClientModule> = modules
+    fun getModules(): Collection<ClientModule> = modules
 
     @JvmName("getModuleByName")
     @ScriptApiRequired

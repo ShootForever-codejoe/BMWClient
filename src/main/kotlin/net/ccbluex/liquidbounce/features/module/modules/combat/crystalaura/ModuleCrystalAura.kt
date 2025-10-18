@@ -48,7 +48,7 @@ import net.ccbluex.liquidbounce.utils.render.WorldTargetRenderer
 object ModuleCrystalAura : ClientModule(
     "CrystalAura",
     Category.COMBAT,
-    aliases = arrayOf("AutoCrystal")
+    aliases = listOf("AutoCrystal")
 ) {
 
     val targetTracker = tree(TargetTracker(
@@ -83,15 +83,15 @@ object ModuleCrystalAura : ClientModule(
         )
     }
 
-    override fun disable() {
+    override fun onDisabled() {
         CrystalAuraTriggerer.terminateRunningTasks()
         SubmoduleCrystalPlacer.placementRenderer.clearSilently()
         SubmoduleCrystalDestroyer.postAttackHandlers.forEach(CrystalPostAttackTracker::onToggle)
-        SubmoduleBasePlace.disable()
+        SubmoduleBasePlace.onDisabled()
         CrystalAuraDamageOptions.cacheMap.clear()
     }
 
-    override fun enable() {
+    override fun onEnabled() {
         SubmoduleCrystalDestroyer.postAttackHandlers.forEach(CrystalPostAttackTracker::onToggle)
     }
 

@@ -27,6 +27,7 @@ import net.ccbluex.liquidbounce.event.events.RotationUpdateEvent
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.features.module.ClientModule
 import net.ccbluex.liquidbounce.features.module.modules.combat.backtrack.ModuleBacktrack
+import net.ccbluex.liquidbounce.features.module.modules.movement.ModuleFreeze
 import net.ccbluex.liquidbounce.utils.aiming.data.Rotation
 import net.ccbluex.liquidbounce.utils.aiming.features.MovementCorrection
 import net.ccbluex.liquidbounce.utils.aiming.utils.setRotation
@@ -57,11 +58,12 @@ object RotationManager : EventListener {
      */
     private val rotationTarget
         get() = rotationTargetHandler.getActiveRequestValue()
-    private var rotationTargetHandler = RequestHandler<RotationTarget>()
+    private val rotationTargetHandler = RequestHandler<RotationTarget>()
 
     val activeRotationTarget: RotationTarget?
         get() = rotationTarget ?: previousRotationTarget
     internal var previousRotationTarget: RotationTarget? = null
+        private set
 
     /**
      * The rotation we want to aim at. This DOES NOT mean that the server already received this rotation.
@@ -83,8 +85,11 @@ object RotationManager : EventListener {
     private val fakeLagging
         get() = PacketQueueManager.isLagging || ModuleBacktrack.isLagging()
 
+    private val freezing
+        get() = ModuleFreeze.running
+
     val serverRotation: Rotation
-        get() = if (fakeLagging) theoreticalServerRotation else actualServerRotation
+        get() = if (fakeLagging || freezing) theoreticalServerRotation else actualServerRotation
 
     /**
      * The rotation that was already sent to the server and is currently active.

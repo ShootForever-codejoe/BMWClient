@@ -28,10 +28,8 @@ import net.ccbluex.liquidbounce.utils.aiming.data.Rotation
 import net.ccbluex.liquidbounce.utils.block.DIRECTIONS_EXCLUDING_UP
 import net.ccbluex.liquidbounce.utils.block.isBlastResistant
 import net.ccbluex.liquidbounce.utils.block.raycast
-import net.ccbluex.liquidbounce.utils.client.mc
-import net.ccbluex.liquidbounce.utils.client.network
-import net.ccbluex.liquidbounce.utils.client.player
-import net.ccbluex.liquidbounce.utils.client.toRadians
+import net.ccbluex.liquidbounce.utils.client.*
+import net.ccbluex.liquidbounce.utils.item.getEnchantment
 import net.ccbluex.liquidbounce.utils.math.minus
 import net.ccbluex.liquidbounce.utils.math.plus
 import net.ccbluex.liquidbounce.utils.movement.DirectionalInput
@@ -40,10 +38,12 @@ import net.minecraft.block.EntityShapeContext
 import net.minecraft.block.ShapeContext
 import net.minecraft.client.input.Input
 import net.minecraft.client.network.ClientPlayerEntity
+import net.minecraft.enchantment.Enchantments
 import net.minecraft.entity.Entity
 import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.TntEntity
+import net.minecraft.entity.attribute.EntityAttributes
 import net.minecraft.entity.damage.DamageSource
 import net.minecraft.entity.decoration.EndCrystalEntity
 import net.minecraft.entity.effect.StatusEffects
@@ -64,10 +64,7 @@ import net.minecraft.world.RaycastContext
 import net.minecraft.world.World
 import net.minecraft.world.explosion.ExplosionBehavior
 import net.minecraft.world.explosion.ExplosionImpl
-import kotlin.math.cos
-import kotlin.math.floor
-import kotlin.math.sin
-import kotlin.math.sqrt
+import kotlin.math.*
 
 val Entity.netherPosition: Vec3d
     get() = if (world.registryKey == World.NETHER) {
@@ -85,12 +82,6 @@ val Input.untransformed: PlayerInput
 val Input.initial: PlayerInput
     get() = (this as InputAddition).`liquid_bounce$getInitial`()
 
-val Entity.exactPosition
-    get() = Vec3d(x, y, z)
-
-val Entity.blockVecPosition
-    get() = Vec3i(blockX, blockY, blockZ)
-
 val PlayerEntity.ping: Int
     get() = mc.networkHandler?.getPlayerListEntry(uuid)?.latency ?: 0
 
@@ -102,6 +93,12 @@ val ClientPlayerEntity.onGroundTicks: Int
 
 val ClientPlayerEntity.direction: Float
     get() = getMovementDirectionOfInput(DirectionalInput(input))
+
+/**
+ * Check if the attack speed is below 1 tick. If so, we have a cooldown.
+ */
+val ClientPlayerEntity.hasCooldown: Boolean
+    get() = !isOlderThanOrEqual1_8 && this.getAttributeValue(EntityAttributes.ATTACK_SPEED) < 20.0
 
 fun ClientPlayerEntity.getMovementDirectionOfInput(input: DirectionalInput): Float {
     return getMovementDirectionOfInput(this.yaw, input)
@@ -194,7 +191,6 @@ fun ClientPlayerEntity.canStep(height: Double = 1.0): Boolean {
     }
 }
 
-
 fun getMovementDirectionOfInput(facingYaw: Float, input: DirectionalInput): Float {
     val forwards = input.forwards && !input.backwards
     val backwards = input.backwards && !input.forwards
@@ -225,7 +221,7 @@ val PlayerEntity.sqrtSpeed: Double
     get() = velocity.sqrtSpeed
 
 val Vec3d.sqrtSpeed: Double
-    get() = sqrt(x * x + z * z)
+    get() = hypot(x, z)
 
 fun Vec3d.withStrafe(
     speed: Double = sqrtSpeed,
@@ -310,21 +306,16 @@ fun Entity.interpolateCurrentRotation(tickDelta: Float): Rotation {
 /**
  * Get the nearest point of a box. Very useful to calculate the distance of an enemy.
  */
-fun getNearestPoint(eyes: Vec3d, box: Box): Vec3d {
-    val origin = doubleArrayOf(eyes.x, eyes.y, eyes.z)
-    val destMins = doubleArrayOf(box.minX, box.minY, box.minZ)
-    val destMaxs = doubleArrayOf(box.maxX, box.maxY, box.maxZ)
-
-    // It loops through every coordinate of the double arrays and picks the nearest point
-    for (i in 0..2) {
-        origin[i] = origin[i].coerceIn(destMins[i], destMaxs[i])
-    }
-
-    return Vec3d(origin[0], origin[1], origin[2])
+fun getNearestPoint(from: Vec3d, box: Box): Vec3d {
+    return Vec3d(
+        from.x.coerceIn(box.minX, box.maxX),
+        from.y.coerceIn(box.minY, box.maxY),
+        from.z.coerceIn(box.minZ, box.maxZ),
+    )
 }
 
-fun getNearestPointOnSide(eyes: Vec3d, box: Box, side: Direction): Vec3d {
-    val nearestPointInBlock = getNearestPoint(eyes, box)
+fun getNearestPointOnSide(from: Vec3d, box: Box, side: Direction): Vec3d {
+    val nearestPointInBlock = getNearestPoint(from, box)
 
     val x = nearestPointInBlock.x
     val y = nearestPointInBlock.y
@@ -342,17 +333,6 @@ fun getNearestPointOnSide(eyes: Vec3d, box: Box, side: Direction): Vec3d {
 
     return nearestPointOnSide
 
-}
-
-fun LivingEntity.wouldBlockHit(source: PlayerEntity): Boolean {
-    if (!this.isBlocking) {
-        return false
-    }
-
-    val facingVec = getRotationVec(1.0f)
-    val deltaPos = (pos - source.pos).multiply(1.0, 0.0, 1.0)
-
-    return deltaPos.dotProduct(facingVec) < 0.0
 }
 
 /**
@@ -375,20 +355,21 @@ fun LivingEntity.getEffectiveDamage(source: DamageSource, damage: Float, ignoreS
     var amount = damage
 
     if (this is PlayerEntity) {
-        if (this.abilities.invulnerable && source.type.msgId != mc.world!!.damageSources.outOfWorld().type.msgId)
+        if (this.abilities.invulnerable && source.type.msgId != world.damageSources.outOfWorld().type.msgId)
             return 0.0F
 
         if (source.isScaledWithDifficulty) {
-            if (world.difficulty == Difficulty.PEACEFUL) {
-                amount = 0.0f
-            }
-
-            if (world.difficulty == Difficulty.EASY) {
-                amount = (amount / 2.0f + 1.0f).coerceAtMost(amount)
-            }
-
-            if (world.difficulty == Difficulty.HARD) {
-                amount = amount * 3.0f / 2.0f
+            when (world.difficulty) {
+                Difficulty.PEACEFUL -> {
+                    amount = 0.0f
+                }
+                Difficulty.EASY -> {
+                    amount = (amount / 2.0f + 1.0f).coerceAtMost(amount)
+                }
+                Difficulty.HARD -> {
+                    amount = amount * 3.0f / 2.0f
+                }
+                else -> {}
             }
         }
     }
@@ -396,9 +377,8 @@ fun LivingEntity.getEffectiveDamage(source: DamageSource, damage: Float, ignoreS
     if (amount == 0.0F)
         return 0.0F
 
-    if (source == mc.world!!.damageSources.onFire() && this.hasStatusEffect(StatusEffects.FIRE_RESISTANCE))
+    if (source == world.damageSources.onFire() && this.hasStatusEffect(StatusEffects.FIRE_RESISTANCE))
         return 0.0F
-
 
     if (!ignoreShield && blockedByShield(source))
         return 0.0F
@@ -493,7 +473,7 @@ fun LivingEntity.getExposureToExplosion(
             isDescending,
             entityBoundingBox1.minY,
             mainHandStack,
-            { state -> canWalkOnFluid(state) },
+            ::canWalkOnFluid,
             this
         )
     } ?: ShapeContext.of(this)
@@ -571,15 +551,20 @@ fun LivingEntity.getActualHealth(fromScoreboard: Boolean = true): Float {
     return health
 }
 
-private fun LivingEntity.getHealthFromScoreboard(): Float? {
-    val objective = world.scoreboard.getObjectiveForSlot(ScoreboardDisplaySlot.BELOW_NAME) ?: return null
-    val score = objective.scoreboard.getScore(this, objective) ?: return null
+fun LivingEntity.hasHealthScoreboard(): Boolean {
+    if (this == player) return false
 
+    val objective = world.scoreboard.getObjectiveForSlot(ScoreboardDisplaySlot.BELOW_NAME) ?: return false
     val displayName = objective.displayName
 
-    if (score.score <= 0 || displayName?.string?.contains("❤") != true) {
-        return null
-    }
+    return (displayName?.string.let { name -> name != null && listOf("❤", "HP", "Health", "Здоровья", "Здоровье")
+        .any { name.contains(it) } })
+}
+
+private fun LivingEntity.getHealthFromScoreboard(): Float? {
+    if (!this.hasHealthScoreboard()) return null
+    val objective = world.scoreboard.getObjectiveForSlot(ScoreboardDisplaySlot.BELOW_NAME)
+    val score = objective?.scoreboard?.getScore(this, objective) ?: return null
 
     return score.score.toFloat()
 }
@@ -663,3 +648,17 @@ fun ClientPlayerEntity.getFeetBlockPos(): BlockPos {
         MathHelper.floor(MathHelper.lerp(0.5, bb.minZ, bb.maxZ))
     )
 }
+
+val LivingEntity.wouldBlockHit
+    get() = !isOlderThanOrEqual1_8 &&
+        this.blockedByShield(world.damageSources.playerAttack(player))
+
+/**
+ * @see <a href="https://minecraft.fandom.com/wiki/Magma_Block#Damage">Magma Block — Damage</a>
+ */
+val ClientPlayerEntity.immuneToMagmaBlocks
+    get() = this.hasStatusEffect(StatusEffects.FIRE_RESISTANCE)
+        || (this.getStatusEffect(StatusEffects.RESISTANCE)?.amplifier ?: -1) >= 4
+        || this.isCreative
+        || this.isSpectator
+        || this.getEquippedStack(EquipmentSlot.FEET).getEnchantment(Enchantments.FROST_WALKER) > 0

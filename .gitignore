@@ -12,3 +12,4 @@
 /logs/
 /.kotlin/
 /server/
+.DS_Store

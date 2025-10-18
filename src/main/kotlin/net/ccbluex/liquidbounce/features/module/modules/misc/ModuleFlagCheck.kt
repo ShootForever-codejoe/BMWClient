@@ -18,6 +18,9 @@
  */
 package net.ccbluex.liquidbounce.features.module.modules.misc
 
+import kotlinx.atomicfu.atomic
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import net.ccbluex.liquidbounce.config.types.nesting.ToggleableConfigurable
 import net.ccbluex.liquidbounce.event.events.NotificationEvent
 import net.ccbluex.liquidbounce.event.events.PacketEvent
@@ -38,13 +41,14 @@ import net.minecraft.util.math.Vec3d
 import org.apache.commons.lang3.StringUtils
 import kotlin.math.abs
 import kotlin.math.roundToLong
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * Module Flag Check.
  *
  * Alerts you about set backs.
  */
-object ModuleFlagCheck : ClientModule("FlagCheck", Category.MISC, aliases = arrayOf("FlagDetect")) {
+object ModuleFlagCheck : ClientModule("FlagCheck", Category.MISC, aliases = listOf("FlagDetect")) {
 
     private var chatMessage by boolean("ChatMessage", true)
     private var notification by boolean("Notification", false)
@@ -52,12 +56,12 @@ object ModuleFlagCheck : ClientModule("FlagCheck", Category.MISC, aliases = arra
 
     private object ResetFlags : ToggleableConfigurable(this, "ResetFlags", true) {
 
-        private var afterSeconds by int("After", 30, 1..300, "s")
+        private val afterSeconds by int("After", 30, 1..300, "s")
 
         @Suppress("unused")
-        private val repeatable = tickHandler {
-            flagCount = 0
-            waitSeconds(afterSeconds)
+        private val repeatable = tickHandler(Dispatchers.Default) {
+            flagCount.getAndSet(0)
+            delay(afterSeconds.seconds)
         }
 
     }
@@ -66,7 +70,7 @@ object ModuleFlagCheck : ClientModule("FlagCheck", Category.MISC, aliases = arra
 
         private val notInFirstPerson by boolean("NotInFirstPerson", true)
         private val renderTime by int("Alive", 1000, 0..3000, "ms")
-        private val fadeOut by curve("FadeOut", Easing.QUAD_OUT)
+        private val fadeOut by easing("FadeOut", Easing.QUAD_OUT)
         private val outTime by int("OutTime", 500, 0..2000, "ms")
         private var color by color("Color", Color4b.RED.with(a = 100).darker())
         private var outlineColor by color("OutlineColor", Color4b.RED.darker())
@@ -75,7 +79,7 @@ object ModuleFlagCheck : ClientModule("FlagCheck", Category.MISC, aliases = arra
         var creationTime = 0L
         var finished = true
 
-        override fun enable() {
+        override fun onEnabled() {
             finished = true
         }
 
@@ -113,7 +117,7 @@ object ModuleFlagCheck : ClientModule("FlagCheck", Category.MISC, aliases = arra
         tree(Render)
     }
 
-    private var flagCount = 0
+    private val flagCount = atomic(0)
     private var lastYaw = 0F
     private var lastPitch = 0F
 
@@ -129,7 +133,7 @@ object ModuleFlagCheck : ClientModule("FlagCheck", Category.MISC, aliases = arra
                 val deltaYaw = calculateAngleDelta(change.yaw, lastYaw)
                 val deltaPitch = calculateAngleDelta(change.pitch, lastPitch)
 
-                flagCount++
+                flagCount.incrementAndGet()
                 if (deltaYaw >= 90 || deltaPitch >= 90) {
                     alert(AlertReason.FORCEROTATE, "(${deltaYaw.roundToLong()}° | ${deltaPitch.roundToLong()}°)")
                 } else {
@@ -145,7 +149,7 @@ object ModuleFlagCheck : ClientModule("FlagCheck", Category.MISC, aliases = arra
             }
 
             is DisconnectS2CPacket -> {
-                flagCount = 0
+                flagCount.getAndSet(0)
             }
         }
     }
@@ -174,7 +178,7 @@ object ModuleFlagCheck : ClientModule("FlagCheck", Category.MISC, aliases = arra
         }
 
         if (invalidReasons.isNotEmpty()) {
-            flagCount++
+            flagCount.incrementAndGet()
 
             val reasonString = invalidReasons.joinToString()
             alert(AlertReason.INVALID, reasonString)

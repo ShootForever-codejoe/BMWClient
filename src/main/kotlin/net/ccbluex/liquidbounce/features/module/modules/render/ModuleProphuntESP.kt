@@ -31,7 +31,8 @@ import net.minecraft.network.packet.s2c.play.BlockUpdateS2CPacket
 import net.minecraft.network.packet.s2c.play.ChunkDeltaUpdateS2CPacket
 
 object ModuleProphuntESP : ClientModule("ProphuntESP", Category.RENDER,
-    aliases = arrayOf("BlockUpdateDetector", "FallingBlockESP")) {
+    aliases = listOf("BlockUpdateDetector", "FallingBlockESP")
+) {
 
     private val renderer = PlacementRenderer("RenderBlockUpdates", true, this,
         defaultColor = Color4b(255, 179, 72, 90), keep = false
@@ -49,7 +50,7 @@ object ModuleProphuntESP : ClientModule("ProphuntESP", Category.RENDER,
         tree(renderer)
     }
 
-    override fun disable() {
+    override fun onDisabled() {
         renderer.clearSilently()
     }
 

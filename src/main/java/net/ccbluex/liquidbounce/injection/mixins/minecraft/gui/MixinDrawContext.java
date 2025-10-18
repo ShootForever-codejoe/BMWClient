@@ -23,17 +23,25 @@
  */
 package net.ccbluex.liquidbounce.injection.mixins.minecraft.gui;
 
-import net.ccbluex.liquidbounce.interfaces.DrawContextAddition;
+import net.ccbluex.liquidbounce.additions.DrawContextAddition;
+import net.ccbluex.liquidbounce.features.module.modules.render.ModuleBetterInventory;
+import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.render.*;
 import net.minecraft.client.texture.GuiAtlasManager;
 import net.minecraft.client.texture.Sprite;
 import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.Identifier;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.function.Function;
 
@@ -52,6 +60,21 @@ public abstract class MixinDrawContext implements DrawContextAddition {
     @Final
     private GuiAtlasManager guiAtlasManager;
 
+    @Shadow
+    protected abstract void drawItemBar(ItemStack stack, int x, int y);
+
+    @Shadow
+    protected abstract void drawStackCount(TextRenderer textRenderer, ItemStack stack, int x, int y,
+        @Nullable String stackCountText);
+
+    @Shadow
+    protected abstract void drawCooldownProgress(ItemStack stack, int x, int y);
+
+  @Inject(method = "drawCooldownProgress", at = @At("TAIL"))
+    private void drawCooldownProgress(ItemStack stack, int x, int y, CallbackInfo ci) {
+        ModuleBetterInventory.INSTANCE.drawTextCooldownProgress((DrawContext) (Object) this, stack, x, y);
+    }
+
     @Override
     public void liquid_bounce$drawTexture(Function<Identifier, RenderLayer> renderLayers, Identifier texture, float x, float y, int width, int height) {
         Sprite sprite = guiAtlasManager.getSprite(texture);
@@ -68,5 +91,21 @@ public abstract class MixinDrawContext implements DrawContextAddition {
         bufferBuilder.vertex(matrix4f, x1, y2, 0f).texture(u1, v2).color(color);
         bufferBuilder.vertex(matrix4f, x2, y2, 0f).texture(u2, v2).color(color);
         bufferBuilder.vertex(matrix4f, x2, y1, 0f).texture(u2, v1).color(color);
+    }
+
+    @Override
+    public void liquidbounce$drawItemBar(@NotNull ItemStack stack, int x, int y) {
+        drawItemBar(stack, x, y);
+    }
+
+    @Override
+    public void liquidbounce$drawStackCount(@NotNull TextRenderer textRenderer, @NotNull ItemStack stack, int x, int y,
+            @Nullable String stackCountText) {
+        drawStackCount(textRenderer, stack, x, y, stackCountText);
+    }
+
+    @Override
+    public void liquidbounce$drawCooldownProgress(@NotNull ItemStack stack, int x, int y) {
+        drawCooldownProgress(stack, x, y);
     }
 }

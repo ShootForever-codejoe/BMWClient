@@ -18,9 +18,14 @@
  */
 package net.ccbluex.liquidbounce.features.module.modules.movement.inventorymove
 
+import it.unimi.dsi.fastutil.objects.Reference2BooleanArrayMap
+import net.ccbluex.fastutil.fastIterable
 import net.ccbluex.liquidbounce.config.types.NamedChoice
 import net.ccbluex.liquidbounce.event.events.KeyboardKeyEvent
+import net.ccbluex.liquidbounce.event.events.MovementInputEvent
+import net.ccbluex.liquidbounce.event.events.PacketEvent
 import net.ccbluex.liquidbounce.event.handler
+import net.ccbluex.liquidbounce.event.once
 import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
 import net.ccbluex.liquidbounce.features.module.modules.movement.inventorymove.features.InventoryMoveBlinkFeature
@@ -28,15 +33,23 @@ import net.ccbluex.liquidbounce.features.module.modules.movement.inventorymove.f
 import net.ccbluex.liquidbounce.features.module.modules.movement.inventorymove.features.InventoryMoveSprintControlFeature
 import net.ccbluex.liquidbounce.features.module.modules.movement.inventorymove.features.InventoryMoveTimerFeature
 import net.ccbluex.liquidbounce.features.module.modules.render.ModuleClickGui
+import net.ccbluex.liquidbounce.utils.client.sendPacketSilently
+import net.ccbluex.liquidbounce.utils.entity.any
 import net.ccbluex.liquidbounce.utils.inventory.InventoryManager
 import net.ccbluex.liquidbounce.utils.inventory.closeInventorySilently
 import net.ccbluex.liquidbounce.utils.inventory.isInInventoryScreen
+import net.ccbluex.liquidbounce.utils.kotlin.EventPriorityConvention.FIRST_PRIORITY
+import net.ccbluex.liquidbounce.utils.kotlin.EventPriorityConvention.READ_FINAL_STATE
+import net.ccbluex.liquidbounce.utils.movement.DirectionalInput
 import net.minecraft.client.gui.screen.ChatScreen
+import net.minecraft.client.gui.screen.Screen
 import net.minecraft.client.gui.screen.ingame.CreativeInventoryScreen
 import net.minecraft.client.gui.screen.ingame.HandledScreen
 import net.minecraft.client.gui.screen.ingame.InventoryScreen
 import net.minecraft.client.option.KeyBinding
 import net.minecraft.item.ItemGroups
+import net.minecraft.network.packet.Packet
+import net.minecraft.network.packet.c2s.play.*
 import org.lwjgl.glfw.GLFW
 
 /**
@@ -47,28 +60,33 @@ import org.lwjgl.glfw.GLFW
 
 object ModuleInventoryMove : ClientModule("InventoryMove", Category.MOVEMENT) {
 
-    private val behavior by enumChoice("Behavior", Behaviour.NORMAL)
+    private val behavior by enumChoice("Behavior", Behaviour.NORMAL).also(::tagBy)
 
     @Suppress("unused")
     enum class Behaviour(override val choiceName: String) : NamedChoice {
         NORMAL("Normal"),
         SAFE("Safe"), // disable clicks while moving
         UNDETECTABLE("Undetectable"), // stop in inventory
+        STOP_ON_ACTION("StopOnAction"), // stop input on inventory action
     }
 
     private val passthroughSneak by boolean("PassthroughSneak", false)
 
     // states of movement keys, using mc.options.<key>.isPressed doesn't work for some reason
-    private val movementKeys = mc.options.run {
-        arrayOf(forwardKey, leftKey, backKey, rightKey, jumpKey, sneakKey).associateWith { false }.toMutableMap()
-    }
+    private val movementKeys = Reference2BooleanArrayMap<KeyBinding>(
+        mc.options.run {
+            arrayOf(forwardKey, leftKey, backKey, rightKey, jumpKey, sneakKey)
+        },
+        BooleanArray(6),
+        6
+    )
 
     /**
      * Restricts user from clicking while moving in inventory.
      */
     val doNotAllowClicking
-        get() = behavior == Behaviour.SAFE && movementKeys.any { (key, pressed) ->
-            pressed && shouldHandleInputs(key)
+        get() = behavior == Behaviour.SAFE && movementKeys.fastIterable().any {
+            it.booleanValue && shouldHandleInputs(it.key)
         }
 
     init {
@@ -81,7 +99,7 @@ object ModuleInventoryMove : ClientModule("InventoryMove", Category.MOVEMENT) {
     fun shouldHandleInputs(keyBinding: KeyBinding): Boolean {
         val screen = mc.currentScreen ?: return true
 
-        if (!running || screen is ChatScreen || isInCreativeSearchField() || ModuleClickGui.isInSearchBar) {
+        if (!running || screen is ChatScreen || screen.isInCreativeSearchField() || ModuleClickGui.isInSearchBar) {
             return false
         }
 
@@ -92,6 +110,27 @@ object ModuleInventoryMove : ClientModule("InventoryMove", Category.MOVEMENT) {
         // If we are in a handled screen, we should handle the inputs only if the undetectable option is not enabled
         return behavior == Behaviour.NORMAL || screen !is HandledScreen<*>
             || behavior == Behaviour.SAFE && screen is InventoryScreen
+            || behavior == Behaviour.STOP_ON_ACTION
+    }
+
+    @Suppress("unused")
+    private val packetHandler = handler<PacketEvent>(FIRST_PRIORITY) { event ->
+        if (behavior != Behaviour.STOP_ON_ACTION || !InventoryManager.isHandledScreenOpen) {
+            return@handler
+        }
+
+        val packet = event.packet
+
+        if (isContainerPacket(packet) && player.input.playerInput.any) {
+            event.cancelEvent()
+            once<MovementInputEvent>(READ_FINAL_STATE) {
+                it.sneak = false
+                it.jump = false
+                it.directionalInput = DirectionalInput.NONE
+                // `send` will force the Runnable to be run in next loop
+                mc.send { sendPacketSilently(packet) }
+            }
+        }
     }
 
     @Suppress("unused")
@@ -99,7 +138,7 @@ object ModuleInventoryMove : ClientModule("InventoryMove", Category.MOVEMENT) {
         val key = movementKeys.keys.find { it.matchesKey(event.keyCode, event.scanCode) }
             ?: return@handler
         val pressed = shouldHandleInputs(key) && event.action != GLFW.GLFW_RELEASE
-        movementKeys[key] = pressed
+        movementKeys.put(key, pressed)
 
         if (behavior == Behaviour.SAFE && isInInventoryScreen && InventoryManager.isInventoryOpenServerSide
             && pressed) {
@@ -110,8 +149,15 @@ object ModuleInventoryMove : ClientModule("InventoryMove", Category.MOVEMENT) {
     /**
      * Checks if the player is in the creative search field
      */
-    private fun isInCreativeSearchField() =
-        mc.currentScreen is CreativeInventoryScreen &&
+    private fun Screen.isInCreativeSearchField() =
+        this is CreativeInventoryScreen &&
             CreativeInventoryScreen.selectedTab == ItemGroups.getSearchGroup()
+
+    internal fun isContainerPacket(packet: Packet<*>?) =
+        packet is ClickSlotC2SPacket ||
+        packet is ButtonClickC2SPacket ||
+        packet is CreativeInventoryActionC2SPacket ||
+        packet is SlotChangedStateC2SPacket ||
+        packet is CloseHandledScreenC2SPacket
 
 }

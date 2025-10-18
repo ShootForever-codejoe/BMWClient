@@ -29,11 +29,12 @@ import net.ccbluex.liquidbounce.features.module.modules.misc.nameprotect.sanitiz
 import net.ccbluex.liquidbounce.utils.client.interaction
 import net.ccbluex.liquidbounce.utils.client.mc
 import net.ccbluex.liquidbounce.utils.entity.getActualHealth
+import net.ccbluex.liquidbounce.utils.entity.hasHealthScoreboard
 import net.ccbluex.liquidbounce.utils.entity.netherPosition
 import net.ccbluex.liquidbounce.utils.entity.ping
 import net.ccbluex.netty.http.model.RequestObject
-import net.ccbluex.netty.http.util.httpOk
 import net.ccbluex.netty.http.util.httpNoContent
+import net.ccbluex.netty.http.util.httpOk
 import net.minecraft.entity.effect.StatusEffectInstance
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.ItemStack
@@ -108,7 +109,7 @@ data class PlayerData(
             player.health.fixNaN(),
             player.getActualHealth().fixNaN(),
             player.maxHealth.fixNaN(),
-            player.absorptionAmount.fixNaN(),
+            if (player.hasHealthScoreboard()) 0f else player.absorptionAmount.fixNaN(),
             player.armor.coerceAtMost(20),
             min(player.hungerManager.foodLevel, 20),
             player.air,
@@ -120,7 +121,7 @@ data class PlayerData(
             player.mainHandStack,
             if (shouldHideOffhand(player = player) && hideShieldSlot) ItemStack.EMPTY else player.offHandStack,
             player.armorItems.toList(),
-            if (mc.player == player) ScoreboardData.fromScoreboard(player.scoreboard) else null
+            if (mc.player === player) ScoreboardData.fromScoreboard(player.scoreboard) else null
         )
     }
 
@@ -129,7 +130,8 @@ data class PlayerData(
 data class PlayerInventoryData(
     val armor: List<ItemStack>,
     val main: List<ItemStack>,
-    val crafting: List<ItemStack>
+    val crafting: List<ItemStack>,
+    val enderChest: List<ItemStack>,
 ) {
 
     companion object {
@@ -137,14 +139,19 @@ data class PlayerInventoryData(
         fun fromPlayer(player: PlayerEntity) = PlayerInventoryData(
             armor = player.inventory.armor.map(ItemStack::copy),
             main = player.inventory.main.map(ItemStack::copy),
-            crafting = player.playerScreenHandler.craftingInput.heldStacks.map(ItemStack::copy)
+            crafting = player.playerScreenHandler.craftingInput.heldStacks.map(ItemStack::copy),
+            enderChest = player.enderChestInventory.heldStacks.map(ItemStack::copy),
         )
     }
+
+    private infix fun List<ItemStack>.eq(other: List<ItemStack>) =
+        this.size == other.size && this.indices.all { ItemStack.areEqual(this[it], other[it]) }
 
     override fun hashCode(): Int {
         var result = armor.hashCode()
         result = 31 * result + main.hashCode()
         result = 31 * result + crafting.hashCode()
+        result = 31 * result + enderChest.hashCode()
         return result
     }
 
@@ -154,29 +161,8 @@ data class PlayerInventoryData(
 
         other as PlayerInventoryData
 
-        if (armor.size != other.armor.size) return false
-        if (main.size != other.main.size) return false
-        if (crafting.size != other.crafting.size) return false
-
-        for (i in armor.indices) {
-            if (!ItemStack.areEqual(armor[i], other.armor[i])) {
-                return false
-            }
-        }
-
-        for (i in main.indices) {
-            if (!ItemStack.areEqual(main[i], other.main[i])) {
-                return false
-            }
-        }
-
-        for (i in crafting.indices) {
-            if (!ItemStack.areEqual(crafting[i], other.crafting[i])) {
-                return false
-            }
-        }
-
-        return true
+        return armor eq other.armor && main eq other.main &&
+            crafting eq other.crafting && enderChest eq other.enderChest
     }
 
 }

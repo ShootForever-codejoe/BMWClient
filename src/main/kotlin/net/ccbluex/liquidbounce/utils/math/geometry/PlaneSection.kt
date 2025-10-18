@@ -1,12 +1,13 @@
 package net.ccbluex.liquidbounce.utils.math.geometry
 
 import it.unimi.dsi.fastutil.doubles.DoubleDoublePair
-import net.ccbluex.liquidbounce.utils.kotlin.component1
-import net.ccbluex.liquidbounce.utils.kotlin.component2
-import net.ccbluex.liquidbounce.utils.kotlin.step
+import net.ccbluex.fastutil.component1
+import net.ccbluex.fastutil.component2
+import net.ccbluex.fastutil.forEachDouble
+import net.ccbluex.fastutil.step
+import net.ccbluex.liquidbounce.utils.math.isLikelyZero
 import net.ccbluex.liquidbounce.utils.math.plus
 import net.ccbluex.liquidbounce.utils.math.times
-import net.minecraft.util.math.MathHelper
 import net.minecraft.util.math.Vec3d
 import kotlin.math.sqrt
 
@@ -19,8 +20,8 @@ class PlaneSection(
     inline fun castPointsOnUniformly(maxPoints: Int, consumer: (Vec3d) -> Unit) {
         val (dz, dy) = getFairStepSide(maxPoints)
 
-        for (y in 0.0..1.0 step dy) {
-            for (z in 0.0..1.0 step dz) {
+        (0.0..1.0 step dy).forEachDouble { y ->
+            (0.0..1.0 step dz).forEachDouble { z ->
                 val point = this.originPoint + this.dirVec1 * y + this.dirVec2 * z
 
                 consumer(point)
@@ -31,8 +32,8 @@ class PlaneSection(
     fun getFairStepSide(nPoints: Int): DoubleDoublePair {
         val aspectRatio = this.dirVec2.length() / this.dirVec1.length()
 
-        val vec1zero = MathHelper.approximatelyEquals(this.dirVec1.length(), 0.0)
-        val vec2zero = MathHelper.approximatelyEquals(this.dirVec2.length(), 0.0)
+        val vec1zero = this.dirVec1.isLikelyZero
+        val vec2zero = this.dirVec2.isLikelyZero
 
         return when {
             !vec1zero && !vec2zero -> {

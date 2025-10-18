@@ -22,9 +22,10 @@
 package net.ccbluex.liquidbounce.features.module.modules.misc.debugrecorder.modes
 
 import net.ccbluex.liquidbounce.deeplearn.data.TrainingData
-import net.ccbluex.liquidbounce.event.events.AttackEntityEvent
+import net.ccbluex.liquidbounce.event.events.PacketEvent
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.event.tickHandler
+import net.ccbluex.liquidbounce.event.tickUntil
 import net.ccbluex.liquidbounce.features.module.modules.misc.debugrecorder.ModuleDebugRecorder
 import net.ccbluex.liquidbounce.utils.aiming.RotationManager
 import net.ccbluex.liquidbounce.utils.aiming.data.Rotation
@@ -35,6 +36,7 @@ import net.minecraft.entity.Entity
 import net.minecraft.entity.EntityType
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.mob.SlimeEntity
+import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
 import net.minecraft.sound.SoundCategory
 import net.minecraft.sound.SoundEvents
 import java.util.*
@@ -68,13 +70,13 @@ object MinaraiTrainer : ModuleDebugRecorder.DebugRecorderMode<TrainingData>("Min
         if (isFirstRun) {
             // We wait until the player has hit the slime entity for the first time,
             // then we record the data and spawn a new slime entity.
-            waitUntil { target == null }
+            tickUntil { target == null }
             isFirstRun = false
 
             chat("✧ Starting training...")
         } else {
-            waitUntil {
-                val target = target ?: return@waitUntil true
+            tickUntil {
+                val target = target ?: return@tickUntil true
 
                 val next = RotationManager.currentRotation ?: player.rotation
                 val current = RotationManager.previousRotation ?: player.lastRotation
@@ -83,17 +85,22 @@ object MinaraiTrainer : ModuleDebugRecorder.DebugRecorderMode<TrainingData>("Min
                 }
                 val distance = player.squaredBoxedDistanceTo(target).toFloat()
 
-                recordPacket(TrainingData(
-                    currentVector = current.directionVector,
-                    previousVector = previous.directionVector,
-                    targetVector = Rotation.lookingAt(point = target.box.center, from = player.eyePos).directionVector,
-                    velocityDelta = current.rotationDeltaTo(next).toVec2f(),
-                    playerDiff = player.pos.subtract(player.prevPos),
-                    targetDiff = target.pos.subtract(target.prevPos),
-                    age = target.age,
-                    hurtTime = target.hurtTime,
-                    distance = distance
-                ))
+                recordPacket(
+                    TrainingData(
+                        currentVector = current.directionVector,
+                        previousVector = previous.directionVector,
+                        targetVector = Rotation.lookingAt(
+                            point = target.box.center,
+                            from = player.eyePos
+                        ).directionVector,
+                        velocityDelta = current.rotationDeltaTo(next).toVec2f(),
+                        playerDiff = player.pos.subtract(player.prevPos),
+                        targetDiff = target.pos.subtract(target.prevPos),
+                        age = target.age,
+                        hurtTime = target.hurtTime,
+                        distance = distance
+                    )
+                )
 
                 false
             }
@@ -103,14 +110,17 @@ object MinaraiTrainer : ModuleDebugRecorder.DebugRecorderMode<TrainingData>("Min
     }
 
     @Suppress("unused")
-    private val attackEntity = handler<AttackEntityEvent> { event ->
-        val attackEntity = event.entity
-        val targetEntity = target ?: return@handler
+    private val packetHandler = handler<PacketEvent> { event ->
+        val packet = event.packet
 
-        if (attackEntity == targetEntity) {
-            world.removeEntity(targetEntity.id, Entity.RemovalReason.DISCARDED)
-            target = null
-            event.cancelEvent()
+        if (packet is PlayerInteractEntityC2SPacket) {
+            val targetEntity = target ?: return@handler
+
+            if (packet.entityId == targetEntity.id) {
+                world.removeEntity(targetEntity.id, Entity.RemovalReason.DISCARDED)
+                target = null
+                event.cancelEvent()
+            }
         }
     }
 

@@ -18,35 +18,34 @@
  */
 package net.ccbluex.liquidbounce.features.module.modules.player.nofall.modes
 
-import net.ccbluex.liquidbounce.config.types.nesting.Choice
-import net.ccbluex.liquidbounce.config.types.nesting.ChoiceConfigurable
 import net.ccbluex.liquidbounce.event.events.PacketEvent
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.event.tickHandler
-import net.ccbluex.liquidbounce.features.module.modules.player.nofall.ModuleNoFall
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 
-internal object NoFallBlocksMC : Choice("BlocksMC") {
+internal object NoFallBlocksMC : NoFallMode("BlocksMC") {
 
     private var shouldClip = false
     private var fallMotion = 0.0
 
-    override val parent: ChoiceConfigurable<*>
-        get() = ModuleNoFall.modes
+    // Prevents this from running during AntiBot verification
+    const val MIN_AGE = 20 * 5
+
+    override val running: Boolean
+        get() = super.running && player.age > MIN_AGE
 
     @Suppress("unused")
-    private val onTick = tickHandler {
+    private val tickHandler = tickHandler {
         if (player.velocity.y < -0.7) {
             shouldClip = true
             fallMotion = player.velocity.y
         }
     }
 
-    val packetHandler = handler<PacketEvent> {
-        val packet = it.packet
-
-        when (packet) {
+    @Suppress("unused")
+    private val packetHandler = handler<PacketEvent> { event ->
+        when (val packet = event.packet) {
             is PlayerMoveC2SPacket -> {
                 if (player.isOnGround && shouldClip) {
                     packet.y -= 0.1

@@ -1,14 +1,13 @@
 package net.ccbluex.liquidbounce.features.module.modules.misc
 
-import kotlinx.coroutines.Dispatchers
 import net.ccbluex.liquidbounce.api.core.HttpException
-import net.ccbluex.liquidbounce.api.core.withScope
 import net.ccbluex.liquidbounce.api.services.cdn.ClientCdn.requestStaffList
 import net.ccbluex.liquidbounce.event.events.NotificationEvent
 import net.ccbluex.liquidbounce.event.events.PacketEvent
 import net.ccbluex.liquidbounce.event.events.ServerConnectEvent
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.event.sequenceHandler
+import net.ccbluex.liquidbounce.event.tickUntil
 import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
 import net.ccbluex.liquidbounce.utils.client.*
@@ -22,7 +21,7 @@ object ModuleAntiStaff : ClientModule("AntiStaff", Category.MISC) {
     private val showInTabList by boolean("ShowInTabList", true)
     private val serverStaffList = hashMapOf<String, Set<String>>()
 
-    override fun enable() {
+    override suspend fun enabledEffect() {
         val serverEntry = mc.currentServerEntry ?: return
         val address = serverEntry.address.dropPort().rootDomain()
 
@@ -31,10 +30,7 @@ object ModuleAntiStaff : ClientModule("AntiStaff", Category.MISC) {
         }
         serverStaffList[address] = emptySet()
 
-        withScope {
-            loadStaffList(address)
-        }
-        super.enable()
+        loadStaffList(address)
     }
 
     @Suppress("unused")
@@ -47,12 +43,10 @@ object ModuleAntiStaff : ClientModule("AntiStaff", Category.MISC) {
         serverStaffList[address] = emptySet()
 
         // Keeps us from loading the staff list multiple times
-        waitUntil { inGame && mc.currentScreen != null }
+        tickUntil { inGame && mc.currentScreen != null }
 
         // Load the staff list
-        waitFor(Dispatchers.IO) {
-            loadStaffList(address)
-        }
+        loadStaffList(address)
     }
 
     @Suppress("unused")

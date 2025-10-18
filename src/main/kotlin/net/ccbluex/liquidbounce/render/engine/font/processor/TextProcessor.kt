@@ -1,24 +1,33 @@
 package net.ccbluex.liquidbounce.render.engine.font.processor
 
 import net.ccbluex.liquidbounce.render.engine.type.Color4b
+import net.minecraft.text.Text
 import kotlin.random.Random
 
-/**
- * @param obfuscationSeed The seed for the obfuscation. If null, obfusscated characters will be replaced with `_`
- */
-abstract class TextProcessor(obfuscationSeed: Long?) {
-    private val obfuscationRng = obfuscationSeed?.let { Random(it) }
+abstract class TextProcessor<T : ProcessedText> {
 
-    abstract fun process(): ProcessedText
-
-    protected fun generateObfuscatedChar(): Char {
-        return obfuscationRng?.let { RANDOM_CHARS.random(it) } ?: '_'
-    }
+    /**
+     * @param defaultColor The color all chars are drawn when no style is specified from Minecraft formatting
+     */
+    abstract fun process(
+        text: Text,
+        defaultColor: Color4b,
+    ): T
 
     companion object {
         /**
+         * @param obfuscationRng The random for the obfuscation.
+         *      If null, obfuscated characters will be replaced with `_`
+         */
+        @JvmStatic
+        protected fun generateObfuscatedChar(obfuscationRng: Random?): Char {
+            return obfuscationRng?.let { RANDOM_CHARS.random(it) } ?: '_'
+        }
+
+        /**
          * Contains the chars for the `§k` formatting
          */
+        @JvmField
         val RANDOM_CHARS = "1234567890abcdefghijklmnopqrstuvwxyz~!@#\$%^&*()-=_+{}[]".toCharArray()
 
         @JvmStatic
@@ -31,10 +40,5 @@ abstract class TextProcessor(obfuscationSeed: Long?) {
             Color4b(red, green, blue, 255)
         }
     }
-    data class ProcessedTextCharacter(val char: Char, val font: Int, val obfuscated: Boolean, val color: Color4b)
-    data class ProcessedText(
-        val chars: List<ProcessedTextCharacter>,
-        val underlines: List<IntRange>,
-        val strikeThroughs: List<IntRange>
-    )
+
 }

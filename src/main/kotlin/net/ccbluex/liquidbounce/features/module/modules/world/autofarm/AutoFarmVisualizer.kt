@@ -28,14 +28,18 @@ import net.ccbluex.liquidbounce.render.utils.rainbow
 import net.ccbluex.liquidbounce.utils.entity.interpolateCurrentPosition
 import net.ccbluex.liquidbounce.utils.math.sq
 import net.ccbluex.liquidbounce.utils.math.toVec3
-import net.ccbluex.liquidbounce.utils.math.toVec3d
 import net.minecraft.util.math.Direction
+import kotlin.math.hypot
 
 object AutoFarmVisualizer : ToggleableConfigurable(ModuleAutoFarm, "Visualize", true) {
     private object Path : ToggleableConfigurable(this, "Path", true) {
         val color by color("PathColor", Color4b(36, 237, 0, 255))
 
-        val renderHandler = handler<WorldRenderEvent> { event ->
+        override val running: Boolean
+            get() = super.running && AutoFarmAutoWalk.running
+
+        @Suppress("unused")
+        private val renderHandler = handler<WorldRenderEvent> { event ->
             renderEnvironmentForWorld(event.matrixStack) {
                 withColor(color) {
                     AutoFarmAutoWalk.walkTarget?.let { target ->
@@ -72,46 +76,51 @@ object AutoFarmVisualizer : ToggleableConfigurable(ModuleAutoFarm, "Visualize", 
                 val target = ModuleAutoFarm.currentTarget ?: return
                 with(renderEnvironment) {
                     withPosition(Vec3(target)) {
-                        withColor((if (colorRainbow) rainbow() else color).with(a = 50)) {
-                            drawSolidBox(FULL_BOX)
-                        }
+                        drawBox(FULL_BOX, (if (colorRainbow) rainbow() else color).with(a = 50))
                     }
                 }
             }
         }
 
-
-        val renderHandler = handler<WorldRenderEvent> { event ->
+        @Suppress("unused")
+        private val renderHandler = handler<WorldRenderEvent> { event ->
             val matrixStack = event.matrixStack
             val baseColor = if (colorRainbow) rainbow() else readyColor
 
             val fillColor = baseColor.with(a = 50)
-            val outlineColor = baseColor.with(a = 100)
 
             renderEnvironmentForWorld(matrixStack) {
+                startBatch()
+
                 CurrentTarget.render(this)
                 for ((pos, type) in AutoFarmBlockTracker.iterate()) {
-                    if ((pos.x - player.x).sq() + (pos.z - player.z).sq() > rangeSquared) continue
+                    if (hypot(pos.x - player.x, pos.z - player.z) > rangeSquared) continue
 
-                    withPositionRelativeToCamera(pos.toVec3d()) {
-                        if (type == AutoFarmTrackedStates.Destroy) {
-                            withColor(fillColor) {
-                                drawSolidBox(FULL_BOX)
+                    withPositionRelativeToCamera(pos) {
+                        when (type) {
+                            AutoFarmTrackedState.SHOULD_BE_DESTROYED -> {
+                                drawBox(
+                                    FULL_BOX,
+                                    fillColor,
+                                    if (outline) baseColor.with(a = 100) else null,
+                                )
                             }
-                        } else {
-                            withColor(placeColor) {
-                                drawSideBox(FULL_BOX, Direction.UP)
+                            AutoFarmTrackedState.SOUL_SAND, AutoFarmTrackedState.FARMLAND -> {
+                                drawBoxSide(
+                                    FULL_BOX,
+                                    side = Direction.UP,
+                                    faceColor = placeColor,
+                                    outlineColor = if (outline) baseColor.with(a = 100) else null,
+                                )
                             }
-
-                        }
-
-                        if (outline && type == AutoFarmTrackedStates.Destroy) {
-                            withColor(outlineColor) {
-                                drawOutlinedBox(FULL_BOX)
+                            AutoFarmTrackedState.CAN_USE_BONE_MEAL -> {
+                                // NOOP
                             }
                         }
                     }
                 }
+
+                commitBatch()
             }
         }
     }

@@ -19,6 +19,7 @@
 package net.ccbluex.liquidbounce.features.module.modules.`fun`
 
 import net.ccbluex.liquidbounce.config.types.NamedChoice
+import net.ccbluex.liquidbounce.event.waitTicks
 import net.ccbluex.liquidbounce.event.tickHandler
 import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
@@ -38,11 +39,11 @@ object ModuleSkinDerp : ClientModule("SkinDerp", Category.FUN) {
 
     private var prevModelParts = emptySet<PlayerModelPart>()
 
-    override fun enable() {
+    override fun onEnabled() {
         prevModelParts = mc.options.enabledPlayerModelParts.toSet()
     }
 
-    override fun disable() {
+    override fun onDisabled() {
         // Disable all current model parts
         for (modelPart in PlayerModelPart.entries) {
             mc.options.setPlayerModelPart(modelPart, false)
@@ -57,12 +58,12 @@ object ModuleSkinDerp : ClientModule("SkinDerp", Category.FUN) {
         waitTicks(delay)
 
         parts.forEach {
-                if (sync) {
-                    mc.options.setPlayerModelPart(it.part, !mc.options.isPlayerModelPartEnabled(it.part))
-                } else {
-                    mc.options.setPlayerModelPart(it.part, Random.nextBoolean())
-                }
+            if (sync) {
+                mc.options.setPlayerModelPart(it.part, !mc.options.isPlayerModelPartEnabled(it.part))
+            } else {
+                mc.options.setPlayerModelPart(it.part, Random.nextBoolean())
             }
+        }
     }
 
     private enum class DerpParts(

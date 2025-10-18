@@ -18,6 +18,7 @@
  */
 package net.ccbluex.liquidbounce.features.module.modules.world.traps
 
+import net.ccbluex.liquidbounce.event.waitTicks
 import net.ccbluex.liquidbounce.event.events.RotationUpdateEvent
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.event.tickHandler
@@ -34,7 +35,6 @@ import net.ccbluex.liquidbounce.utils.client.SilentHotbar
 import net.ccbluex.liquidbounce.utils.combat.CombatManager
 import net.ccbluex.liquidbounce.utils.combat.TargetTracker
 import net.ccbluex.liquidbounce.utils.kotlin.Priority
-import net.minecraft.util.Hand
 
 /**
  * Ignite & AutoWeb module
@@ -42,7 +42,7 @@ import net.minecraft.util.Hand
  * Ignite: Automatically sets targets around you on fire.
  * AutoWeb: Automatically places cobwebs at targets around you.
  */
-object ModuleAutoTrap : ClientModule("AutoTrap", Category.WORLD, aliases = arrayOf("Ignite", "AutoWeb")) {
+object ModuleAutoTrap : ClientModule("AutoTrap", Category.WORLD, aliases = listOf("Ignite", "AutoWeb")) {
 
     private val range = floatRange("Range", 3.0f..4.5f, 2f..6f)
     private val delay by int("Delay", 20, 0..400, "ticks")
@@ -58,11 +58,11 @@ object ModuleAutoTrap : ClientModule("AutoTrap", Category.WORLD, aliases = array
 
     private var timeout = false
 
-    override fun enable() {
+    override fun onEnabled() {
         timeout = false
     }
 
-    override fun disable() {
+    override fun onDisabled() {
         timeout = false
     }
 

@@ -20,26 +20,14 @@ package net.ccbluex.liquidbounce.features.command
 
 import com.mojang.brigadier.suggestion.Suggestions
 import com.mojang.brigadier.suggestion.SuggestionsBuilder
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineExceptionHandler
-import kotlinx.coroutines.CoroutineName
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.asCoroutineDispatcher
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
+import it.unimi.dsi.fastutil.objects.Object2ObjectRBTreeMap
+import it.unimi.dsi.fastutil.objects.ObjectRBTreeSet
 import net.ccbluex.liquidbounce.config.ConfigSystem
 import net.ccbluex.liquidbounce.config.types.nesting.Configurable
-import net.ccbluex.liquidbounce.event.EventListener
-import net.ccbluex.liquidbounce.event.events.ChatSendEvent
-import net.ccbluex.liquidbounce.event.events.ClientShutdownEvent
-import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.features.command.CommandManager.getSubCommand
-import net.ccbluex.liquidbounce.features.command.builder.CommandBuilder
 import net.ccbluex.liquidbounce.features.command.commands.client.*
 import net.ccbluex.liquidbounce.features.command.commands.client.client.CommandClient
+import net.ccbluex.liquidbounce.features.command.commands.client.marketplace.CommandMarketplace
 import net.ccbluex.liquidbounce.features.command.commands.deeplearn.CommandModels
 import net.ccbluex.liquidbounce.features.command.commands.ingame.*
 import net.ccbluex.liquidbounce.features.command.commands.ingame.creative.*
@@ -57,180 +45,22 @@ import net.ccbluex.liquidbounce.features.command.commands.translate.CommandTrans
 import net.ccbluex.liquidbounce.features.misc.HideAppearance
 import net.ccbluex.liquidbounce.lang.translation
 import net.ccbluex.liquidbounce.script.ScriptApiRequired
-import net.ccbluex.liquidbounce.utils.client.*
-import net.ccbluex.liquidbounce.utils.kotlin.EventPriorityConvention.FIRST_PRIORITY
+import net.ccbluex.liquidbounce.utils.client.logger
+import net.ccbluex.liquidbounce.utils.collection.Pools
 import net.ccbluex.liquidbounce.utils.math.levenshtein
-import net.minecraft.text.MutableText
-import net.minecraft.util.Formatting
 import java.util.concurrent.CompletableFuture
-import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.min
-import kotlin.time.Duration.Companion.seconds
-
-class CommandException(val text: MutableText, cause: Throwable? = null, val usageInfo: List<String>? = null) :
-    Exception(text.convertToString(), cause)
 
 /**
- * Links minecraft with the command engine
+ * Key: Command name or alias
+ * Value: Command
  */
-object CommandExecutor : EventListener {
+private val rootCommandMap = Object2ObjectRBTreeMap<String, Command>(String.CASE_INSENSITIVE_ORDER)
 
-    @Volatile
-    private var isShuttingDown: Boolean = false
-
-    /**
-     * Add a wrapped suspend handler to [CommandBuilder] if you don't want to block the render thread.
-     *
-     * @param allowParallel allow or prevent duplicated executions
-     * @author MukjepScarlet
-     */
-    fun CommandBuilder.suspendHandler(
-        allowParallel: Boolean = false,
-        handler: suspend (command: Command, args: Array<Any>) -> Unit,
-    ) = if (allowParallel) {
-        this.handler { command, args ->
-            commandCoroutineScope.launch {
-                handler.invoke(command, args)
-            }
-        }
-    } else {
-        val running = AtomicBoolean(false)
-        this.handler { command, args ->
-            if (!running.compareAndSet(false, true)) {
-                chat(
-                    markAsError(
-                        translation("liquidbounce.commandManager.commandExecuting", command.name)
-                    ),
-                    command
-                )
-                return@handler
-            }
-
-            // Progress message job
-            val progressMessageMetadata = MessageMetadata(id = "C${command.name}#progress", remove = true)
-            val progressJob = commandCoroutineScope.launch {
-                val startAt = System.currentTimeMillis()
-                var n = 0
-                val chars = charArrayOf('|', '/', '-', '\\')
-                while (isActive) {
-                    delay(0.25.seconds)
-                    val duration = (System.currentTimeMillis() - startAt) / 1000
-                    val char = chars[n % chars.size]
-                    chat(
-                        regular("<$char> Executing command "),
-                        variable(command.name),
-                        regular(" ("),
-                        variable(duration.toString()),
-                        regular("s)"),
-                        metadata = progressMessageMetadata
-                    )
-                    n++
-                }
-            }
-
-            // Handler job
-            commandCoroutineScope.launch {
-                handler.invoke(command, args)
-            }.invokeOnCompletion {
-                running.set(false)
-                progressJob.cancel()
-                mc.inGameHud.chatHud.removeMessage(progressMessageMetadata.id)
-            }
-        }
-    }
-
-    /**
-     * Handling exceptions for suspend handlers
-     */
-    private val coroutineExceptionHandler = CoroutineExceptionHandler { _, throwable ->
-        if (isShuttingDown && throwable is CancellationException) {
-            // Client shutdown, ignored
-        } else {
-            handleExceptions(throwable)
-        }
-    }
-
-    /**
-     * Render thread scope
-     */
-    private val commandCoroutineScope = CoroutineScope(
-        mc.asCoroutineDispatcher() + SupervisorJob() + coroutineExceptionHandler + CoroutineName("CommandExecutor")
-    )
-
-    private fun handleExceptions(e: Throwable) {
-        when (e) {
-            is CommandException -> {
-                mc.inGameHud.chatHud.removeMessage("CommandManager#error")
-                val data = MessageMetadata(id = "CommandManager#error", remove = false)
-                chat(e.text.formatted(Formatting.RED), metadata = data)
-
-                if (!e.usageInfo.isNullOrEmpty()) {
-                    chat("Usage: ".asText().formatted(Formatting.RED), metadata = data)
-
-                    var first = true
-
-                    // Zip the usage info together, e.g.
-                    //  .friend add <name> [<alias>]
-                    //  OR .friend remove <name>
-                    for (usage in e.usageInfo) {
-                        chat(
-                            buildString {
-                                if (first) {
-                                    first = false
-                                } else {
-                                    append("OR ")
-                                }
-                                append(CommandManager.Options.prefix)
-                                append(usage)
-                            }.asText().formatted(Formatting.RED),
-                            metadata = data
-                        )
-
-                        first = false
-                    }
-                }
-            }
-            else -> {
-                chat(
-                    markAsError(
-                        translation(
-                            "liquidbounce.commandManager.exceptionOccurred",
-                            e.javaClass.simpleName ?: "Class name missing", e.message ?: "No message"
-                        )
-                    ),
-                    metadata = MessageMetadata(id = "CommandManager#error")
-                )
-                logger.error("An exception occurred while executing a command", e)
-            }
-        }
-    }
-
-    @Suppress("unused")
-    private val shutdownHandler = handler<ClientShutdownEvent> {
-        isShuttingDown = true
-        commandCoroutineScope.cancel()
-    }
-
-    /**
-     * Handles command execution
-     */
-    @Suppress("unused")
-    private val chatEventHandler = handler<ChatSendEvent>(priority = FIRST_PRIORITY) {
-        if (!it.message.startsWith(CommandManager.Options.prefix)) {
-            return@handler
-        }
-
-        try {
-            CommandManager.execute(it.message.substring(CommandManager.Options.prefix.length))
-        } catch (e: Throwable) {
-            handleExceptions(e)
-        } finally {
-            it.cancelEvent()
-        }
-    }
-}
-
-private val commands = mutableListOf<Command>()
+/**
+ * Command set. Sorted with name.
+ */
+private val commandSet = ObjectRBTreeSet<Command>(Comparator.comparing({ it.name }, String.CASE_INSENSITIVE_ORDER))
 
 /**
  * Contains routines for handling commands
@@ -238,7 +68,7 @@ private val commands = mutableListOf<Command>()
  *
  * @author superblaubeere27 (@team CCBlueX)
  */
-object CommandManager : Iterable<Command> by commands {
+object CommandManager : Collection<Command> by commandSet {
 
     object Options : Configurable("Commands") {
 
@@ -279,7 +109,6 @@ object CommandManager : Iterable<Command> by commands {
             CommandClear,
             CommandHide,
             CommandInvsee,
-            CommandItems,
             CommandPanic,
             CommandValue,
             CommandPing,
@@ -310,7 +139,7 @@ object CommandManager : Iterable<Command> by commands {
             CommandModels,
             CommandTranslate,
             CommandAutoTranslate,
-            CommandModels,
+            CommandMarketplace,
             CommandIRC
         )
 
@@ -320,11 +149,19 @@ object CommandManager : Iterable<Command> by commands {
     }
 
     fun addCommand(command: Command) {
-        commands.add(command)
+        if (!commandSet.add(command)) {
+            error("Command '${command.name}' already exists")
+        }
+        rootCommandMap.putCommand(command)
     }
 
     fun removeCommand(command: Command) {
-        commands.remove(command)
+        if (!commandSet.remove(command) ||
+            rootCommandMap.remove(command.name) !== command ||
+            command.aliases.any { rootCommandMap.remove(it) !== command }
+        ) {
+            error("Command '${command.name}' does not exist")
+        }
     }
 
     /**
@@ -358,19 +195,12 @@ object CommandManager : Iterable<Command> by commands {
         }
 
         // If currentCommand is null, idx must be 0, so search in all commands
-        val commandSupplier = currentCommand?.first?.subcommands?.asIterable() ?: commands
+        val commandMap = currentCommand?.first?.subcommandMap ?: rootCommandMap
 
         // Look if something matches the current index, if it does, look if there are further matches
-        commandSupplier
-            .firstOrNull {
-                it.name.equals(args[idx], true) || it.aliases.any { alias ->
-                    alias.equals(
-                        args[idx],
-                        true
-                    )
-                }
-            }
-            ?.let { return getSubCommand(args, Pair(it, idx), idx + 1) }
+        commandMap[args[idx]]?.let {
+            return getSubCommand(args, Pair(it, idx), idx + 1)
+        }
 
         // If no match was found, currentCommand is the subcommand that we searched for
         return currentCommand
@@ -399,10 +229,10 @@ object CommandManager : Iterable<Command> by commands {
                 "liquidbounce.commandManager.unknownCommand",
                 args[0]
             ),
-            usageInfo = if (commands.isEmpty() || Options.hintCount == 0) {
+            usageInfo = if (rootCommandMap.isEmpty() || Options.hintCount == 0) {
                 null
             } else {
-                commands.sortedBy { command ->
+                commandSet.sortedBy { command ->
                     var distance = levenshtein(args[0], command.name)
                     if (command.aliases.isNotEmpty()) {
                         distance = min(
@@ -412,7 +242,7 @@ object CommandManager : Iterable<Command> by commands {
                     }
                     distance
                 }.take(Options.hintCount).map { command ->
-                    buildString {
+                    Pools.buildStringPooled {
                         append(command.name)
                         if (command.aliases.isNotEmpty()) {
                             command.aliases.joinTo(this, separator = "/", prefix = " (", postfix = ")")
@@ -500,7 +330,8 @@ object CommandManager : Iterable<Command> by commands {
         }
 
         @Suppress("UNCHECKED_CAST")
-        command.handler!!(command, parsedParameters as Array<Any>)
+        val ctx = Command.Handler.Context(command, parsedParameters as Array<out Any>)
+        with(command.handler!!) { ctx() }
     }
 
     /**
@@ -512,10 +343,10 @@ object CommandManager : Iterable<Command> by commands {
         }
 
         when (val validationResult = parameter.verifier.verifyAndParse(argument)) {
-            is ParameterValidationResult.Ok -> {
+            is Parameter.Verificator.Result.Ok -> {
                 return validationResult.mappedResult
             }
-            is ParameterValidationResult.Error -> {
+            is Parameter.Verificator.Result.Error -> {
                 throw CommandException(
                     translation(
                         "liquidbounce.commandManager.invalidParameterValue",
@@ -533,6 +364,8 @@ object CommandManager : Iterable<Command> by commands {
      * Tokenizes the [line].
      *
      * For example: `.friend add "Senk Ju"` -> [[`.friend`, `add`, `Senk Ju`]]
+     *
+     * @return A pair of the tokenized command and the starting indices of the tokens
      */
     fun tokenizeCommand(line: String): Pair<List<String>, List<Int>> {
         val output = ArrayList<String>()
@@ -557,27 +390,26 @@ object CommandManager : Iterable<Command> by commands {
                 continue
             }
 
-            // Is the current char an escape char?
-            if (c == '\\') {
-                escaped = true // Enable escape for the next character
-            } else if (c == '"') {
-                quote = !quote
-            } else if (c == ' ' && !quote) {
-                // Is the buffer not empty? Also ignore stuff like .friend   add SenkJu
-                if (stringBuilder.trim().isNotEmpty()) {
-                    output.add(stringBuilder.toString())
+            when (c) {
+                // Is the current char an escape char?
+                '\\' -> escaped = true // Enable escape for the next character
+                '"' -> quote = !quote
+                ' ' if !quote -> {
+                    // Is the buffer not empty? Also ignore stuff like .friend   add SenkJu
+                    if (stringBuilder.isNotBlank()) {
+                        output.add(stringBuilder.toString())
 
-                    // Reset string buffer
-                    stringBuilder.setLength(0)
-                    outputIndices.add(idx)
+                        // Reset string buffer
+                        stringBuilder.setLength(0)
+                        outputIndices.add(idx)
+                    }
                 }
-            } else {
-                stringBuilder.append(c)
+                else -> stringBuilder.append(c)
             }
         }
 
         // Is there something left in the buffer?
-        if (stringBuilder.trim().isNotEmpty()) {
+        if (stringBuilder.isNotBlank()) {
             // If a string was not closed, don't remove the quote
             // e.g. .friend add "SenkJu -> [.friend, add, "SenkJu]
             if (quote) {
@@ -627,12 +459,13 @@ object CommandManager : Iterable<Command> by commands {
             val pair = getSubCommand(args)
 
             if (args.size == 1 && (pair == null || !nextParameter)) {
-                for (command in commands) {
-                    if (command.name.startsWith(args[0], true)) {
-                        builder.suggest(command.name)
-                    }
-
-                    command.aliases.filter { it.startsWith(args[0], true) }.forEach { builder.suggest(it) }
+                val arg = args[0]
+                // get all commands that start with the argument
+                rootCommandMap.subMap(
+                    arg,
+                    arg + Char.MAX_VALUE,
+                ).values.forEach { command ->
+                    builder.suggest(command.name)
                 }
 
                 return builder.buildFuture()

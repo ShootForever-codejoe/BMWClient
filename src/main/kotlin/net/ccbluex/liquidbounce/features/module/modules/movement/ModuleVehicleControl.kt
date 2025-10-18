@@ -22,6 +22,7 @@ package net.ccbluex.liquidbounce.features.module.modules.movement
 
 import net.ccbluex.liquidbounce.config.types.nesting.Configurable
 import net.ccbluex.liquidbounce.config.types.nesting.ToggleableConfigurable
+import net.ccbluex.liquidbounce.event.waitTicks
 import net.ccbluex.liquidbounce.event.events.MovementInputEvent
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.event.tickHandler
@@ -42,7 +43,7 @@ import net.minecraft.util.Hand
  *
  * Move with your vehicle however you want.
  */
-object ModuleVehicleControl : ClientModule("VehicleControl", Category.MOVEMENT, aliases = arrayOf("BoatFly")) {
+object ModuleVehicleControl : ClientModule("VehicleControl", Category.MOVEMENT, aliases = listOf("BoatFly")) {
 
     init {
         enableLock()
@@ -68,9 +69,9 @@ object ModuleVehicleControl : ClientModule("VehicleControl", Category.MOVEMENT, 
 
     private var wasInVehicle = false
 
-    override fun enable() {
+    override fun onEnabled() {
         chat(warning(message("quitHelp")))
-        super.enable()
+        super.onEnabled()
     }
 
     @Suppress("unused")
