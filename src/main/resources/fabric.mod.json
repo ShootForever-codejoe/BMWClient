@@ -2,10 +2,11 @@
   "schemaVersion": 1,
   "id": "liquidbounce",
   "version": "${version}",
-  "name": "LiquidBounce",
+  "name": "BMWClient",
   "description": "A free mixin-based injection hacked-client for Minecraft using the Fabric modding toolchain.",
   "authors": [
-    "CCBlueX"
+    "CCBlueX",
+    "ShootForever"
   ],
   "contributors": $contributors,
   "contact": {

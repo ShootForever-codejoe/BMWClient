@@ -2,12 +2,11 @@ package net.ccbluex.liquidbounce.features.command.commands.bmw
 
 import net.ccbluex.liquidbounce.features.command.Command
 import net.ccbluex.liquidbounce.features.command.CommandException
-import net.ccbluex.liquidbounce.features.command.CommandFactory
 import net.ccbluex.liquidbounce.features.command.builder.CommandBuilder
 import net.ccbluex.liquidbounce.features.command.builder.ParameterBuilder
 import net.ccbluex.liquidbounce.features.module.modules.bmw.ModuleIRC
 
-object CommandIRC : CommandFactory {
+object CommandIRC : Command.Factory {
 
     override fun createCommand(): Command {
         return CommandBuilder
@@ -19,7 +18,7 @@ object CommandIRC : CommandFactory {
                     .required()
                     .build()
             )
-            .handler { command, args ->
+            .handler {
                 if (!ModuleIRC.enabled) {
                     throw CommandException(command.result("IRCNotEnabled"))
                 }

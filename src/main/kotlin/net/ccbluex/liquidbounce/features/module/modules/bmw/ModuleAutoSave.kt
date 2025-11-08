@@ -8,9 +8,10 @@ import net.ccbluex.liquidbounce.event.tickHandler
 import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
 import net.ccbluex.liquidbounce.features.module.modules.bmw.fireballfly.ModuleFireballFly
+import net.ccbluex.liquidbounce.features.module.modules.combat.killaura.ModuleKillAura
 import net.ccbluex.liquidbounce.features.module.modules.world.scaffold.ModuleScaffold
 import net.ccbluex.liquidbounce.utils.block.getBlock
-import net.ccbluex.liquidbounce.utils.combat.CombatManager
+import net.minecraft.network.packet.s2c.play.EntityDamageS2CPacket
 import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 import net.minecraft.util.math.BlockPos
@@ -46,6 +47,7 @@ object ModuleAutoSave : ClientModule("AutoSave", Category.BMW) {
     private var wasSpectator = false
     private var receiveHitTicks = 0
     private var pauseTicks = 0
+    private var damage = false
 
     private fun reset(disable: Boolean) {
         if (disable) {
@@ -58,6 +60,7 @@ object ModuleAutoSave : ClientModule("AutoSave", Category.BMW) {
         scaffoldSaving = false
         receiveHitTicks = 0
         pauseTicks = 0
+        damage = false
     }
 
     private fun aboveVoid(voidDistance: Int = -1): Boolean {
@@ -104,10 +107,13 @@ object ModuleAutoSave : ClientModule("AutoSave", Category.BMW) {
             pauseTicks = pauseOnFlag
         }
 
-        if (packet is EntityVelocityUpdateS2CPacket && packet.entityId == player.id
-            && !ModuleFireballFly.running
-        ) {
-            receiveHitTicks = RECEIVE_HIT_TICKS
+        if (packet is EntityDamageS2CPacket && packet.entityId == player.id) {
+            damage = true
+        }
+
+        if (packet is EntityVelocityUpdateS2CPacket && packet.entityId == player.id && damage) {
+            if (!ModuleFireballFly.running) receiveHitTicks = RECEIVE_HIT_TICKS
+            damage = false
         }
     }
 
@@ -153,7 +159,8 @@ object ModuleAutoSave : ClientModule("AutoSave", Category.BMW) {
         }
 
         if (AutoScaffold.enabled) {
-            if ((CombatManager.isInCombat || receiveHitTicks > 0)
+            if (receiveHitTicks > 0
+                && (!ModuleKillAura.running || ModuleKillAura.targetTracker.target == null)
                 && aboveVoid(
                     if (AutoScaffold.scaffoldOnlyVoid) -1
                     else AutoScaffold.scaffoldVoidDistance
@@ -172,7 +179,7 @@ object ModuleAutoSave : ClientModule("AutoSave", Category.BMW) {
         }
     }
 
-    override fun enable() {
+    override fun onEnabled() {
         reset(false)
         wasSpectator = false
     }

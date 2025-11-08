@@ -22,6 +22,7 @@ import it.unimi.dsi.fastutil.floats.FloatFloatImmutablePair
 import it.unimi.dsi.fastutil.floats.FloatFloatPair
 import net.ccbluex.liquidbounce.config.types.nesting.ToggleableConfigurable
 import net.ccbluex.liquidbounce.features.module.modules.movement.noslow.modes.shared.NoSlowSharedGrim2371
+import net.ccbluex.liquidbounce.features.module.modules.movement.noslow.modes.shared.NoSlowSharedHeypixel
 
 abstract class NoSlowUseActionHandler(name: String) : ToggleableConfigurable(ModuleNoSlow, name, true) {
 
@@ -34,7 +35,10 @@ abstract class NoSlowUseActionHandler(name: String) : ToggleableConfigurable(Mod
     }
 
     open fun getMultiplier() : FloatFloatPair {
-        if (!this.enabled || NoSlowSharedGrim2371.shouldPreventNoSlow) {
+        if (!this.enabled
+            || NoSlowSharedGrim2371.shouldPreventNoSlow
+            || !NoSlowSharedHeypixel.shouldNoSlow
+        ) {
             return DEFAULT_USE_MUL
         }
 

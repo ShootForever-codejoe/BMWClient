@@ -10,6 +10,7 @@ import net.ccbluex.liquidbounce.event.events.TickPacketProcessEvent
 import net.ccbluex.liquidbounce.event.events.TransferOrigin
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.event.tickHandler
+import net.ccbluex.liquidbounce.event.tickUntil
 import net.ccbluex.liquidbounce.features.module.modules.movement.autododge.ModuleAutoDodge.EvadingPacket
 import net.ccbluex.liquidbounce.features.module.modules.movement.autododge.ModuleAutoDodge.getInflictedHit
 import net.ccbluex.liquidbounce.utils.client.handlePacket
@@ -174,13 +175,13 @@ object DelayBlinkPacketManager : EventListener {
 
     @Suppress("unused")
     private val checkEnabledHandler = tickHandler {
-        waitUntil { ModuleDelayBlink.enabled }
+        tickUntil { ModuleDelayBlink.enabled }
         enabled = true
         packets.clear()
         ticks = 0
         full = false
         notifyAsMessage(ModuleDelayBlink, "Start collecting packets...")
-        waitUntil { !enabled }
+        tickUntil { !enabled }
     }
 
     @Suppress("unused")

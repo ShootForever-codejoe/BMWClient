@@ -32,6 +32,8 @@ import net.ccbluex.liquidbounce.event.events.WorldChangeEvent
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.event.sequenceHandler
 import net.ccbluex.liquidbounce.event.tickHandler
+import net.ccbluex.liquidbounce.event.tickUntil
+import net.ccbluex.liquidbounce.event.waitTicks
 import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
 import net.ccbluex.liquidbounce.utils.block.canStandOn
@@ -66,7 +68,7 @@ object ModuleAutoBreakOut : ClientModule("AutoBreakOut", Category.BMW) {
         clear = true
     }
 
-    override fun disable() {
+    override fun onDisabled() {
         reset()
     }
 
@@ -160,7 +162,7 @@ object ModuleAutoBreakOut : ClientModule("AutoBreakOut", Category.BMW) {
 
     @Suppress("unused")
     private val tickHandler = tickHandler {
-        waitUntil { isGameStarting }
+        tickUntil { isGameStarting }
         waitTicks(20)
         clear = false
         blinking = true

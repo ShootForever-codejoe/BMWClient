@@ -36,6 +36,7 @@ import net.ccbluex.liquidbounce.utils.client.bypassesNameProtection
 import net.ccbluex.liquidbounce.utils.client.toText
 import net.ccbluex.liquidbounce.utils.collection.LfuCache
 import net.ccbluex.liquidbounce.utils.collection.Pools
+import net.minecraft.client.MinecraftClient
 import net.minecraft.text.CharacterVisitor
 import net.minecraft.text.OrderedText
 import net.minecraft.text.Style
@@ -111,11 +112,6 @@ object ModuleNameProtect : ClientModule("NameProtect", Category.MISC) {
         val mc = MinecraftClient.getInstance()
         val player = mc.player ?: return@handler
         var playerName = player.name.string
-        val currentTime = System.currentTimeMillis()
-        if (currentTime - lastPlayerNameCheck >= NAME_CHECK_INTERVAL) {
-            playerName = player.name.string
-            lastPlayerNameCheck = currentTime
-        }
 
         val otherPlayers = if (ReplaceOthers.enabled) {
             network.playerList?.mapNotNull { playerListEntry ->

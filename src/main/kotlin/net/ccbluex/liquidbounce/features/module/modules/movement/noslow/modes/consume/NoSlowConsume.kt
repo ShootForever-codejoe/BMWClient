@@ -41,7 +41,8 @@ object NoSlowConsume : NoSlowUseActionHandler("Consume") {
             NoSlowSharedInvalidHand(it),
             NoSlowSharedGrim2371(it),
             NoSlowConsumeIntave14(it),
-            NoSlowConsumeRelease(it)
+            NoSlowConsumeRelease(it),
+            NoSlowSharedHeypixel(it)
         )
     }
 

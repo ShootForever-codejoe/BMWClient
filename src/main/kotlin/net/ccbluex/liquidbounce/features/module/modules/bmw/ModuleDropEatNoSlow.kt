@@ -33,7 +33,7 @@ object ModuleDropEatNoSlow : ClientModule("DropEatNoSlow", Category.BMW) {
         }
     }
 
-    override fun enable() {
+    override fun onEnabled() {
         dropped = false
     }
 

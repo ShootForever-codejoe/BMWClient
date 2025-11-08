@@ -14,6 +14,8 @@ import net.ccbluex.liquidbounce.event.events.NotificationEvent
 import net.ccbluex.liquidbounce.event.events.TagEntityEvent
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.event.tickHandler
+import net.ccbluex.liquidbounce.event.tickUntil
+import net.ccbluex.liquidbounce.event.waitTicks
 import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
 import net.ccbluex.liquidbounce.features.module.modules.combat.killaura.ModuleKillAura
@@ -211,7 +213,7 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
             return@tickHandler
         }
 
-        waitUntil { inGame && shouldCreateUser }
+        tickUntil { inGame && shouldCreateUser }
         shouldCreateUser = !createUser()
     }
 
@@ -246,11 +248,11 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
         event.color(Color4b(Color.cyan), Priority.IMPORTANT_FOR_USAGE_2)
     }
 
-    override fun enable() {
+    override fun onEnabled() {
         connect()
     }
 
-    override fun disable() {
+    override fun onDisabled() {
         disconnect()
         reset()
     }

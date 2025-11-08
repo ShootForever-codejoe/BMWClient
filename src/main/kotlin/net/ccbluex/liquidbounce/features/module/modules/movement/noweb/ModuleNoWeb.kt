@@ -26,6 +26,7 @@ import net.ccbluex.liquidbounce.features.module.ClientModule
 import net.ccbluex.liquidbounce.features.module.modules.movement.ModuleAvoidHazards
 import net.ccbluex.liquidbounce.features.module.modules.movement.noweb.modes.NoWebAir
 import net.ccbluex.liquidbounce.features.module.modules.movement.noweb.modes.NoWebGrimBreak
+import net.ccbluex.liquidbounce.features.module.modules.movement.noweb.modes.NoWebHeypixel
 import net.ccbluex.liquidbounce.features.module.modules.movement.noweb.modes.NoWebIntave14
 import net.ccbluex.liquidbounce.features.module.modules.movement.noweb.modes.NoWebStrafe
 import net.ccbluex.liquidbounce.utils.client.notification
@@ -43,11 +44,12 @@ object ModuleNoWeb : ClientModule("NoWeb", Category.MOVEMENT) {
     }
 
     val modes = choices(
-        "Mode", NoWebAir, arrayOf(
+        "Mode", NoWebHeypixel, arrayOf(
             NoWebAir,
             NoWebGrimBreak,
             NoWebIntave14,
-            NoWebStrafe
+            NoWebStrafe,
+            NoWebHeypixel
         )
     ).apply { tagBy(this) }
 

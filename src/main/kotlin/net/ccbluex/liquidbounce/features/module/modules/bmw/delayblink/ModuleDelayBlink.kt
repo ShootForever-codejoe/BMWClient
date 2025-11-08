@@ -25,7 +25,7 @@ object ModuleDelayBlink : ClientModule("DelayBlink", Category.BMW, disableOnQuit
         TransferOrigin.OUTGOING
     )
 
-    override fun disable() {
+    override fun onDisabled() {
         DelayBlinkPacketManager.clear = true
     }
 

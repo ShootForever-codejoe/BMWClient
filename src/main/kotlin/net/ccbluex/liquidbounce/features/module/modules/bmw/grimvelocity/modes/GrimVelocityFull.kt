@@ -8,6 +8,8 @@ import net.ccbluex.liquidbounce.event.events.TransferOrigin
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.event.sequenceHandler
 import net.ccbluex.liquidbounce.event.tickHandler
+import net.ccbluex.liquidbounce.event.tickUntil
+import net.ccbluex.liquidbounce.event.waitTicks
 import net.ccbluex.liquidbounce.features.module.modules.bmw.grimvelocity.GrimVelocityMode
 import net.ccbluex.liquidbounce.features.module.modules.bmw.grimvelocity.ModuleGrimVelocity
 import net.ccbluex.liquidbounce.utils.aiming.RotationManager
@@ -175,7 +177,7 @@ object GrimVelocityFull : GrimVelocityMode("Full") {
 
     @Suppress("unused")
     private val tickHandler = tickHandler {
-        waitUntil { waitForUpdate }
+        tickUntil { waitForUpdate }
 
         repeat(maxStuckTicks) {
             waitTicks(1)

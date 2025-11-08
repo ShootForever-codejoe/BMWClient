@@ -7,6 +7,7 @@ import net.ccbluex.liquidbounce.config.types.nesting.ChoiceConfigurable
 import net.ccbluex.liquidbounce.event.events.ChatReceiveEvent
 import net.ccbluex.liquidbounce.event.sequenceHandler
 import net.ccbluex.liquidbounce.event.tickHandler
+import net.ccbluex.liquidbounce.event.tickUntil
 import net.ccbluex.liquidbounce.features.module.modules.player.autoqueue.ModuleAutoQueue
 
 object AutoQueueHeypixelSW : Choice("HeypixelSW") {
@@ -36,10 +37,10 @@ object AutoQueueHeypixelSW : Choice("HeypixelSW") {
     @Suppress("unused")
     private val tickHandler = tickHandler {
         if (spectatorCheck) {
-            waitUntil { player.isSpectator || player.abilities.flying }
+            tickUntil { player.isSpectator || player.abilities.flying }
             delay((delay * 1000f).toLong())
             network.sendCommand("again")
-            waitUntil { !player.isSpectator && !player.abilities.flying }
+            tickUntil { !player.isSpectator && !player.abilities.flying }
         }
     }
 

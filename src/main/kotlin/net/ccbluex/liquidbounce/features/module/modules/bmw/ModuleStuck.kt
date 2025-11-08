@@ -5,7 +5,6 @@ import net.ccbluex.liquidbounce.bmw.sendPacketNoEvent
 import net.ccbluex.liquidbounce.event.events.PacketEvent
 import net.ccbluex.liquidbounce.event.events.MovementInputEvent
 import net.ccbluex.liquidbounce.event.handler
-import net.ccbluex.liquidbounce.event.tickHandler
 import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
 import net.ccbluex.liquidbounce.utils.movement.DirectionalInput
@@ -77,14 +76,6 @@ object ModuleStuck : ClientModule("Stuck", Category.BMW, disableOnQuit = true) {
                 )
             )
             sendPacketNoEvent(ModuleStuck, packet)
-        }
-    }
-
-    @Suppress("unused")
-    private val tickHandler = tickHandler {
-        if (autoDisable && player.isOnGround) {
-            notifyAsMessage(ModuleStuck, "Auto disable for being on ground")
-            enabled = false
         }
     }
 

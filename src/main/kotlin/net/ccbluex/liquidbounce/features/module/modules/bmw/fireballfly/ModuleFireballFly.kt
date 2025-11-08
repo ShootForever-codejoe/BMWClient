@@ -8,6 +8,7 @@ import net.ccbluex.liquidbounce.event.events.RotationUpdateEvent
 import net.ccbluex.liquidbounce.event.events.TransferOrigin
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.event.tickHandler
+import net.ccbluex.liquidbounce.event.waitTicks
 import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
 import net.ccbluex.liquidbounce.utils.aiming.RotationManager
@@ -171,7 +172,7 @@ object ModuleFireballFly : ClientModule("FireballFly", Category.BMW, disableOnQu
         return MathHelper.wrapDegrees(yaw + 180)
     }
 
-    override fun enable() {
+    override fun onEnabled() {
         val fireballItem = Slots.OffhandWithHotbar.findClosestSlot(Items.FIRE_CHARGE)
         if (fireballItem != null) {
             val count = fireballItem.itemStack.count
@@ -185,7 +186,7 @@ object ModuleFireballFly : ClientModule("FireballFly", Category.BMW, disableOnQu
         }
     }
 
-    override fun disable() {
+    override fun onDisabled() {
         processPackets()
         canThrow = false
         canRotate = false
