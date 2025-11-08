@@ -22,8 +22,6 @@ import net.ccbluex.liquidbounce.utils.inventory.interactItem
 import net.ccbluex.liquidbounce.utils.kotlin.Priority
 import net.minecraft.item.Items
 import net.minecraft.network.packet.Packet
-import net.minecraft.network.packet.c2s.play.ChatMessageC2SPacket
-import net.minecraft.network.packet.c2s.play.CommandExecutionC2SPacket
 import net.minecraft.network.packet.s2c.common.DisconnectS2CPacket
 import net.minecraft.network.packet.s2c.common.KeepAliveS2CPacket
 import net.minecraft.network.packet.s2c.play.ChatMessageS2CPacket
