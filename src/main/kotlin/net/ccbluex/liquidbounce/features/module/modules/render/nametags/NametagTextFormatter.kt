@@ -20,6 +20,7 @@ package net.ccbluex.liquidbounce.features.module.modules.render.nametags
 
 import net.ccbluex.liquidbounce.features.module.modules.bmw.ModuleIRC
 import net.ccbluex.liquidbounce.features.module.modules.misc.antibot.ModuleAntiBot
+import net.ccbluex.liquidbounce.features.module.modules.render.ModuleCombineMobs
 import net.ccbluex.liquidbounce.utils.client.asText
 import net.ccbluex.liquidbounce.utils.client.bold
 import net.ccbluex.liquidbounce.utils.client.player
@@ -31,6 +32,7 @@ import net.ccbluex.liquidbounce.utils.entity.hasHealthScoreboard
 import net.ccbluex.liquidbounce.utils.entity.ping
 import net.minecraft.entity.Entity
 import net.minecraft.entity.LivingEntity
+import net.minecraft.entity.mob.MobEntity
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.text.Text
 import net.minecraft.text.TextColor
@@ -52,20 +54,30 @@ class NametagTextFormatter(private val entity: Entity) {
         val name = entity.displayName!!
         val nameColor = this.nameColor
 
+        val isBaby = (entity as? MobEntity)?.isBaby == true
+        var baseNameString = (if (isBaby) "Baby " else "") + name.string
+
         val nameText: Text = if (nameColor != null) {
-            var nameString = name.string
-            if (ModuleIRC.running && "[BMW] " !in nameString) {
+            if (ModuleIRC.running && "[BMW] " !in baseNameString) {
                 for (user in ModuleIRC.users) {
-                    nameString = nameString.replace(user, "[BMW] $user")
-                    if ("[BMW] " in nameString) break
+                    baseNameString = baseNameString.replace(user, "[BMW] $user")
+                    if ("[BMW] " in baseNameString) break
                 }
             }
-            nameString.asText().withColor(nameColor)
+            baseNameString.asText().withColor(nameColor)
         } else {
-            name
+            baseNameString.asText()
         }
 
         outputText.append(nameText)
+
+        if (ModuleCombineMobs.running) {
+            val count = ModuleCombineMobs.getCombinedCount(entity)
+            if (count > 1) {
+                val countText = ("x $count").asText().formatted(Formatting.AQUA).bold(true)
+                outputText.append(" ").append(countText)
+            }
+        }
 
         if (NametagShowOptions.HEALTH.isShowing()) {
             outputText.append(" ").append(this.healthText)
@@ -84,7 +96,12 @@ class NametagTextFormatter(private val entity: Entity) {
         get() {
             val tagColor = EntityTaggingManager.getTag(this.entity).color
 
-            return tagColor?.toARGB()?.let { TextColor.fromRgb(it) }
+            return when {
+                isBot -> Formatting.DARK_AQUA.toTextColor()
+                entity.isInvisible -> Formatting.GOLD.toTextColor()
+                tagColor != null -> tagColor.toTextColor()
+                else -> null
+            }
         }
 
     private val distanceText: Text
@@ -125,7 +142,6 @@ class NametagTextFormatter(private val entity: Entity) {
                 if (entity.hasHealthScoreboard()) 0f else entity.absorptionAmount).toInt()
 
             val healthColor = when {
-                // Perhaps you should modify the values here
                 actualHealth >= 14 -> Formatting.GREEN
                 actualHealth >= 8 -> Formatting.YELLOW
                 else -> Formatting.RED
@@ -134,4 +150,8 @@ class NametagTextFormatter(private val entity: Entity) {
             return "$actualHealth HP".asText().formatted(healthColor)
 
         }
+}
+
+private fun Formatting.toTextColor(): TextColor {
+    return TextColor.fromFormatting(this)!!
 }

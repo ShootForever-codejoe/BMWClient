@@ -15,14 +15,17 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with LiquidBounce. If not, see <https://www.gnu.org/licenses/>.
- *
  */
 
-package net.ccbluex.liquidbounce.features.cosmetic
+package net.ccbluex.liquidbounce.injection.mixins.minecraft.entity;
 
-import net.ccbluex.liquidbounce.api.models.auth.ClientAccount
-import net.ccbluex.liquidbounce.config.types.nesting.Configurable
+import net.minecraft.entity.ExperienceOrbEntity;
+import net.minecraft.entity.player.PlayerEntity;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.gen.Accessor;
 
-object ClientAccountManager : Configurable("account") {
-    var clientAccount by value("account", ClientAccount.EMPTY_ACCOUNT)
+@Mixin(ExperienceOrbEntity.class)
+public interface MixinExperienceOrbEntityAccessor {
+    @Accessor("target")
+    PlayerEntity getTarget();
 }
