@@ -32,6 +32,9 @@ object HeypixelSWKillEventListener : EventListener {
             val match = pattern.find(message) ?: continue
             var victim = match.groupValues[1].trim()
             var killer = match.groupValues[2].trim()
+
+            // 删去标签
+
             val regex = "[^\\u4e00-\\u9fa5a-zA-Z0-9_]".toRegex() // 删去除汉字、英文字母、数字、下划线以外的字符
 
             val victimTag = victim.indexOfLast { it == ']' }

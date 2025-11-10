@@ -34,6 +34,7 @@ import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.item.LingeringPotionItem
 import net.minecraft.item.PotionItem
 import net.minecraft.item.SplashPotionItem
+import net.minecraft.client.MinecraftClient
 import java.util.*
 
 class PotionItemFacet(itemSlot: ItemSlot) : ItemFacet(itemSlot) {
@@ -41,42 +42,69 @@ class PotionItemFacet(itemSlot: ItemSlot) : ItemFacet(itemSlot) {
         get() = ItemCategory(ItemType.POTION, 0)
 
     companion object {
-        private val COMPARATOR = ComparatorChain(
-            PreferHigherTierPotions,
-            PreferAmplifier,
-            PreferSplashPotions,
-            PreferHigherDurationPotions,
-            PREFER_ITEMS_IN_HOTBAR,
-            STABILIZE_COMPARISON
-        )
+        private val PreferAmplifier = preferPotionsBy { it.amplifier }
+        private val PreferHigherDurationPotions = preferPotionsBy { it.duration }
+
+        private val COMPARATOR by lazy {
+            ComparatorChain(
+                PreferHigherTierPotions,
+                PreferAmplifier,
+                PreferSplashPotions,
+                PreferHigherDurationPotions,
+                PREFER_ITEMS_IN_HOTBAR,
+                STABILIZE_COMPARISON
+            )
+        }
+
 
         /**
-         * Prefers potions which have more status effects of higher Tier.
-         * For example:
-         * - `S > A`
-         * - `A + A > A + B`
-         * - `A + A + F > A + A`
-         * - etc.
+         * Prefers potions which have more status effects of higher Tier, skipping effects the player already has.
          */
         private object PreferHigherTierPotions : Comparator<PotionItemFacet> {
-            override fun compare(o1: PotionItemFacet, o2: PotionItemFacet): Int = compareValuesBy(o1, o2) { o ->
-                o.itemStack.getPotionEffects()
-                    .mapTo(ObjectArrayList(8)) { it.effectType.value().tier }
-                    .apply { sortDescending() }
+            override fun compare(o1: PotionItemFacet, o2: PotionItemFacet): Int {
+                val player = MinecraftClient.getInstance().player ?: return 0 // Fallback if player is null
+
+                // Get player's current status effects
+                val activeEffects = player.statusEffects.map { it.effectType }.toSet()
+                val isFullHealth = player.health >= player.maxHealth
+
+                return compareValuesBy(o1, o2) { o ->
+                    o.itemStack.getPotionEffects()
+                        .filter {
+                            // Skip INSTANT_HEALTH if player is at full health
+                            if (it.effectType == StatusEffects.INSTANT_HEALTH && isFullHealth) {
+                                return@filter false
+                            }
+                            // Skip effects the player already has
+                            !activeEffects.contains(it.effectType)
+                        }
+                        .mapTo(ObjectArrayList(8)) { it.effectType.value().tier }
+                        .apply { sortDescending() }
+                }
             }
         }
 
         /**
-         * This check is pretty random as it does not care which effect it compares.
-         * - Anything (S-Tier) II + Anything (S-Tier) I > Anything (S-Tier) I + Anything (S-Tier) I
+         * This check prefers higher amplifier for effects, considering only non-redundant effects.
          */
-        private object PreferAmplifier : Comparator<PotionItemFacet> {
-            override fun compare(o1: PotionItemFacet, o2: PotionItemFacet): Int = compareValuesBy(o1, o2) { o ->
-                o.itemStack.getPotionEffects()
-                    .sortedByDescending { it.effectType.value().tier }
-                    .mapToIntArray { it.amplifier }.asIntList()
+        private fun preferPotionsBy(selector: (StatusEffectInstance) -> Int): Comparator<PotionItemFacet> =
+            Comparator { o1, o2 ->
+                val player = MinecraftClient.getInstance().player ?: return@Comparator 0
+                val active = player.statusEffects.map { it.effectType }.toSet()
+                val fullHp = player.health >= player.maxHealth
+
+                compareValuesBy(o1, o2) { facet ->
+                    facet.itemStack.getPotionEffects()
+                        .asSequence()
+                        .filter {
+                            !(it.effectType == StatusEffects.INSTANT_HEALTH && fullHp) &&
+                                !active.contains(it.effectType)
+                        }
+                        .sortedByDescending { it.effectType.value().tier }
+                        .sumOf(selector)
+                }
             }
-        }
+
 
         /**
          * Prefers quick and targeted potions: `splash potion > drinkable potion > lingering potion`
@@ -99,9 +127,7 @@ class PotionItemFacet(itemSlot: ItemSlot) : ItemFacet(itemSlot) {
         }
 
         /**
-         * Prefers higher duration of higher tiers.
-         * - `S (1:00) > S (0:30)`
-         * - `S (0:30) + A (1:00) > S (1:00) + A (20:00)`
+         * Prefers higher duration of higher tiers for non-redundant effects.
          */
         private object PreferHigherDurationPotions : Comparator<PotionItemFacet> {
             override fun compare(o1: PotionItemFacet, o2: PotionItemFacet): Int = compareValuesBy(o1, o2) { o ->

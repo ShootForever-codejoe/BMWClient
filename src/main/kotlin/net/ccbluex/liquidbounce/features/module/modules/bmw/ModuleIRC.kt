@@ -2,6 +2,7 @@ package net.ccbluex.liquidbounce.features.module.modules.bmw
 
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
+import net.ccbluex.liquidbounce.LiquidBounce
 import net.ccbluex.liquidbounce.bmw.BMW_SERVER_IP
 import net.ccbluex.liquidbounce.bmw.notifyAsMessage
 import net.ccbluex.liquidbounce.bmw.notifyAsMessageAndNotification
@@ -63,10 +64,10 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
 
     var webSocket: WebSocket? = null
     val client = OkHttpClient.Builder()
-        .connectTimeout(10, TimeUnit.SECONDS)
-        .readTimeout(10, TimeUnit.SECONDS)
-        .writeTimeout(10, TimeUnit.SECONDS)
-        .pingInterval(10, TimeUnit.SECONDS)
+        .connectTimeout(5, TimeUnit.SECONDS)
+        .readTimeout(5, TimeUnit.SECONDS)
+        .writeTimeout(5, TimeUnit.SECONDS)
+        .pingInterval(5, TimeUnit.SECONDS)
         .build()
     val request = Request.Builder().url(BMW_SERVER_IP).build()
     val connecting = AtomicBoolean(false)
@@ -75,12 +76,20 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
     private var shouldCreateUser = true
     val users = mutableListOf<String>()
 
-    fun createUser() : Boolean {
-        if (network.connection.address.toString().split(":").first() == "local") return true
-        if ((server.activeChoice is ServerHeypixel || server.activeChoice is ServerOMG)
+    private val isLocal: Boolean
+        get() = network.connection.address.toString().split(":").first() == "local"
+
+    private val isNotProxy: Boolean
+        get() = (server.activeChoice is ServerHeypixel || server.activeChoice is ServerOMG)
             && network.connection.address.toString().dropPort().split("/").last() != "127.0.0.1"
-        ) {
-            notifyAsMessage(ModuleIRC, "你在IRC里选择了${server.activeChoice.name}服务器，但你并未使用脱盒！")
+
+    fun createUser(): Boolean {
+        if (isLocal) return true
+        if (isNotProxy) {
+            notifyAsMessage(
+                ModuleIRC,
+                "你在IRC里选择了${server.activeChoice.name}服务器，但你并未使用脱盒！"
+            )
             return true
         }
 
@@ -99,7 +108,7 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
                 }
             )
             addProperty("name", player.name.string)
-            addProperty("version", "7.1.1")
+            addProperty("version", LiquidBounce.clientVersion)
         }.toString())
 
         return true
@@ -108,24 +117,26 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
     fun connect() {
         if (!connecting.compareAndSet(false, true) || connected.get()) return
 
-        notifyAsMessage(ModuleIRC, "尝试连接服务器……")
+        notifyAsMessage(ModuleIRC, "尝试连接IRC服务器……")
 
         client.dispatcher.executorService.execute {
             webSocket = client.newWebSocket(request, object : WebSocketListener() {
                 override fun onOpen(webSocket: WebSocket, response: Response) {
                     connecting.set(false)
                     connected.set(true)
-                    notifyAsMessage(ModuleIRC, "连接服务器成功")
+                    notifyAsMessage(ModuleIRC, "连接IRC服务器成功")
                 }
 
                 override fun onMessage(webSocket: WebSocket, text: String) {
                     val messageJson = JsonParser.parseString(text).asJsonObject
                     when (messageJson.get("func").asString) {
                         "send_msg" -> {
-                            notifyAsMessage(ModuleIRC, "${
-                                if (messageJson.get("name").asString == "错误") "§c"
-                                else "§a"
-                            }${messageJson.get("name").asString}§f: ${messageJson.get("msg").asString}")
+                            notifyAsMessage(
+                                ModuleIRC, "${
+                                    if (messageJson.get("name").asString == "错误") "§c"
+                                    else "§a"
+                                }${messageJson.get("name").asString}§f: ${messageJson.get("msg").asString}"
+                            )
                         }
 
                         "create_user" -> {
@@ -154,9 +165,9 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
                 override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
                     connecting.set(false)
                     if (connected.compareAndSet(true, false)) {
-                        notifyAsMessage(ModuleIRC, "意外与服务器断开连接")
+                        notifyAsMessage(ModuleIRC, "意外与IRC服务器断开连接")
                     } else {
-                        notifyAsMessage(ModuleIRC, "连接服务器失败")
+                        notifyAsMessage(ModuleIRC, "连接IRC服务器失败")
                     }
                     reset()
                 }
@@ -177,7 +188,12 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
 
     fun sendMsg(msg: String) {
         if (!connected.get()) {
-            notifyAsMessage(ModuleIRC, "发送消息失败，原因：暂未连接服务器，请重启或关闭IRC")
+            notifyAsMessage(ModuleIRC, "发送消息失败，原因：暂未连接IRC服务器，请重启或关闭IRC")
+            return
+        }
+
+        if (isLocal || isNotProxy) {
+            notifyAsMessage(ModuleIRC, "发送消息失败，原因：你不在正确的mc服务器里")
             return
         }
 
@@ -208,7 +224,7 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
         if (connecting.get()) return@tickHandler
 
         if (!connected.get()) {
-            notifyAsMessage(ModuleIRC, "暂未连接服务器，请重启或关闭IRC")
+            notifyAsMessage(ModuleIRC, "暂未连接IRC服务器，请重启或关闭IRC")
             waitTicks(20)
             return@tickHandler
         }
@@ -222,7 +238,6 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
         if (connecting.get()) return@handler
 
         if (!connected.get()) {
-            notifyAsMessage(ModuleIRC, "暂未连接服务器，请重启或关闭IRC")
             return@handler
         }
 
@@ -235,8 +250,14 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
 
     @Suppress("unused")
     private val attackEntityEventHandler = handler<AttackEntityEvent> { event ->
-        if (event.entity.name.string in users && (!ModuleKillAura.running || ModuleKillAura.targetTracker.target == null)) {
-            notifyAsMessageAndNotification(ModuleIRC, "请勿攻击其他BMW用户，你必须关闭IRC再攻击", NotificationEvent.Severity.ERROR)
+        if (event.entity.name.string in users
+            && (!ModuleKillAura.running || ModuleKillAura.targetTracker.target == null)
+        ) {
+            notifyAsMessageAndNotification(
+                ModuleIRC,
+                "请勿攻击其他BMW用户，你必须关闭IRC再攻击",
+                NotificationEvent.Severity.ERROR
+            )
         }
     }
 
