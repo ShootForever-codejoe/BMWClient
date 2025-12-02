@@ -11,6 +11,7 @@ import net.ccbluex.liquidbounce.features.module.modules.bmw.fireballfly.ModuleFi
 import net.ccbluex.liquidbounce.features.module.modules.combat.killaura.ModuleKillAura
 import net.ccbluex.liquidbounce.features.module.modules.world.scaffold.ModuleScaffold
 import net.ccbluex.liquidbounce.utils.block.getBlock
+import net.ccbluex.liquidbounce.utils.combat.CombatManager
 import net.minecraft.network.packet.s2c.play.EntityDamageS2CPacket
 import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
@@ -159,7 +160,7 @@ object ModuleAutoSave : ClientModule("AutoSave", Category.BMW) {
         }
 
         if (AutoScaffold.enabled) {
-            if (receiveHitTicks > 0
+            if ((receiveHitTicks > 0 || CombatManager.isInCombat)
                 && (!ModuleKillAura.running || ModuleKillAura.targetTracker.target == null)
                 && aboveVoid(
                     if (AutoScaffold.scaffoldOnlyVoid) -1

@@ -64,10 +64,10 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
 
     var webSocket: WebSocket? = null
     val client = OkHttpClient.Builder()
-        .connectTimeout(5, TimeUnit.SECONDS)
-        .readTimeout(5, TimeUnit.SECONDS)
-        .writeTimeout(5, TimeUnit.SECONDS)
-        .pingInterval(5, TimeUnit.SECONDS)
+        .connectTimeout(10, TimeUnit.SECONDS)
+        .readTimeout(10, TimeUnit.SECONDS)
+        .writeTimeout(10, TimeUnit.SECONDS)
+        .pingInterval(10, TimeUnit.SECONDS)
         .build()
     val request = Request.Builder().url(BMW_SERVER_IP).build()
     val connecting = AtomicBoolean(false)

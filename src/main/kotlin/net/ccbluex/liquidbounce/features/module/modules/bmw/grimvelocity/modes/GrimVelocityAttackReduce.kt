@@ -19,9 +19,11 @@
 
 package net.ccbluex.liquidbounce.features.module.modules.bmw.grimvelocity.modes
 
+import com.google.common.collect.Queues
 import net.ccbluex.liquidbounce.bmw.notifyAsMessage
-import net.ccbluex.liquidbounce.config.types.NamedChoice
 import net.ccbluex.liquidbounce.event.events.PacketEvent
+import net.ccbluex.liquidbounce.event.events.TickPacketProcessEvent
+import net.ccbluex.liquidbounce.event.events.TransferOrigin
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.event.tickHandler
 import net.ccbluex.liquidbounce.features.module.modules.bmw.grimvelocity.GrimVelocityMode
@@ -29,48 +31,119 @@ import net.ccbluex.liquidbounce.features.module.modules.bmw.grimvelocity.ModuleG
 import net.ccbluex.liquidbounce.features.module.modules.combat.killaura.ModuleKillAura
 import net.ccbluex.liquidbounce.utils.aiming.RotationManager
 import net.ccbluex.liquidbounce.utils.aiming.utils.raytraceEntity
+import net.ccbluex.liquidbounce.utils.client.handlePacket
 import net.ccbluex.liquidbounce.utils.combat.shouldBeAttacked
+import net.ccbluex.liquidbounce.utils.entity.boxedDistanceTo
+import net.ccbluex.liquidbounce.utils.entity.squaredBoxedDistanceTo
+import net.ccbluex.liquidbounce.utils.math.sq
 import net.minecraft.entity.Entity
+import net.minecraft.network.packet.Packet
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
+import net.minecraft.network.packet.s2c.common.DisconnectS2CPacket
+import net.minecraft.network.packet.s2c.common.KeepAliveS2CPacket
+import net.minecraft.network.packet.s2c.play.ChatMessageS2CPacket
 import net.minecraft.network.packet.s2c.play.EntityDamageS2CPacket
 import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket
+import net.minecraft.network.packet.s2c.play.GameJoinS2CPacket
+import net.minecraft.network.packet.s2c.play.GameMessageS2CPacket
+import net.minecraft.network.packet.s2c.play.HealthUpdateS2CPacket
+import net.minecraft.network.packet.s2c.play.PlaySoundS2CPacket
+import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
+import net.minecraft.network.packet.s2c.play.PlayerRespawnS2CPacket
+import net.minecraft.sound.SoundEvents
 import net.minecraft.util.Hand
 
 object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
 
-    private enum class AttackMode(override val choiceName: String) : NamedChoice {
-        ONE_TIME("OneTime"),
-        PER_TICK("PerTick")
-    }
-
-    private val attackMode by enumChoice("AttackMode", AttackMode.ONE_TIME)
     private val attackCount by intRange("AttackCount", 3..3, 0..20)
+    private val delayRange by floatRange("DelayRange", 2.5f..3.5f, 0f..10f)
+    private val delay by int("Delay", 5, 0..100, "ticks")
     private val debug by boolean("Debug", false)
 
-    private var targetEntity: Entity? = null
+    private var target: Entity? = null
     private var attackQueue = 0
     private var receiveDamage = false
+    private var delayTicks = -1
+    private val packets = Queues.newConcurrentLinkedQueue<Packet<*>>()
 
     override fun disable() {
-        targetEntity = null
+        target = null
         attackQueue = 0
         receiveDamage = false
+        delayTicks = -1
+        packets.clear()
     }
 
-    private fun findTarget(): Entity? {
+    private fun findTarget(): Boolean {
         if (ModuleKillAura.running && ModuleKillAura.targetTracker.target != null) {
-            return ModuleKillAura.targetTracker.target
+            target = ModuleKillAura.targetTracker.target
+            return true
         }
 
-        return raytraceEntity(
+        target = raytraceEntity(
             ModuleKillAura.range.toDouble(),
             RotationManager.serverRotation
         ) { !it.isRemoved && it.shouldBeAttacked() }?.entity
+
+        if (target != null) {
+            return true
+        }
+
+        val farTarget = ModuleKillAura.targetTracker.targets()
+            .filter { entity -> entity.squaredBoxedDistanceTo(player) <= delayRange.endInclusive.sq() }
+            .minByOrNull { entity -> if (entity.squaredBoxedDistanceTo(player) <= delayRange.endInclusive.sq()) 0 else 1 }
+
+        return farTarget != null
+    }
+
+    private fun handle() {
+        packets.removeIf {
+            handlePacket(it)
+            true
+        }
+        delayTicks = -1
     }
 
     @Suppress("unused")
     private val packetEventHandler = handler<PacketEvent> { event ->
+        if (event.origin != TransferOrigin.INCOMING) return@handler
+
         val packet = event.packet
+
+        if (delayTicks >= 0) {
+            when (packet) {
+                is ChatMessageS2CPacket,
+                is GameMessageS2CPacket,
+                is KeepAliveS2CPacket -> {
+                    return@handler
+                }
+
+                is PlayerPositionLookS2CPacket,
+                is DisconnectS2CPacket,
+                is PlayerRespawnS2CPacket,
+                is GameJoinS2CPacket -> {
+                    handle()
+                    return@handler
+                }
+
+                is PlaySoundS2CPacket -> {
+                    if (packet.sound.value() == SoundEvents.ENTITY_PLAYER_HURT) {
+                        return@handler
+                    }
+                }
+
+                is HealthUpdateS2CPacket -> {
+                    if (packet.health <= 0) {
+                        handle()
+                        return@handler
+                    }
+                }
+            }
+
+            event.cancelEvent()
+            packets.add(packet)
+            return@handler
+        }
 
         if (packet is EntityDamageS2CPacket && packet.entityId == player.id) {
             receiveDamage = true
@@ -78,48 +151,49 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
 
         if (packet is EntityVelocityUpdateS2CPacket && packet.entityId == player.id && receiveDamage) {
             receiveDamage = false
-            targetEntity = findTarget() ?: return@handler
+            if (!findTarget()) return@handler
+            if (player.boxedDistanceTo(target!!) >= delayRange.start) {
+                if (debug) notifyAsMessage(ModuleGrimVelocity, "Delay $delay ticks")
+                delayTicks = delay
+                event.cancelEvent()
+                packets.add(packet)
+                return@handler
+            }
+            findTarget()
             attackQueue = attackCount.random()
         }
     }
 
     @Suppress("unused")
+    private val tickPacketProcessEventHandler = handler<TickPacketProcessEvent> {
+        if (delayTicks == 0) {
+            handle()
+            attackQueue = attackCount.random()
+            if (debug) notifyAsMessage(ModuleGrimVelocity, "Finish delay")
+        }
+    }
+
+    @Suppress("unused")
     private val tickHandler = tickHandler {
-        if (targetEntity != null && attackQueue > 0) {
-            if (attackMode == AttackMode.ONE_TIME) {
-                while (attackQueue >= 1) {
-                    val entityHitResult = raytraceEntity(
-                        ModuleKillAura.range.toDouble(),
-                        RotationManager.serverRotation
-                    ) { it == targetEntity }
+        if (delayTicks > 0) {
+            delayTicks--
+        }
 
-                    if (entityHitResult == null) {
-                        if (debug) notifyAsMessage(ModuleGrimVelocity, "Fail to attack the target")
-                        attackQueue = 0
-                        break
-                    }
+        if (attackQueue > 0 && delayTicks == -1) {
+            if (target == null) {
+                attackQueue = 0
+                return@tickHandler
+            }
 
-                    network.sendPacket(PlayerInteractEntityC2SPacket.attack(targetEntity, false))
-                    player.setVelocity(
-                        player.velocity.x * 0.6,
-                        player.velocity.y,
-                        player.velocity.z * 0.6
-                    )
-                    player.isSprinting = false
-                    player.swingHand(Hand.MAIN_HAND)
-                    attackQueue--
-                }
-            } else if (attackMode == AttackMode.PER_TICK) {
-                if (attackQueue >= 1) {
-                    network.sendPacket(PlayerInteractEntityC2SPacket.attack(targetEntity, false))
-                    player.setVelocity(
-                        player.velocity.x * 0.6,
-                        player.velocity.y,
-                        player.velocity.z * 0.6
-                    )
-                    player.isSprinting = false
-                    player.swingHand(Hand.MAIN_HAND)
-                }
+            while (attackQueue >= 1) {
+                network.sendPacket(PlayerInteractEntityC2SPacket.attack(target, false))
+                player.setVelocity(
+                    player.velocity.x * 0.6,
+                    player.velocity.y,
+                    player.velocity.z * 0.6
+                )
+                player.isSprinting = false
+                player.swingHand(Hand.MAIN_HAND)
                 attackQueue--
             }
         }
