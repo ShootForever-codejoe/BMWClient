@@ -232,7 +232,7 @@ object EventManager {
         return event
     }
 
-    fun <T : Event> callEventWithExcept(event: T, except: Array<EventListener> = arrayOf()): T {
+    fun <T : Event> callEventExcept(event: T, except: Array<EventListener> = arrayOf()): T {
         if (isDestructed) {
             return event
         }
@@ -255,4 +255,29 @@ object EventManager {
 
         return event
     }
+
+    fun <T : Event> callEventOnly(event: T, only: Array<EventListener> = arrayOf()): T {
+        if (isDestructed) {
+            return event
+        }
+
+        val target = registry[event.javaClass] ?: return event
+
+        event.isCompleted = false
+        for (eventHook in target) {
+            if (!eventHook.handlerClass.running || eventHook.handlerClass !in only) {
+                continue
+            }
+
+            runCatching {
+                eventHook.handler.accept(event)
+            }.onFailure {
+                logger.error("Exception while executing handler.", it)
+            }
+        }
+        event.isCompleted = true
+
+        return event
+    }
+
 }

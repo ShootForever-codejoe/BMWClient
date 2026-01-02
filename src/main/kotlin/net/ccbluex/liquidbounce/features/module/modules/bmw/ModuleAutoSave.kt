@@ -9,6 +9,7 @@ import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
 import net.ccbluex.liquidbounce.features.module.modules.bmw.fireballfly.ModuleFireballFly
 import net.ccbluex.liquidbounce.features.module.modules.combat.killaura.ModuleKillAura
+import net.ccbluex.liquidbounce.features.module.modules.movement.ModuleFreeze
 import net.ccbluex.liquidbounce.features.module.modules.world.scaffold.ModuleScaffold
 import net.ccbluex.liquidbounce.utils.block.getBlock
 import net.ccbluex.liquidbounce.utils.combat.CombatManager
@@ -42,7 +43,7 @@ object ModuleAutoSave : ClientModule("AutoSave", Category.BMW) {
     private const val BLOCK_EDGE = 0.3
     private const val RECEIVE_HIT_TICKS = 30
 
-    private var lastGroundY = LOWEST_Y
+    private var lastY = LOWEST_Y
     private var stuckSaving = false
     private var scaffoldSaving = false
     private var wasSpectator = false
@@ -52,11 +53,11 @@ object ModuleAutoSave : ClientModule("AutoSave", Category.BMW) {
 
     private fun reset(disable: Boolean) {
         if (disable) {
-            if (stuckSaving) ModuleStuck.enabled = false
+            if (stuckSaving) ModuleFreeze.enabled = false
             if (scaffoldSaving) ModuleScaffold.enabled = false
         }
 
-        lastGroundY = LOWEST_Y
+        lastY = LOWEST_Y
         stuckSaving = false
         scaffoldSaving = false
         receiveHitTicks = 0
@@ -82,7 +83,7 @@ object ModuleAutoSave : ClientModule("AutoSave", Category.BMW) {
 
         for (xOffset in xRange) {
             for (zOffset in zRange) {
-                for (y in if (voidDistance == -1) LOWEST_Y..lastGroundY else lastGroundY - voidDistance..lastGroundY) {
+                for (y in if (voidDistance == -1) LOWEST_Y..lastY else lastY - voidDistance..lastY) {
                     val block = BlockPos(player.x.toInt() + xOffset, y, player.z.toInt() + zOffset).getBlock()
                     if (block?.translationKey != "block.minecraft.air") {
                         return false
@@ -137,7 +138,7 @@ object ModuleAutoSave : ClientModule("AutoSave", Category.BMW) {
         }
 
         if (player.isOnGround) {
-            lastGroundY = player.y.toInt() - 1
+            lastY = player.y.toInt()
         }
 
         if (pauseTicks > 0) return@tickHandler
@@ -146,10 +147,10 @@ object ModuleAutoSave : ClientModule("AutoSave", Category.BMW) {
             if (player.y >= LOWEST_Y + 2
                 && (!AutoStuck.stuckOnlyVoid || aboveVoid())
                 && !player.isOnGround
-                && player.y <= lastGroundY + 1 - AutoStuck.stuckFallDistance
+                && player.y <= lastY - AutoStuck.stuckFallDistance
             ) {
-                if (!stuckSaving && !ModuleStuck.enabled) {
-                    ModuleStuck.enabled = true
+                if (!stuckSaving && !ModuleFreeze.enabled) {
+                    ModuleFreeze.enabled = true
                     stuckSaving = true
                 }
             } else {

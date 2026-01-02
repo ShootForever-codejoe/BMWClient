@@ -42,11 +42,8 @@ import net.minecraft.network.packet.s2c.play.EntityDamageS2CPacket
 import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket
 import net.minecraft.network.packet.s2c.play.GameJoinS2CPacket
 import net.minecraft.network.packet.s2c.play.GameMessageS2CPacket
-import net.minecraft.network.packet.s2c.play.HealthUpdateS2CPacket
-import net.minecraft.network.packet.s2c.play.PlaySoundS2CPacket
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 import net.minecraft.network.packet.s2c.play.PlayerRespawnS2CPacket
-import net.minecraft.sound.SoundEvents
 
 object GrimVelocityDelay : GrimVelocityMode("Delay") {
 
@@ -111,25 +108,12 @@ object GrimVelocityDelay : GrimVelocityMode("Delay") {
                     return@handler
                 }
 
-                is PlayerPositionLookS2CPacket,
                 is DisconnectS2CPacket,
                 is PlayerRespawnS2CPacket,
-                is GameJoinS2CPacket -> {
+                is GameJoinS2CPacket,
+                is PlayerPositionLookS2CPacket -> {
                     handle()
                     return@handler
-                }
-
-                is PlaySoundS2CPacket -> {
-                    if (packet.sound.value() == SoundEvents.ENTITY_PLAYER_HURT) {
-                        return@handler
-                    }
-                }
-
-                is HealthUpdateS2CPacket -> {
-                    if (packet.health <= 0) {
-                        handle()
-                        return@handler
-                    }
                 }
             }
 
@@ -137,6 +121,8 @@ object GrimVelocityDelay : GrimVelocityMode("Delay") {
             packets.add(packet)
             return@handler
         }
+
+        if (pause) return@handler
 
         if (packet is EntityDamageS2CPacket && packet.entityId == player.id) {
             damage = true

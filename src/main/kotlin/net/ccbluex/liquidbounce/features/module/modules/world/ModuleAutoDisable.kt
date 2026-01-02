@@ -36,9 +36,9 @@ import net.ccbluex.liquidbounce.features.command.commands.module.CommandAutoDisa
 import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
 import net.ccbluex.liquidbounce.features.module.modules.bmw.delayblink.ModuleDelayBlink
-import net.ccbluex.liquidbounce.features.module.modules.bmw.ModuleStuck
 import net.ccbluex.liquidbounce.features.module.modules.bmw.fireballfly.ModuleFireballFly
 import net.ccbluex.liquidbounce.features.module.modules.combat.killaura.ModuleKillAura
+import net.ccbluex.liquidbounce.features.module.modules.movement.ModuleFreeze
 import net.ccbluex.liquidbounce.features.module.modules.movement.ModuleNoClip
 import net.ccbluex.liquidbounce.features.module.modules.movement.fly.ModuleFly
 import net.ccbluex.liquidbounce.features.module.modules.movement.speed.ModuleSpeed
@@ -65,8 +65,8 @@ object ModuleAutoDisable : ClientModule("AutoDisable", Category.WORLD) {
         EnumSet.of(
             DisableOn.SPECTATOR,
             DisableOn.CHANGE_WORLD,
-            DisableOn.HEYPIXEL_END_MESSAGE,
-            DisableOn.QUIT
+            DisableOn.QUIT,
+            DisableOn.HEYPIXEL
         )
     )
 
@@ -101,7 +101,7 @@ object ModuleAutoDisable : ClientModule("AutoDisable", Category.WORLD) {
         add(ModuleScaffold)
         add(ModuleDelayBlink)
         add(ModuleBlink)
-        add(ModuleStuck)
+        add(ModuleFreeze)
         add(ModuleFireballFly)
     }
 
@@ -124,15 +124,20 @@ object ModuleAutoDisable : ClientModule("AutoDisable", Category.WORLD) {
 
     @Suppress("unused")
     private val chatReceiveEventHandler = handler<ChatReceiveEvent> { event ->
-        if (DisableOn.HEYPIXEL_END_MESSAGE in disableOn) {
+        if (DisableOn.HEYPIXEL in disableOn) {
             val message = event.message
 
             if (event.type != ChatReceiveEvent.ChatType.GAME_MESSAGE) {
                 return@handler
             }
 
-            if (event.message.contains(HEYPIXEL_SW_END_MESSAGE)) {
-                disableAndNotify("heypixel end message")
+            if (event.message.startsWith(HEYPIXEL_SW_END_MESSAGE)) {
+                disableAndNotify("heypixel")
+            }
+
+            if (event.message.startsWith("请等待 0 分 1 秒") && ModuleKillAura.enabled) {
+                ModuleKillAura.enabled = false
+                notification("Notifier", "Disabled modules due to heypixel", NotificationEvent.Severity.INFO)
             }
         }
     }
@@ -180,7 +185,7 @@ object ModuleAutoDisable : ClientModule("AutoDisable", Category.WORLD) {
         DEATH("Death"),
         SPECTATOR("Spectator"),
         CHANGE_WORLD("ChangeWorld"),
-        HEYPIXEL_END_MESSAGE("HeypixelEndMessage"),
-        QUIT("Quit")
+        QUIT("Quit"),
+        HEYPIXEL("Heypixel")
     }
 }

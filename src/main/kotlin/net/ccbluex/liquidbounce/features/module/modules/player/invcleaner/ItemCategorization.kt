@@ -200,8 +200,8 @@ class ItemCategorization(
                 is CrossbowItem -> add(CrossbowItemFacet(slot))
                 is ArrowItem -> add(ArrowItemFacet(slot))
                 is AxeItem -> {
-                    if (slot.itemStack.sharpnessLevel > 10) {
-                        add(InstakillAxeFacet(slot))
+                    if (slot.itemStack.sharpnessLevel > 5) {
+                        add(SharpAxeFacet(slot))
                     } else {
                         add(MiningToolItemFacet(slot))
                     }

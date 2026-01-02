@@ -11,6 +11,7 @@ import net.ccbluex.liquidbounce.event.events.TransferOrigin
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.event.tickHandler
 import net.ccbluex.liquidbounce.event.tickUntil
+import net.ccbluex.liquidbounce.features.module.MinecraftShortcuts
 import net.ccbluex.liquidbounce.features.module.modules.movement.autododge.ModuleAutoDodge.EvadingPacket
 import net.ccbluex.liquidbounce.features.module.modules.movement.autododge.ModuleAutoDodge.getInflictedHit
 import net.ccbluex.liquidbounce.utils.client.handlePacket
@@ -23,6 +24,8 @@ import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket
 import net.minecraft.network.packet.s2c.common.DisconnectS2CPacket
 import net.minecraft.network.packet.s2c.common.KeepAliveS2CPacket
 import net.minecraft.network.packet.s2c.play.ChatMessageS2CPacket
+import net.minecraft.network.packet.s2c.play.EntityDamageS2CPacket
+import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket
 import net.minecraft.network.packet.s2c.play.GameJoinS2CPacket
 import net.minecraft.network.packet.s2c.play.GameMessageS2CPacket
 import net.minecraft.network.packet.s2c.play.HealthUpdateS2CPacket
@@ -32,12 +35,13 @@ import net.minecraft.network.packet.s2c.play.PlayerRespawnS2CPacket
 import net.minecraft.sound.SoundEvents
 import net.minecraft.util.math.Vec3d
 
-object DelayBlinkPacketManager : EventListener {
+object DelayBlinkPacketManager : EventListener, MinecraftShortcuts {
 
     var clear = false
     private var enabled = false
     private var ticks = 0
     private var full = false
+    private var damage = false
     private val packets = Queues.newConcurrentLinkedQueue<DelayPacket>()
     private val positions
         get() = packets
@@ -135,8 +139,34 @@ object DelayBlinkPacketManager : EventListener {
                 if (ModuleDelayBlink.DisableWhen.FLAG in ModuleDelayBlink.disableWhen) {
                     notifyAsMessage(ModuleDelayBlink, "Auto disable for flag")
                     ModuleDelayBlink.enabled = false
+                    return@handler
                 }
-                return@handler
+            }
+
+            is PlayerInteractEntityC2SPacket -> {
+                if (ModuleDelayBlink.DisableWhen.ATTACK in ModuleDelayBlink.disableWhen) {
+                    notifyAsMessage(ModuleDelayBlink, "Auto disable for attacking")
+                    ModuleDelayBlink.enabled = false
+                }
+            }
+
+            is EntityDamageS2CPacket -> {
+                if (ModuleDelayBlink.DisableWhen.RECEIVE_HIT in ModuleDelayBlink.disableWhen
+                    && packet.entityId == player.id
+                ) {
+                    damage = true
+                }
+            }
+
+            is EntityVelocityUpdateS2CPacket -> {
+                if (ModuleDelayBlink.DisableWhen.RECEIVE_HIT in ModuleDelayBlink.disableWhen
+                    && packet.entityId == player.id
+                    && damage
+                ) {
+                    damage = false
+                    notifyAsMessage(ModuleDelayBlink, "Auto disable for receiving hit")
+                    ModuleDelayBlink.enabled = false
+                }
             }
 
             is DisconnectS2CPacket,
@@ -160,13 +190,6 @@ object DelayBlinkPacketManager : EventListener {
             }
         }
 
-        if (ModuleDelayBlink.DisableWhen.ATTACK in ModuleDelayBlink.disableWhen
-            && packet is PlayerInteractEntityC2SPacket
-        ) {
-            ModuleDelayBlink.enabled = false
-            notifyAsMessage(ModuleDelayBlink, "Auto disable for attacking")
-        }
-
         if (event.origin in ModuleDelayBlink.delayPacketTypes) {
             event.cancelEvent()
             packets.add(DelayPacket(packet, ticks, event.origin))
@@ -180,6 +203,7 @@ object DelayBlinkPacketManager : EventListener {
         packets.clear()
         ticks = 0
         full = false
+        damage = false
         notifyAsMessage(ModuleDelayBlink, "Start collecting packets...")
         tickUntil { !enabled }
     }

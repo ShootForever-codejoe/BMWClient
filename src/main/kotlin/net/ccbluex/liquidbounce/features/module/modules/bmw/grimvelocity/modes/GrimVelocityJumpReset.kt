@@ -36,6 +36,8 @@ object GrimVelocityJumpReset : GrimVelocityMode("JumpReset") {
     private val packetEventHandler = handler<PacketEvent> { event ->
         val packet = event.packet
 
+        if (pause) return@handler
+
         if (packet is EntityDamageS2CPacket && packet.entityId == player.id) {
             damage = true
         }

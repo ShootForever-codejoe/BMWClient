@@ -29,5 +29,5 @@ import net.minecraft.network.packet.Packet
 fun sendPacketNoEvent(parent: EventListener, packet: Packet<*>) {
     sendPacketSilently(packet)
     val event = PacketEvent(TransferOrigin.OUTGOING, packet)
-    EventManager.callEventWithExcept(event, arrayOf(parent))
+    EventManager.callEventExcept(event, arrayOf(parent))
 }

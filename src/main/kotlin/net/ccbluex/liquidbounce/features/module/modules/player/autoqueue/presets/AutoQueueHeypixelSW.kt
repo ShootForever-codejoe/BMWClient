@@ -83,7 +83,7 @@ object AutoQueueHeypixelSW : Choice("HeypixelSW") {
             }
         }
 
-        queueTicks = 20
+        queueTicks = 60
     }
 
     override fun enable() {

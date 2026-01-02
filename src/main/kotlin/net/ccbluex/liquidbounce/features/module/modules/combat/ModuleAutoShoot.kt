@@ -28,8 +28,8 @@ import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.event.tickHandler
 import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
-import net.ccbluex.liquidbounce.features.module.modules.bmw.ModuleStuck
 import net.ccbluex.liquidbounce.features.module.modules.combat.killaura.ModuleKillAura
+import net.ccbluex.liquidbounce.features.module.modules.movement.ModuleFreeze
 import net.ccbluex.liquidbounce.features.module.modules.world.scaffold.ModuleScaffold
 import net.ccbluex.liquidbounce.render.renderEnvironmentForWorld
 import net.ccbluex.liquidbounce.utils.aiming.RotationManager
@@ -50,6 +50,7 @@ import net.ccbluex.liquidbounce.utils.render.trajectory.TrajectoryInfo
 import net.minecraft.entity.LivingEntity
 import net.minecraft.item.Item
 import net.minecraft.item.Items
+import net.minecraft.util.Hand
 import java.util.function.Function
 
 /**
@@ -102,7 +103,7 @@ object ModuleAutoShoot : ClientModule("AutoShoot", Category.COMBAT) {
     val constantLag by boolean("ConstantLag", false)
     private val notDuringUsingItem by boolean("NotDuringUsingItem", true)
     private val notDuringScaffold by boolean("NotDuringScaffold", true)
-    private val notDuringStuck by boolean("NotDuringStuck", true)
+    private val notDuringFreeze by boolean("NotDuringFreeze", true)
 
     private val HotbarItemSlot.isSelectionNeeded: Boolean
         get() = this != OffHandSlot && this.hotbarSlot != SilentHotbar.serversideSlot
@@ -143,10 +144,11 @@ object ModuleAutoShoot : ClientModule("AutoShoot", Category.COMBAT) {
         }
 
         if (notDuringScaffold && ModuleScaffold.enabled) return@handler
-        if (notDuringStuck && ModuleStuck.enabled) return@handler
+        if (notDuringFreeze && ModuleFreeze.enabled) return@handler
 
         // Check if we have a throwable, if not we can't shoot.
         val slot = throwableType() ?: return@handler
+        if (slot.useHand == Hand.MAIN_HAND && CombatManager.isInCombat) return@handler
 
         if (!slot.trySelect(ModuleAutoShoot, selectSlotAutomatically, tickUntilReset)) {
             return@handler
@@ -185,10 +187,11 @@ object ModuleAutoShoot : ClientModule("AutoShoot", Category.COMBAT) {
         }
 
         if (notDuringScaffold && ModuleScaffold.enabled) return@tickHandler
-        if (notDuringStuck && ModuleStuck.enabled) return@tickHandler
+        if (notDuringFreeze && ModuleFreeze.enabled) return@tickHandler
 
         // Check if we have a throwable, if not we can't shoot.
         val slot = throwableType() ?: return@tickHandler
+        if (slot.useHand == Hand.MAIN_HAND && CombatManager.isInCombat) return@tickHandler
 
         if (!slot.trySelect(ModuleAutoShoot, selectSlotAutomatically, tickUntilReset)) {
             return@tickHandler

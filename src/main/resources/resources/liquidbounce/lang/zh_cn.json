@@ -771,12 +771,13 @@
   "liquidbounce.module.yggdrasilSignatureFix.description": "取消Authlib Yggdrasil验证，可能解决部分服务器无法显示玩家皮肤的问题。",
   "liquidbounce.module.autoL.description": "自动嘲讽你打死的敌人。",
   "liquidbounce.module.autoReport.description": "自动举报你打不过的敌人。",
+  "liquidbounce.module.newAutoSave.description": "自动卡住并搭方块自救。",
   "liquidbounce.module.autoSave.description": "自动搭方块或卡空自救。",
   "liquidbounce.module.delayBlink.description": "在别人眼里你的行动比真实的行动慢一些。",
-  "liquidbounce.module.dropEatNoSlow.description": "吃东西的时候扔掉一个以实现无减速。",
   "liquidbounce.module.iRC.description": "可以与BMWClient的其他用户聊天，并且KillAura不会打其他用户。",
-  "liquidbounce.module.stuck.description": "卡在空中防止掉进虚空。",
   "liquidbounce.module.grimVelocity.description": "绕过GrimAC的反击退。",
   "liquidbounce.module.fireballFly.description": "延迟火球的击退以实现飞行的效果。",
-  "liquidbounce.module.autoBreakOut.description": "自动出笼。"
+  "liquidbounce.module.autoBreakOut.description": "自动出笼。",
+  "liquidbounce.module.grimNoSlow.description": "绕过GrimAC的无减速。",
+  "liquidbounce.module.autoMLG.description": "自动落地水。"
 }

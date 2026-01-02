@@ -95,6 +95,7 @@ import net.ccbluex.liquidbounce.features.module.modules.world.scaffold.ModuleSca
 import net.ccbluex.liquidbounce.features.module.modules.bmw.*
 import net.ccbluex.liquidbounce.features.module.modules.bmw.delayblink.ModuleDelayBlink
 import net.ccbluex.liquidbounce.features.module.modules.bmw.fireballfly.ModuleFireballFly
+import net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.ModuleGrimNoSlow
 import net.ccbluex.liquidbounce.features.module.modules.bmw.grimvelocity.ModuleGrimVelocity
 import net.ccbluex.liquidbounce.features.module.modules.world.traps.ModuleAutoTrap
 import net.ccbluex.liquidbounce.script.ScriptApiRequired
@@ -447,13 +448,13 @@ object ModuleManager : EventListener, Collection<ClientModule> by modules {
             ModuleAutoL,
             ModuleAutoSave,
             ModuleDelayBlink,
-            ModuleDropEatNoSlow,
             ModuleIRC,
-            ModuleStuck,
             ModuleGrimVelocity,
             ModuleAutoReport,
             ModuleFireballFly,
-            ModuleAutoBreakOut
+            ModuleAutoBreakOut,
+            ModuleGrimNoSlow,
+            ModuleNewAutoSave
         )
 
         builtin.forEach { module ->

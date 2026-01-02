@@ -21,6 +21,6 @@ package net.ccbluex.liquidbounce.features.module.modules.player.invcleaner.items
 
 import net.ccbluex.liquidbounce.utils.inventory.ItemSlot
 
-class InstakillAxeFacet(slot: ItemSlot) : ItemFacet(slot) {
+class SharpAxeFacet(slot: ItemSlot) : ItemFacet(slot) {
     override fun shouldKeep(): Boolean = true
 }

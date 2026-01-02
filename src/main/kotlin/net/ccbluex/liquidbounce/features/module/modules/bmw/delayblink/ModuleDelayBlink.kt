@@ -17,7 +17,8 @@ object ModuleDelayBlink : ClientModule("DelayBlink", Category.BMW, disableOnQuit
 
     enum class DisableWhen(override val choiceName: String) : NamedChoice {
         FLAG("Flag"),
-        ATTACK("Attack")
+        ATTACK("Attack"),
+        RECEIVE_HIT("ReceiveHit"),
     }
 
     val delayPacketTypes by multiEnumChoice(

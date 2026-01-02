@@ -198,7 +198,7 @@ object ModuleFreeze : ClientModule("Freeze", Category.MOVEMENT, disableOnQuit = 
         /**
          * Bypasses Grim's BadPacketsR and Matrix7 Timer Check
          */
-        private val cancelC0B by boolean("CancelC0B",true)
+        private val cancelC0B by boolean("CancelC0B",false)
         private val yawOffset = FloatOffsetGenerator()
         private val pitchOffset = FloatOffsetGenerator()
 

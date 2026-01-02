@@ -48,7 +48,12 @@ import kotlin.random.Random
  */
 object ModuleBlockIn : ClientModule("BlockIn", Category.WORLD, disableOnQuit = true) {
 
-    private val blockPlacer = tree(BlockPlacer("Placer", this, Priority.NORMAL, ::slotFinder))
+    private val blockPlacer = tree(BlockPlacer(
+        "Placer",
+        this,
+        Priority.IMPORTANT_FOR_PLAYER_LIFE,
+        ::slotFinder)
+    )
     private val autoDisable by boolean("AutoDisable", true)
     private val placeOrder = choices("PlaceOrder", 0) {
         arrayOf(Order.Normal, Order.Random, Order.BottomTop, Order.TopBottom)

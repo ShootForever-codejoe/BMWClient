@@ -44,14 +44,9 @@ import net.minecraft.network.packet.c2s.common.KeepAliveC2SPacket
 import net.minecraft.network.packet.c2s.play.ChatMessageC2SPacket
 import net.minecraft.network.packet.c2s.play.CommandExecutionC2SPacket
 import net.minecraft.network.packet.s2c.common.DisconnectS2CPacket
-import net.minecraft.network.packet.s2c.common.KeepAliveS2CPacket
-import net.minecraft.network.packet.s2c.play.ChatMessageS2CPacket
 import net.minecraft.network.packet.s2c.play.GameJoinS2CPacket
-import net.minecraft.network.packet.s2c.play.GameMessageS2CPacket
 import net.minecraft.network.packet.s2c.play.HealthUpdateS2CPacket
-import net.minecraft.network.packet.s2c.play.PlaySoundS2CPacket
 import net.minecraft.network.packet.s2c.play.PlayerRespawnS2CPacket
-import net.minecraft.sound.SoundEvents
 import net.minecraft.util.math.Direction
 
 object ModuleAutoBreakOut : ClientModule("AutoBreakOut", Category.BMW) {
@@ -124,11 +119,8 @@ object ModuleAutoBreakOut : ClientModule("AutoBreakOut", Category.BMW) {
         val packet = event.packet
 
         when (packet) {
-            is ChatMessageS2CPacket,
-            is GameMessageS2CPacket,
             is ChatMessageC2SPacket,
             is CommandExecutionC2SPacket,
-            is KeepAliveS2CPacket,
             is KeepAliveC2SPacket -> {
                 return@handler
             }
@@ -138,12 +130,6 @@ object ModuleAutoBreakOut : ClientModule("AutoBreakOut", Category.BMW) {
             is GameJoinS2CPacket -> {
                 clear = true
                 return@handler
-            }
-
-            is PlaySoundS2CPacket -> {
-                if (packet.sound.value() == SoundEvents.ENTITY_PLAYER_HURT) {
-                    return@handler
-                }
             }
 
             is HealthUpdateS2CPacket -> {

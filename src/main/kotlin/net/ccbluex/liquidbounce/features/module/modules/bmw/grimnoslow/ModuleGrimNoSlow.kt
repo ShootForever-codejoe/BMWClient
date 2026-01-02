@@ -17,20 +17,18 @@
  * along with LiquidBounce. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package net.ccbluex.liquidbounce.features.module.modules.bmw.grimvelocity
+package net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow
 
-import net.ccbluex.liquidbounce.config.types.nesting.Choice
-import net.ccbluex.liquidbounce.config.types.nesting.ChoiceConfigurable
+import net.ccbluex.liquidbounce.features.module.Category
+import net.ccbluex.liquidbounce.features.module.ClientModule
+import net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.bow.GrimNoSlowBow
+import net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.food.GrimNoSlowFood
 
-abstract class GrimVelocityMode(name: String) : Choice(name) {
+object ModuleGrimNoSlow : ClientModule("GrimNoSlow", Category.BMW) {
 
-    override val parent: ChoiceConfigurable<*>
-        get() = ModuleGrimVelocity.modes
-
-    open val shouldStopBacktrack: Boolean
-        get() = false
-
-    protected val pause: Boolean
-        get() = ModuleGrimVelocity.pause
+    init {
+        tree(GrimNoSlowFood)
+        tree(GrimNoSlowBow)
+    }
 
 }

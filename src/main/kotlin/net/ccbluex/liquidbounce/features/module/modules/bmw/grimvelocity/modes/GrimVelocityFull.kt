@@ -26,10 +26,17 @@ import net.minecraft.network.packet.Packet
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket
+import net.minecraft.network.packet.s2c.common.DisconnectS2CPacket
+import net.minecraft.network.packet.s2c.common.KeepAliveS2CPacket
 import net.minecraft.network.packet.s2c.play.BlockUpdateS2CPacket
+import net.minecraft.network.packet.s2c.play.ChatMessageS2CPacket
 import net.minecraft.network.packet.s2c.play.EntityDamageS2CPacket
 import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket
 import net.minecraft.network.packet.s2c.play.ExplosionS2CPacket
+import net.minecraft.network.packet.s2c.play.GameJoinS2CPacket
+import net.minecraft.network.packet.s2c.play.GameMessageS2CPacket
+import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
+import net.minecraft.network.packet.s2c.play.PlayerRespawnS2CPacket
 import net.minecraft.util.ActionResult
 import net.minecraft.util.Hand
 
@@ -95,10 +102,34 @@ object GrimVelocityFull : GrimVelocityMode("Full") {
         }
 
         if (delay) {
-            delayedPacketQueue.add(packet)
+            when (packet) {
+                is ChatMessageS2CPacket,
+                is GameMessageS2CPacket,
+                is KeepAliveS2CPacket -> {
+                    return@sequenceHandler
+                }
+
+                is PlayerPositionLookS2CPacket,
+                is DisconnectS2CPacket,
+                is PlayerRespawnS2CPacket,
+                is GameJoinS2CPacket -> {
+                    waitForUpdate = false
+                    needClick = false
+                    delayedPacketQueue.removeIf {
+                        handlePacket(it)
+                        true
+                    }
+                    delay = false
+                    return@sequenceHandler
+                }
+            }
+
             event.cancelEvent()
+            delayedPacketQueue.add(packet)
             return@sequenceHandler
         }
+
+        if (pause) return@sequenceHandler
 
         if (packet is EntityDamageS2CPacket && packet.entityId == player.id) {
             canCancel = true
@@ -135,11 +166,11 @@ object GrimVelocityFull : GrimVelocityMode("Full") {
             val pos = hitResult.blockPos.offset(hitResult.side)
 
             if (pos.equals(player.blockPos) && !shouldSkip) {
-                delay = false
                 delayedPacketQueue.removeIf {
                     handlePacket(it)
                     true
                 }
+                delay = false
 
                 if (RotationManager.serverRotation.pitch != pitch) {
                     network.sendPacket(
