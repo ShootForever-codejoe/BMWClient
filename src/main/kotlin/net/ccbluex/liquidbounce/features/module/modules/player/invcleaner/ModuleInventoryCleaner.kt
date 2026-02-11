@@ -18,7 +18,6 @@
  */
 package net.ccbluex.liquidbounce.features.module.modules.player.invcleaner
 
-import net.ccbluex.liquidbounce.config.types.nesting.ToggleableConfigurable
 import net.ccbluex.fastutil.component1
 import net.ccbluex.fastutil.component2
 import net.ccbluex.liquidbounce.event.events.ScheduleInventoryActionEvent
@@ -46,16 +45,11 @@ object ModuleInventoryCleaner : ClientModule("InventoryCleaner", Category.PLAYER
     private val maxArrows by int("MaximumArrows", 128, 0..2500)
     private val maxThrowables by int("MaximumThrowables", 64, 0..800)
     private val maxFoods by int("MaximumFoodPoints", 200, 0..2000)
-    private val maxWaterBuckets by int("MaximumWaterBuckets", 2, 0..16)
-    private val maxLavaBuckets by int("MaximumLavaBuckets", 2, 0..16)
+    private val maxWaterBuckets by int("MaximumWaterBuckets", 3, 0..16)
+    private val maxLavaBuckets by int("MaximumLavaBuckets", 1, 0..16)
 
     private val isGreedy by boolean("Greedy", true)
-    internal object OnlyGaming : ToggleableConfigurable(ModuleInventoryCleaner, "OnlyGaming", true) {
-        val checkGlass by boolean("CheckGlass", true)
-    }
-    init {
-        tree(OnlyGaming)
-    }
+
     private val offHandItem by enumChoice("OffHandItem", ItemSortChoice.SHIELD)
     private val slotItem1 by enumChoice("SlotItem-1", ItemSortChoice.WEAPON)
     private val slotItem2 by enumChoice("SlotItem-2", ItemSortChoice.BOW)
@@ -104,6 +98,8 @@ object ModuleInventoryCleaner : ClientModule("InventoryCleaner", Category.PLAYER
                     Pair(ItemSortChoice.BLOCK.category!!, maxBlocks),
                     Pair(ItemSortChoice.THROWABLES.category!!, maxThrowables),
                     Pair(ItemCategory(ItemType.ARROW, 0), maxArrows),
+                    Pair(ItemCategory(ItemType.BUCKET, 0), maxWaterBuckets),
+                    Pair(ItemCategory(ItemType.BUCKET, 1), maxLavaBuckets),
                 ),
                 desiredValuePerFunction = enumMapOf(
                     Pair(ItemFunction.FOOD, maxFoods),
