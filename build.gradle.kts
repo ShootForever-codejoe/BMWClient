@@ -123,7 +123,7 @@ dependencies {
 
     // ViaFabricPlus
     modApi("com.viaversion:viafabricplus-api:${project.property("viafabricplus_version")}")
-    //modRuntimeOnly("com.viaversion:viafabricplus:${project.property("viafabricplus_version")}")
+    modRuntimeOnly("com.viaversion:viafabricplus:${project.property("viafabricplus_version")}")
 
     // Minecraft Authlib
     includeDependency("com.github.CCBlueX:mc-authlib:${project.property("mc_authlib_version")}")
