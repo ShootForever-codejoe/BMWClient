@@ -25,7 +25,7 @@ import net.ccbluex.liquidbounce.event.events.PlayerUseMultiplier
 import net.ccbluex.liquidbounce.event.handler
 import net.minecraft.item.consume.UseAction
 
-internal class GrimNoSlowShare50(
+internal class GrimNoSlowShareHalf(
     override val parent: ChoiceConfigurable<*>,
     val useActions: Array<UseAction>
 ) : Choice("Half") {

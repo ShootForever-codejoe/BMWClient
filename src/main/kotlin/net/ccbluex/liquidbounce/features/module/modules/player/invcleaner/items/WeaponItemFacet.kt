@@ -66,6 +66,10 @@ open class WeaponItemFacet(itemSlot: ItemSlot) : ItemFacet(itemSlot) {
             )
 
         private fun estimateDamage(o1: WeaponItemFacet): Double {
+            if (ModuleInventoryCleaner.weaponSortOnlyByDamage) {
+                return o1.itemStack.attackDamage
+            }
+
             // Already contains damage enchantments like sharpness
             val attackDamage = o1.itemStack.attackDamage
             val attackSpeed = o1.itemStack.attackSpeed

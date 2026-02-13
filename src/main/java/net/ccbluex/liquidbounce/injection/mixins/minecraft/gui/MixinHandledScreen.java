@@ -20,6 +20,7 @@
 
 package net.ccbluex.liquidbounce.injection.mixins.minecraft.gui;
 
+import net.ccbluex.liquidbounce.features.module.modules.bmw.ModuleEnderChest;
 import net.ccbluex.liquidbounce.features.module.modules.misc.ModuleItemScroller;
 import net.ccbluex.liquidbounce.features.module.modules.movement.inventorymove.ModuleInventoryMove;
 import net.ccbluex.liquidbounce.features.module.modules.player.cheststealer.features.FeatureSilentScreen;
@@ -85,14 +86,14 @@ public abstract class MixinHandledScreen<T extends ScreenHandler> extends MixinS
             ci.cancel();
         }
 
-        if (FeatureSilentScreen.getShouldHide()) {
+        if (FeatureSilentScreen.getShouldHide() || ModuleEnderChest.INSTANCE.getShouldHide()) {
             ci.cancel();
         }
     }
 
     @Inject(method = "render", at = @At("HEAD"), cancellable = true)
     private void cancelRenderByChestStealer(CallbackInfo ci) {
-        if (FeatureSilentScreen.getShouldHide()) {
+        if (FeatureSilentScreen.getShouldHide() || ModuleEnderChest.INSTANCE.getShouldHide()) {
             ci.cancel();
         }
     }

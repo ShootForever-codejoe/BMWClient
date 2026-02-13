@@ -20,6 +20,7 @@ package net.ccbluex.liquidbounce.features.module.modules.misc
 
 import net.ccbluex.liquidbounce.config.types.NamedChoice
 import net.ccbluex.liquidbounce.config.types.nesting.ToggleableConfigurable
+import net.ccbluex.liquidbounce.event.events.AttackEntityEvent
 import net.ccbluex.liquidbounce.event.events.PacketEvent
 import net.ccbluex.liquidbounce.event.events.RotationUpdateEvent
 import net.ccbluex.liquidbounce.event.handler
@@ -80,8 +81,15 @@ object ModuleAutoPearl : ClientModule("AutoPearl", Category.COMBAT, aliases = li
 
     private val combatPauseTime by int("CombatPauseTime", 0, 0..40, "ticks")
     private val slotResetDelay by intRange("SlotResetDelay", 0..0, 0..40, "ticks")
+    private val onlyCombatTarget by boolean("OnlyCombatTarget", true)
 
     private val queue = ArrayDeque<Rotation>()
+    private var combatTarget: Entity? = null
+
+    @Suppress("unused")
+    private val attackEntityEventHandler = handler<AttackEntityEvent> { event ->
+        combatTarget = event.entity
+    }
 
     @Suppress("unused")
     private val pearlSpawnHandler = handler<PacketEvent> { event ->
@@ -94,6 +102,8 @@ object ModuleAutoPearl : ClientModule("AutoPearl", Category.COMBAT, aliases = li
         val data = event.packet
         val entity = data.entityType.create(world, SpawnReason.SPAWN_ITEM_USE) as EnderPearlEntity
         entity.onSpawnPacket(data)
+
+        if (onlyCombatTarget && (combatTarget == null || entity.owner?.id != combatTarget?.id)) return@handler
 
         proceedPearl(
             pearl = entity,
@@ -119,6 +129,8 @@ object ModuleAutoPearl : ClientModule("AutoPearl", Category.COMBAT, aliases = li
 
     @Suppress("unused")
     private val gameTickHandler = tickHandler {
+        if (!CombatManager.isInCombat) combatTarget = null
+
         val rotation = queue.removeFirstOrNull() ?: return@tickHandler
         val itemSlot = Slots.OffhandWithHotbar.findSlot(Items.ENDER_PEARL) ?: return@tickHandler
 
@@ -230,6 +242,7 @@ object ModuleAutoPearl : ClientModule("AutoPearl", Category.COMBAT, aliases = li
 
     override fun onDisabled() {
         queue.clear()
+        combatTarget = null
     }
 
     private enum class Modes(override val choiceName: String) : NamedChoice {

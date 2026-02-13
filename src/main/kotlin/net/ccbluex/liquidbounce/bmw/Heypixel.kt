@@ -34,16 +34,9 @@ object HeypixelSWKillEventListener : EventListener {
             var killer = match.groupValues[2].trim()
 
             // 删去标签
-
-            val regex = "[^\\u4e00-\\u9fa5a-zA-Z0-9_]".toRegex() // 删去除汉字、英文字母、数字、下划线以外的字符
-
-            val victimTag = victim.indexOfLast { it == ']' }
-            victim = victim.substring(victimTag + 1).replace(regex, "")
-            if (victimTag != -1) victim = victim.substring(1)
-
-            val killerTag = killer.indexOfLast { it == ']' }
-            killer = killer.substring(killerTag + 1).replace(regex, "")
-            if (killerTag != -1) killer = killer.substring(1)
+            val regex = Regex("[\\u4e00-\\u9fffA-Za-z0-9_]+$")
+            victim = regex.find(victim)?.value ?: continue
+            killer = regex.find(killer)?.value ?: continue
 
             if (victim.isNotEmpty() && killer.isNotEmpty()) {
                 EventManager.callEvent(HeypixelSWKillEvent(victim, killer))

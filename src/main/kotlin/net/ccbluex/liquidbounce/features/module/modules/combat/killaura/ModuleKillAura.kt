@@ -29,6 +29,7 @@ import net.ccbluex.liquidbounce.event.tickHandler
 import net.ccbluex.liquidbounce.event.waitTicks
 import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
+import net.ccbluex.liquidbounce.features.module.modules.bmw.ModuleEnderChest
 import net.ccbluex.liquidbounce.features.module.modules.combat.ModuleAutoWeapon
 import net.ccbluex.liquidbounce.features.module.modules.combat.criticals.ModuleCriticals.CriticalsSelectionMode
 import net.ccbluex.liquidbounce.features.module.modules.combat.elytratarget.ModuleElytraTarget
@@ -156,7 +157,7 @@ object ModuleKillAura : ClientModule("KillAura", Category.COMBAT) {
     @Suppress("unused")
     private val rotationUpdateHandler = handler<RotationUpdateEvent> {
         // Make sure killaura-logic is not running while inventory is open
-        val isInInventoryScreen = isInventoryOpen || mc.currentScreen is GenericContainerScreen
+        val isInInventoryScreen = (isInventoryOpen || mc.currentScreen is GenericContainerScreen) && !ModuleEnderChest.shouldHide
         val shouldResetTarget = player.isSpectator || player.isDead || !requirementsMet
 
         if (isInInventoryScreen && !ignoreOpenInventory || shouldResetTarget) {
@@ -336,7 +337,7 @@ object ModuleKillAura : ClientModule("KillAura", Category.COMBAT) {
             RotationManager.setRotationTarget(
                 rotations.toRotationTarget(
                     KillAuraFightBot.getMovementRotation(),
-                    considerInventory = !ignoreOpenInventory
+                    considerInventory = !ignoreOpenInventory && !ModuleEnderChest.shouldHide
                 ),
                 priority = Priority.IMPORTANT_FOR_USAGE_2,
                 provider = ModuleKillAura
@@ -379,7 +380,7 @@ object ModuleKillAura : ClientModule("KillAura", Category.COMBAT) {
             rotations.toRotationTarget(
                 rotation,
                 entity,
-                considerInventory = !ignoreOpenInventory
+                considerInventory = !ignoreOpenInventory && !ModuleEnderChest.shouldHide
             ),
             priority = Priority.IMPORTANT_FOR_USAGE_2,
             provider = this@ModuleKillAura
@@ -435,7 +436,7 @@ object ModuleKillAura : ClientModule("KillAura", Category.COMBAT) {
      */
     internal fun validateAttack(target: Entity? = null): Boolean {
         val criticalHit = target == null || player.isGliding || criticalsSelectionMode.isCriticalHit(target)
-        val isInInventoryScreen = isInventoryOpen || isInContainerScreen
+        val isInInventoryScreen = (isInventoryOpen || isInContainerScreen) && !ModuleEnderChest.shouldHide
 
         return criticalHit && !(isInInventoryScreen && !ignoreOpenInventory && !simulateInventoryClosing)
     }

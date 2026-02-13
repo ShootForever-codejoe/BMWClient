@@ -21,7 +21,6 @@ package net.ccbluex.liquidbounce.features.module.modules.player.invcleaner
 import net.ccbluex.liquidbounce.config.types.NamedChoice
 import net.ccbluex.liquidbounce.features.module.modules.combat.autoarmor.ArmorEvaluation
 import net.ccbluex.liquidbounce.features.module.modules.player.invcleaner.items.*
-import net.ccbluex.liquidbounce.features.module.modules.world.scaffold.ScaffoldBlockItemSelection
 import net.ccbluex.liquidbounce.utils.inventory.ItemSlot
 import net.ccbluex.liquidbounce.utils.inventory.VirtualItemSlot
 import net.ccbluex.liquidbounce.utils.item.*
@@ -32,6 +31,7 @@ import net.minecraft.entity.EquipmentSlot
 import net.minecraft.fluid.LavaFluid
 import net.minecraft.fluid.WaterFluid
 import net.minecraft.item.*
+import net.minecraft.util.math.BlockPos
 import java.util.function.Predicate
 
 @JvmField
@@ -85,6 +85,8 @@ enum class ItemType(
     GAPPLE(false, allocationPriority = Priority.IMPORTANT_FOR_USAGE_1),
     POTION(false),
     BLOCK(false),
+    USEFUL(false),
+    ENCHANTED(false, allocationPriority = Priority.NOT_IMPORTANT),
     NONE(false),
 }
 
@@ -190,17 +192,26 @@ class ItemCategorization(
         }
 
         return buildList {
-            // Everything could be a weapon (i.e. a stick with Knochback II should be considered a weapon)
-            add(WeaponItemFacet(slot))
-
             when (val item = itemStack.item) {
+                in ModuleInventoryCleaner.shouldKeepItems,
+                Items.COMPASS,
+                Items.FIRE_CHARGE,
+                Items.WIND_CHARGE,
+                Items.TOTEM_OF_UNDYING,
+                Items.END_CRYSTAL -> {
+                    add(object : ItemFacet(slot) {
+                        override val category: ItemCategory
+                            get() = ItemCategory(ItemType.USEFUL, 0)
+                        override fun shouldKeep(): Boolean = true
+                    })
+                }
+
                 // Treat animal armor as a normal item
-                is AnimalArmorItem -> add(ItemFacet(slot))
                 is BowItem -> add(BowItemFacet(slot))
                 is CrossbowItem -> add(CrossbowItemFacet(slot))
                 is ArrowItem -> add(ArrowItemFacet(slot))
                 is AxeItem -> {
-                    if (slot.itemStack.sharpnessLevel > 5) {
+                    if (slot.itemStack.sharpnessLevel >= 5) {
                         add(SharpAxeFacet(slot))
                     } else {
                         add(MiningToolItemFacet(slot))
@@ -209,12 +220,14 @@ class ItemCategorization(
                 is FishingRodItem -> add(RodItemFacet(slot))
                 is ShieldItem -> add(ShieldItemFacet(slot))
                 is BlockItem -> {
-                    if (ScaffoldBlockItemSelection.isValidBlock(itemStack)
-                        && !ScaffoldBlockItemSelection.isBlockUnfavourable(itemStack)
-                    ) {
-                        add(BlockItemFacet(slot))
+                    if (ModuleInventoryCleaner.BlockWhiteList.enabled) {
+                        if (itemStack.getBlock() in ModuleInventoryCleaner.BlockWhiteList.shouldKeepBlocks) {
+                            add(BlockItemFacet(slot))
+                        }
                     } else {
-                        add(ItemFacet(slot))
+                        if (itemStack.getBlock()?.defaultState?.isFullCube(ModuleInventoryCleaner.world, BlockPos.ORIGIN) == true) {
+                            add(BlockItemFacet(slot))
+                        }
                     }
                 }
 
@@ -223,7 +236,6 @@ class ItemCategorization(
                     when (item.fluid) {
                         is WaterFluid -> add(PrimitiveItemFacet(slot, ItemCategory(ItemType.BUCKET, 0)))
                         is LavaFluid -> add(PrimitiveItemFacet(slot, ItemCategory(ItemType.BUCKET, 1)))
-                        else -> add(PrimitiveItemFacet(slot, ItemCategory(ItemType.BUCKET, 3)))
                     }
                 }
                 is PotionItem -> {
@@ -250,18 +262,33 @@ class ItemCategorization(
                     add(PrimitiveItemFacet(slot, ItemCategory(ItemType.GAPPLE, 0), 1))
                 }
 
-                Items.SNOWBALL, Items.EGG, Items.WIND_CHARGE -> add(ThrowableItemFacet(slot))
+                Items.SNOWBALL, Items.EGG -> add(ThrowableItemFacet(slot))
+
+                is TridentItem -> add(WeaponItemFacet(slot))
 
                 else -> when {
                     itemStack.isPlayerArmor -> add(ArmorItemFacet(slot, futureArmorToKeep, armorComparator))
 
-                    itemStack.isSword -> add(SwordItemFacet(slot))
+                    itemStack.isSword -> {
+                        add(SwordItemFacet(slot))
+                        add(WeaponItemFacet(slot))
+                    }
 
-                    itemStack.isMiningTool -> add(MiningToolItemFacet(slot))
+                    itemStack.isAxe || itemStack.isPickaxe -> add(MiningToolItemFacet(slot))
 
                     itemStack.isFood -> add(FoodItemFacet(slot))
+                }
+            }
 
-                    else -> add(ItemFacet(slot))
+            if (isEmpty()) {
+                val stack = slot.itemStack
+                val hasEnchantments = !stack.enchantments.isEmpty
+                if (hasEnchantments && stack.item != Items.ENCHANTED_BOOK) {
+                    add(object : ItemFacet(slot) {
+                        override val category: ItemCategory
+                            get() = ItemCategory(ItemType.ENCHANTED, 0)
+                        override fun shouldKeep(): Boolean = true
+                    })
                 }
             }
 

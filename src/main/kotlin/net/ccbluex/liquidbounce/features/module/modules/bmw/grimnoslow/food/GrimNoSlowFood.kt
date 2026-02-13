@@ -21,7 +21,7 @@ package net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.food
 
 import net.ccbluex.liquidbounce.config.types.nesting.ToggleableConfigurable
 import net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.ModuleGrimNoSlow
-import net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.share.GrimNoSlowShare50
+import net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.share.GrimNoSlowShareHalf
 import net.minecraft.item.consume.UseAction
 
 object GrimNoSlowFood : ToggleableConfigurable(ModuleGrimNoSlow, "Food", true) {
@@ -34,7 +34,7 @@ object GrimNoSlowFood : ToggleableConfigurable(ModuleGrimNoSlow, "Food", true) {
     @Suppress("unused")
     private val modes = choices("Mode") {
         arrayOf(
-            GrimNoSlowShare50(it, useActions),
+            GrimNoSlowShareHalf(it, useActions),
             GrimNoSlowFoodDrop(it)
         )
     }

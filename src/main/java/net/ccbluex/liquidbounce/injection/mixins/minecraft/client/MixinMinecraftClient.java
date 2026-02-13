@@ -26,6 +26,7 @@ import net.ccbluex.liquidbounce.common.GlobalFramebuffer;
 import net.ccbluex.liquidbounce.event.EventManager;
 import net.ccbluex.liquidbounce.event.events.*;
 import net.ccbluex.liquidbounce.features.misc.HideAppearance;
+import net.ccbluex.liquidbounce.features.module.modules.bmw.ModuleEnderChest;
 import net.ccbluex.liquidbounce.features.module.modules.combat.ModuleAutoClicker;
 import net.ccbluex.liquidbounce.features.module.modules.combat.ModuleNoMissCooldown;
 import net.ccbluex.liquidbounce.features.module.modules.combat.killaura.features.KillAuraAutoBlock;
@@ -285,7 +286,7 @@ public abstract class MixinMinecraftClient {
     @Redirect(method = "setScreen", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Mouse;unlockCursor()V"))
     private void cancelScreenMouseForChestStealer(Mouse instance) {
         // Allows rotation.
-        if (!LiquidBounce.INSTANCE.isInitialized() || !FeatureSilentScreen.getShouldHide() || FeatureSilentScreen.getUnlockCursor()) {
+        if (!LiquidBounce.INSTANCE.isInitialized() || ((!FeatureSilentScreen.getShouldHide() || FeatureSilentScreen.getUnlockCursor()) && !ModuleEnderChest.INSTANCE.getShouldHide())) {
             instance.unlockCursor();
         }
     }

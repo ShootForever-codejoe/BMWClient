@@ -27,7 +27,6 @@ import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket
 import net.minecraft.network.packet.s2c.common.DisconnectS2CPacket
-import net.minecraft.network.packet.s2c.common.KeepAliveS2CPacket
 import net.minecraft.network.packet.s2c.play.BlockUpdateS2CPacket
 import net.minecraft.network.packet.s2c.play.ChatMessageS2CPacket
 import net.minecraft.network.packet.s2c.play.EntityDamageS2CPacket
@@ -104,8 +103,7 @@ object GrimVelocityFull : GrimVelocityMode("Full") {
         if (delay) {
             when (packet) {
                 is ChatMessageS2CPacket,
-                is GameMessageS2CPacket,
-                is KeepAliveS2CPacket -> {
+                is GameMessageS2CPacket -> {
                     return@sequenceHandler
                 }
 

@@ -40,7 +40,6 @@ import net.ccbluex.liquidbounce.utils.block.canStandOn
 import net.ccbluex.liquidbounce.utils.block.getState
 import net.ccbluex.liquidbounce.utils.movement.DirectionalInput
 import net.minecraft.network.packet.Packet
-import net.minecraft.network.packet.c2s.common.KeepAliveC2SPacket
 import net.minecraft.network.packet.c2s.play.ChatMessageC2SPacket
 import net.minecraft.network.packet.c2s.play.CommandExecutionC2SPacket
 import net.minecraft.network.packet.s2c.common.DisconnectS2CPacket
@@ -120,8 +119,7 @@ object ModuleAutoBreakOut : ClientModule("AutoBreakOut", Category.BMW) {
 
         when (packet) {
             is ChatMessageC2SPacket,
-            is CommandExecutionC2SPacket,
-            is KeepAliveC2SPacket -> {
+            is CommandExecutionC2SPacket -> {
                 return@handler
             }
 

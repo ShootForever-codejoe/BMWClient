@@ -31,3 +31,24 @@ fun sendPacketNoEvent(parent: EventListener, packet: Packet<*>) {
     val event = PacketEvent(TransferOrigin.OUTGOING, packet)
     EventManager.callEventExcept(event, arrayOf(parent))
 }
+
+fun normalizeYaw(yaw: Float): Float {
+    var yaw = yaw
+    while (yaw > 180.0f) {
+        yaw -= 360.0f
+    }
+
+    while (yaw < -180.0f) {
+        yaw += 360.0f
+    }
+
+    return yaw
+}
+
+fun clampPitchTo90(pitch: Float): Float {
+    return if (pitch > 90.0f) {
+        90.0f
+    } else {
+        if (pitch < -90.0f) -90.0f else pitch
+    }
+}

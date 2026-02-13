@@ -36,7 +36,6 @@ import net.ccbluex.liquidbounce.utils.inventory.InventoryManager
 import net.minecraft.client.gui.screen.ingame.GenericContainerScreen
 import net.minecraft.network.packet.Packet
 import net.minecraft.network.packet.s2c.common.DisconnectS2CPacket
-import net.minecraft.network.packet.s2c.common.KeepAliveS2CPacket
 import net.minecraft.network.packet.s2c.play.ChatMessageS2CPacket
 import net.minecraft.network.packet.s2c.play.EntityDamageS2CPacket
 import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket
@@ -103,8 +102,7 @@ object GrimVelocityDelay : GrimVelocityMode("Delay") {
         if (delaying) {
             when (packet) {
                 is ChatMessageS2CPacket,
-                is GameMessageS2CPacket,
-                is KeepAliveS2CPacket -> {
+                is GameMessageS2CPacket -> {
                     return@handler
                 }
 

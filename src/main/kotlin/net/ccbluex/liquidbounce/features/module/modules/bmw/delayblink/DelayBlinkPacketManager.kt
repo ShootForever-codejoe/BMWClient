@@ -16,13 +16,11 @@ import net.ccbluex.liquidbounce.features.module.modules.movement.autododge.Modul
 import net.ccbluex.liquidbounce.features.module.modules.movement.autododge.ModuleAutoDodge.getInflictedHit
 import net.ccbluex.liquidbounce.utils.client.handlePacket
 import net.minecraft.network.packet.Packet
-import net.minecraft.network.packet.c2s.common.KeepAliveC2SPacket
 import net.minecraft.network.packet.c2s.play.ChatMessageC2SPacket
 import net.minecraft.network.packet.c2s.play.CommandExecutionC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket
 import net.minecraft.network.packet.s2c.common.DisconnectS2CPacket
-import net.minecraft.network.packet.s2c.common.KeepAliveS2CPacket
 import net.minecraft.network.packet.s2c.play.ChatMessageS2CPacket
 import net.minecraft.network.packet.s2c.play.EntityDamageS2CPacket
 import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket
@@ -129,9 +127,7 @@ object DelayBlinkPacketManager : EventListener, MinecraftShortcuts {
             is ChatMessageS2CPacket,
             is GameMessageS2CPacket,
             is ChatMessageC2SPacket,
-            is CommandExecutionC2SPacket,
-            is KeepAliveS2CPacket,
-            is KeepAliveC2SPacket -> {
+            is CommandExecutionC2SPacket -> {
                 return@handler
             }
 

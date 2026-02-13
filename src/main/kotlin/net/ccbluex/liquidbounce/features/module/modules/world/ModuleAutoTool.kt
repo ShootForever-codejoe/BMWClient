@@ -40,6 +40,7 @@ import net.ccbluex.liquidbounce.utils.inventory.ItemSlot
 import net.ccbluex.liquidbounce.utils.inventory.SlotGroup
 import net.ccbluex.liquidbounce.utils.inventory.Slots
 import net.ccbluex.liquidbounce.utils.item.durability
+import net.ccbluex.liquidbounce.utils.item.sharpnessLevel
 import net.ccbluex.liquidbounce.utils.math.sq
 import net.minecraft.block.BlockState
 import net.minecraft.util.math.BlockPos
@@ -206,17 +207,23 @@ object ModuleAutoTool : ClientModule("AutoTool", Category.WORLD) {
     ): T? {
         val player = mc.player ?: return null
 
-        val slot = filter {
+        val eligibleSlots = filter {
             val stack = it.itemStack
             val durabilityCheck = (ignoreDurability || (stack.durability > 2 || stack.maxDamage <= 0))
             !player.isCreative && durabilityCheck
-        }.maxWithOrNull(
+        }.toList()
+
+        val normalTools = eligibleSlots.filter { it.itemStack.sharpnessLevel < 5 }
+        val superTools = eligibleSlots.filter { it.itemStack.sharpnessLevel >= 5 }
+
+        val selectedCandidates = normalTools.ifEmpty { superTools }
+        if (selectedCandidates.isEmpty()) return null
+
+        return selectedCandidates.maxWithOrNull(
             Comparator.comparingDouble<T> {
                 it.itemStack.getMiningSpeedMultiplier(blockState).toDouble()
             }.thenDescending(ItemSlot.PREFER_NEARBY)
-        ) ?: return null
-
-        return slot
+        )
     }
 
 }

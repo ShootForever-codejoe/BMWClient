@@ -11,7 +11,6 @@ import net.ccbluex.liquidbounce.features.module.modules.bmw.fireballfly.ModuleFi
 import net.ccbluex.liquidbounce.features.module.modules.combat.killaura.ModuleKillAura
 import net.ccbluex.liquidbounce.features.module.modules.movement.ModuleFreeze
 import net.ccbluex.liquidbounce.features.module.modules.world.scaffold.ModuleScaffold
-import net.ccbluex.liquidbounce.utils.block.getBlock
 import net.ccbluex.liquidbounce.utils.combat.CombatManager
 import net.minecraft.network.packet.s2c.play.EntityDamageS2CPacket
 import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket
@@ -19,6 +18,7 @@ import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 import net.minecraft.util.math.BlockPos
 import kotlin.math.ceil
 import kotlin.math.floor
+import kotlin.ranges.reversed
 
 object ModuleAutoSave : ClientModule("AutoSave", Category.BMW) {
 
@@ -39,11 +39,10 @@ object ModuleAutoSave : ClientModule("AutoSave", Category.BMW) {
 
     private val pauseOnFlag by int("PauseOnFlag", 20, 0..100, "ticks")
 
-    private const val LOWEST_Y = -64
     private const val BLOCK_EDGE = 0.3
     private const val RECEIVE_HIT_TICKS = 30
 
-    private var lastY = LOWEST_Y
+    private var lastY = 0
     private var stuckSaving = false
     private var scaffoldSaving = false
     private var wasSpectator = false
@@ -57,7 +56,7 @@ object ModuleAutoSave : ClientModule("AutoSave", Category.BMW) {
             if (scaffoldSaving) ModuleScaffold.enabled = false
         }
 
-        lastY = LOWEST_Y
+        lastY = 0
         stuckSaving = false
         scaffoldSaving = false
         receiveHitTicks = 0
@@ -65,27 +64,40 @@ object ModuleAutoSave : ClientModule("AutoSave", Category.BMW) {
         damage = false
     }
 
-    private fun aboveVoid(voidDistance: Int = -1): Boolean {
+    @Suppress("DEPRECATION")
+    private fun aboveVoid(fromBottom: Boolean = true): Boolean {
         if (player.isOnGround) return false
 
-        val xRange = mutableListOf(0)
-        val zRange = mutableListOf(0)
-        if (player.x - floor(player.x) <= BLOCK_EDGE) {
-            xRange.add(-1)
-        } else if (ceil(player.x) - player.x <= BLOCK_EDGE) {
-            xRange.add(1)
-        }
-        if (player.z - floor(player.z) <= BLOCK_EDGE) {
-            zRange.add(-1)
-        } else if (ceil(player.z) - player.z <= BLOCK_EDGE) {
-            zRange.add(1)
+        val yRange = if (fromBottom) {
+            world.bottomY..player.y.toInt()
+        } else {
+            player.y.toInt() - AutoScaffold.scaffoldVoidDistance..player.y.toInt()
         }
 
-        for (xOffset in xRange) {
-            for (zOffset in zRange) {
-                for (y in if (voidDistance == -1) LOWEST_Y..lastY else lastY - voidDistance..lastY) {
-                    val block = BlockPos(player.x.toInt() + xOffset, y, player.z.toInt() + zOffset).getBlock()
-                    if (block?.translationKey != "block.minecraft.air") {
+        if (yRange.isEmpty()) return true
+
+        val xOffsetRange = mutableListOf(0)
+        val zOffsetRange = mutableListOf(0)
+        if (player.x - floor(player.x) <= BLOCK_EDGE) {
+            xOffsetRange.add(-1)
+        } else if (ceil(player.x) - player.x <= BLOCK_EDGE) {
+            xOffsetRange.add(1)
+        }
+        if (player.z - floor(player.z) <= BLOCK_EDGE) {
+            zOffsetRange.add(-1)
+        } else if (ceil(player.z) - player.z <= BLOCK_EDGE) {
+            zOffsetRange.add(1)
+        }
+
+        for (xOffset in xOffsetRange) {
+            for (zOffset in zOffsetRange) {
+                for (y in yRange.reversed()) {
+                    val blockState = world.getBlockState(BlockPos(
+                        player.x.toInt() + xOffset,
+                        y,
+                        player.z.toInt() + zOffset
+                    ))
+                    if (!blockState.isAir && !blockState.isLiquid) {
                         return false
                     }
                 }
@@ -144,7 +156,7 @@ object ModuleAutoSave : ClientModule("AutoSave", Category.BMW) {
         if (pauseTicks > 0) return@tickHandler
 
         if (AutoStuck.enabled) {
-            if (player.y >= LOWEST_Y + 2
+            if (player.y >= world.bottomY
                 && (!AutoStuck.stuckOnlyVoid || aboveVoid())
                 && !player.isOnGround
                 && player.y <= lastY - AutoStuck.stuckFallDistance
@@ -163,10 +175,7 @@ object ModuleAutoSave : ClientModule("AutoSave", Category.BMW) {
         if (AutoScaffold.enabled) {
             if ((receiveHitTicks > 0 || CombatManager.isInCombat)
                 && (!ModuleKillAura.running || ModuleKillAura.targetTracker.target == null)
-                && aboveVoid(
-                    if (AutoScaffold.scaffoldOnlyVoid) -1
-                    else AutoScaffold.scaffoldVoidDistance
-                )
+                && aboveVoid(AutoScaffold.scaffoldOnlyVoid)
             ) {
                 if (!scaffoldSaving && !ModuleScaffold.enabled) {
                     ModuleScaffold.enabled = true

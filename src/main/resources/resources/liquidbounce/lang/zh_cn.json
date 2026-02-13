@@ -779,5 +779,8 @@
   "liquidbounce.module.fireballFly.description": "延迟火球的击退以实现飞行的效果。",
   "liquidbounce.module.autoBreakOut.description": "自动出笼。",
   "liquidbounce.module.grimNoSlow.description": "绕过GrimAC的无减速。",
-  "liquidbounce.module.autoMLG.description": "自动落地水。"
+  "liquidbounce.module.autoMLG.description": "自动落地水。",
+  "liquidbounce.module.staffCheck.description": "检测布吉岛客服",
+  "liquidbounce.module.attackCrystal.description": "自动攻击水晶",
+  "liquidbounce.module.enderChest.description": "保持末影箱开启但不显示界面，可远程储存资源进末影箱，无法绕过布吉岛"
 }

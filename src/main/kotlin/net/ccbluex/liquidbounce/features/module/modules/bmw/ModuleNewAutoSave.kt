@@ -27,15 +27,16 @@ object ModuleNewAutoSave : ClientModule("NewAutoSave", Category.BMW) {
 
     private val scaffoldOnlyVoid by boolean("ScaffoldOnlyVoid", true)
     private val scaffoldVoidDistance by int("ScaffoldVoidDistance", 20, 1..50, "blocks")
-    private val maxFreezeTime by int("MaxFreezeTime", 15, 0..100, "ticks")
-    private val maxFreezeHeight by float("MaxFreezeHeight", 0.3f, 0f..2f, "from ground")
+    private val maxSavingTime by int("MaxSavingTime", 30, 0..100, "ticks")
+    private val maxSavingHeight by float("MaxSavingHeight", 0.3f, 0f..2f, "from ground")
     private val pauseOnFlag by int("PauseOnFlag", 20, 0..100, "ticks")
+    private val notDuringCombat by boolean("NotDuringCombat", false)
 
     private const val BLOCK_EDGE = 0.3
     private const val MAX_TRY_COUNT = 3
 
     private var lastY = -128
-    private var freezeTicks = 0
+    private var savingTicks = 0
     private var wasSpectator = false
     private var pauseTicks = 0
     private var damage = false
@@ -43,17 +44,18 @@ object ModuleNewAutoSave : ClientModule("NewAutoSave", Category.BMW) {
 
     private fun reset(disable: Boolean) {
         if (disable) {
-            if (freezeTicks > 0) ModuleScaffold.enabled = false
+            if (savingTicks > 0) ModuleScaffold.enabled = false
         }
 
         lastY = -128
-        freezeTicks = 0
+        savingTicks = 0
         pauseTicks = 0
         damage = false
         wasSpectator = false
         tryCount = 0
     }
 
+    @Suppress("DEPRECATION")
     private fun aboveVoid(): Boolean {
         if (player.isOnGround) return false
 
@@ -80,13 +82,13 @@ object ModuleNewAutoSave : ClientModule("NewAutoSave", Category.BMW) {
 
         for (xOffset in xOffsetRange) {
             for (zOffset in zOffsetRange) {
-                for (y in yRange) {
+                for (y in yRange.reversed()) {
                     val blockState = world.getBlockState(BlockPos(
                         player.x.toInt() + xOffset,
                         y,
                         player.z.toInt() + zOffset
                     ))
-                    if (!blockState.isAir && !blockState.isReplaceable) {
+                    if (!blockState.isAir && !blockState.isLiquid) {
                         return false
                     }
                 }
@@ -105,7 +107,7 @@ object ModuleNewAutoSave : ClientModule("NewAutoSave", Category.BMW) {
         val searchRadiusSquared = player.blockInteractionRange.sq()
 
         for (dx in -searchRadius..searchRadius) {
-            for (dy in -searchRadius..searchRadius) {
+            for (dy in -searchRadius..0) {
                 for (dz in -searchRadius..searchRadius) {
                     val distanceSquared = dx * dx + dy * dy + dz * dz
                     if (distanceSquared <= searchRadiusSquared) {
@@ -132,7 +134,7 @@ object ModuleNewAutoSave : ClientModule("NewAutoSave", Category.BMW) {
 
     @Suppress("unused")
     private val playerTickEventHandler = handler<PlayerTickEvent> { event ->
-        if (freezeTicks > 0) {
+        if (savingTicks > 0) {
             event.cancelEvent()
         }
     }
@@ -157,13 +159,13 @@ object ModuleNewAutoSave : ClientModule("NewAutoSave", Category.BMW) {
         val packet = event.packet
 
         if (packet is PlayerPositionLookS2CPacket) {
-            if (freezeTicks > 0) {
+            if (savingTicks > 0) {
                 reset(true)
             }
             pauseTicks = pauseOnFlag
         }
 
-        if (freezeTicks > 0) {
+        if (savingTicks > 0) {
             val yaw = RotationManager.currentRotation?.yaw ?: player.yaw
             val pitch = RotationManager.currentRotation?.pitch ?: player.pitch
             val yawOffset = yawOffset.nextFloat()
@@ -240,17 +242,17 @@ object ModuleNewAutoSave : ClientModule("NewAutoSave", Category.BMW) {
             return@tickHandler
         }
 
-        if (freezeTicks > 0) {
+        if (savingTicks > 0) {
             if (aboveVoid()) {
-                freezeTicks--
-                if (freezeTicks == 0) {
+                savingTicks--
+                if (savingTicks == 0) {
                     ModuleScaffold.enabled = false
                     tryCount++
                     waitTicks(2)
                 }
             } else {
                 ModuleScaffold.enabled = false
-                freezeTicks = 0
+                savingTicks = 0
             }
             return@tickHandler
         }
@@ -262,8 +264,8 @@ object ModuleNewAutoSave : ClientModule("NewAutoSave", Category.BMW) {
             return@tickHandler
         }
 
-        if ((!ModuleKillAura.running || ModuleKillAura.targetTracker.target == null)
-            && player.y <= lastY + maxFreezeHeight
+        if ((!notDuringCombat || !ModuleKillAura.running || ModuleKillAura.targetTracker.target == null)
+            && player.y <= lastY + maxSavingHeight
             && !ModuleScaffold.enabled
             && !ModuleFreeze.enabled
             && !player.isInFluid
@@ -271,7 +273,7 @@ object ModuleNewAutoSave : ClientModule("NewAutoSave", Category.BMW) {
             && reachable()
         ) {
             ModuleScaffold.enabled = true
-            freezeTicks = maxFreezeTime
+            savingTicks = maxSavingTime
         }
     }
 

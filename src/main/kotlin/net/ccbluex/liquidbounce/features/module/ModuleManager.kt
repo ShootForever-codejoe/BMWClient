@@ -454,7 +454,10 @@ object ModuleManager : EventListener, Collection<ClientModule> by modules {
             ModuleFireballFly,
             ModuleAutoBreakOut,
             ModuleGrimNoSlow,
-            ModuleNewAutoSave
+            ModuleNewAutoSave,
+            ModuleAttackCrystal,
+            ModuleStaffCheck,
+            ModuleAutoMLG
         )
 
         builtin.forEach { module ->

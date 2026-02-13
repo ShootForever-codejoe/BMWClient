@@ -18,8 +18,10 @@
  */
 package net.ccbluex.liquidbounce.features.module.modules.player.invcleaner
 
+import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet
 import net.ccbluex.fastutil.component1
 import net.ccbluex.fastutil.component2
+import net.ccbluex.liquidbounce.config.types.nesting.ToggleableConfigurable
 import net.ccbluex.liquidbounce.event.events.ScheduleInventoryActionEvent
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.features.module.Category
@@ -29,6 +31,7 @@ import net.ccbluex.liquidbounce.features.module.modules.player.offhand.ModuleOff
 import net.ccbluex.liquidbounce.utils.inventory.*
 import net.ccbluex.liquidbounce.utils.kotlin.Priority
 import net.ccbluex.liquidbounce.utils.kotlin.enumMapOf
+import net.minecraft.block.Blocks
 
 /**
  * InventoryCleaner module
@@ -41,10 +44,39 @@ object ModuleInventoryCleaner : ClientModule("InventoryCleaner", Category.PLAYER
 
     private val inventoryConstraints = tree(PlayerInventoryConstraints())
 
+    object BlockWhiteList : ToggleableConfigurable(this, "BlockWhiteList", true) {
+        val shouldKeepBlocks by blocks("shouldKeepBlocks", ReferenceOpenHashSet.of(
+            Blocks.STONE,
+            Blocks.OAK_PLANKS,
+            Blocks.WHITE_WOOL,
+            Blocks.ORANGE_WOOL,
+            Blocks.MAGENTA_WOOL,
+            Blocks.LIGHT_BLUE_WOOL,
+            Blocks.YELLOW_WOOL,
+            Blocks.LIME_WOOL,
+            Blocks.PINK_WOOL,
+            Blocks.GRAY_WOOL,
+            Blocks.LIGHT_GRAY_WOOL,
+            Blocks.CYAN_WOOL,
+            Blocks.PURPLE_WOOL,
+            Blocks.BLUE_WOOL,
+            Blocks.BROWN_WOOL,
+            Blocks.GREEN_WOOL,
+            Blocks.RED_WOOL,
+            Blocks.BLACK_WOOL
+        ))
+    }
+
+    init {
+        tree(BlockWhiteList)
+    }
+
+    val shouldKeepItems by items("ShouldKeepItems", ReferenceOpenHashSet())
+    val weaponSortOnlyByDamage by boolean("WeaponSortOnlyByDamage", true)
     private val maxBlocks by int("MaximumBlocks", 512, 0..2500)
     private val maxArrows by int("MaximumArrows", 128, 0..2500)
     private val maxThrowables by int("MaximumThrowables", 64, 0..800)
-    private val maxFoods by int("MaximumFoodPoints", 200, 0..2000)
+    private val maxFoods by int("MaximumFoodPoints", 0, 0..2000)
     private val maxWaterBuckets by int("MaximumWaterBuckets", 3, 0..16)
     private val maxLavaBuckets by int("MaximumLavaBuckets", 1, 0..16)
 

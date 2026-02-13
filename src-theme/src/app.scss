@@ -28,6 +28,90 @@
     font-style: normal;
 }
 
+@font-face {
+  font-family: "Axiforma";
+  src: url("/fonts/Axiforma-SemiBold.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Axiforma";
+  src: url("/fonts/Axiforma-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Axiforma";
+  src: url("/fonts/Axiforma-Regular.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Saira";
+  src: url("/fonts/Saira-SemiBold.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Saira";
+  src: url("/fonts/Saira-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Saira";
+  src: url("/fonts/Saira-Regular.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Exo";
+  src: url("/fonts/Exo-SemiBold.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Exo";
+  src: url("/fonts/Exo-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Exo";
+  src: url("/fonts/Exo-Regular.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Golos";
+  src: url("/fonts/golos-ui_bold.ttf") format("truetype");
+  font-weight: 600;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Golos";
+  src: url("/fonts/golos-ui_medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Golos";
+  src: url("/fonts/golos-ui_regular.ttf") format("truetype");
+  font-weight: normal;
+  font-style: normal;
+}
+
 * {
     box-sizing: border-box;
     margin: 0;
@@ -39,7 +123,7 @@
 }
 
 body {
-    font-family: "Inter", sans-serif;
+    font-family: "Golos", sans-serif;
     user-select: none;
     overflow: hidden;
 }
