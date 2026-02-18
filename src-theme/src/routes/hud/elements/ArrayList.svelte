@@ -63,12 +63,12 @@
   @use "../../../colors.scss" as *;
 
   .module {
-    background-color: rgba($arraylist-base-color, 0.68);
+    background-color: rgba($arraylist-base-color, 0.3);
     color: $arraylist-text-color;
     font-size: 14px;
-    border-radius: 4px 0 0 4px;
+    border-radius: 8px 0 0 8px;
     padding: 5px 8px;
-    border-left: solid 4px $accent-color;
+    border-right: 4px solid var(--md-sys-color-primary);
     width: max-content;
     font-weight: 500;
     margin-left: auto;

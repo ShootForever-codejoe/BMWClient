@@ -1,115 +1,31 @@
 @use "colors.scss" as *;
 
 @font-face {
-    font-family: "Inter";
-    src: url("/fonts/Inter-Bold.ttf") format("truetype");
+    font-family: "Axiforma";
+    src: url("../fonts/axiforma/Axiforma-SemiBold.ttf") format("truetype");
     font-weight: 600;
     font-style: normal;
 }
 
 @font-face {
-    font-family: "Inter";
-    src: url("/fonts/Inter-Medium.ttf") format("truetype");
+    font-family: "Axiforma";
+    src: url("../fonts/axiforma/Axiforma-Medium.ttf") format("truetype");
     font-weight: 500;
     font-style: normal;
 }
 
 @font-face {
-    font-family: "Inter";
-    src: url("/fonts/Inter-Regular.ttf") format("truetype");
+    font-family: "Axiforma";
+    src: url("../fonts/axiforma/Axiforma-Regular.ttf") format("truetype");
     font-weight: normal;
     font-style: normal;
 }
 
 @font-face {
-    font-family: "Inter";
-    src: url("/fonts/Inter-Light.ttf") format("truetype");
+    font-family: "Axiforma";
+    src: url("../fonts/axiforma/Axiforma-Light.ttf") format("truetype");
     font-weight: 300;
     font-style: normal;
-}
-
-@font-face {
-  font-family: "Axiforma";
-  src: url("/fonts/Axiforma-SemiBold.ttf") format("truetype");
-  font-weight: 600;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: "Axiforma";
-  src: url("/fonts/Axiforma-Medium.ttf") format("truetype");
-  font-weight: 500;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: "Axiforma";
-  src: url("/fonts/Axiforma-Regular.ttf") format("truetype");
-  font-weight: normal;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: "Saira";
-  src: url("/fonts/Saira-SemiBold.ttf") format("truetype");
-  font-weight: 600;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: "Saira";
-  src: url("/fonts/Saira-Medium.ttf") format("truetype");
-  font-weight: 500;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: "Saira";
-  src: url("/fonts/Saira-Regular.ttf") format("truetype");
-  font-weight: normal;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: "Exo";
-  src: url("/fonts/Exo-SemiBold.ttf") format("truetype");
-  font-weight: 600;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: "Exo";
-  src: url("/fonts/Exo-Medium.ttf") format("truetype");
-  font-weight: 500;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: "Exo";
-  src: url("/fonts/Exo-Regular.ttf") format("truetype");
-  font-weight: normal;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: "Golos";
-  src: url("/fonts/golos-ui_bold.ttf") format("truetype");
-  font-weight: 600;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: "Golos";
-  src: url("/fonts/golos-ui_medium.ttf") format("truetype");
-  font-weight: 500;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: "Golos";
-  src: url("/fonts/golos-ui_regular.ttf") format("truetype");
-  font-weight: normal;
-  font-style: normal;
 }
 
 * {
@@ -122,10 +38,28 @@
     outline: none;
 }
 
+/* 视频背景相关样式 */
+.video-background-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    pointer-events: none;
+}
+
+/* 确保主要内容区域有适当的背景覆盖 */
+main {
+    position: relative;
+    z-index: 1;
+}
+
 body {
-    font-family: "Golos", sans-serif;
+    font-family: "Axiforma", sans-serif;
     user-select: none;
     overflow: hidden;
+    background: transparent;
 }
 
 

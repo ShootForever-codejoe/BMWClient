@@ -1,0 +1,4 @@
+<!-- This is a placeholder for the background image. In a real implementation, you would replace this with an actual anime-style background image. -->
+<!-- The background image should be placed in src-theme/public/background.png -->
+<!-- The CSS in Title.svelte references this path: url('/resources/liquidbounce/background.png') -->
+<!-- For now, this file serves as a placeholder to ensure the path exists. -->

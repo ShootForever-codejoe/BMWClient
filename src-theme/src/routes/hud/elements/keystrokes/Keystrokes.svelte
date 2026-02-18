@@ -10,6 +10,23 @@
     let keyLeft: MinecraftKeybind | undefined;
     let keyRight: MinecraftKeybind | undefined;
     let keyJump: MinecraftKeybind | undefined;
+    
+    // 固定的鼠标按键绑定
+    let mouseLeftBind = {
+        bindName: "mouse.left",
+        key: {
+            translationKey: "key.mouse.left",
+            localized: "LMB"
+        }
+    };
+    
+    let mouseRightBind = {
+        bindName: "mouse.right",
+        key: {
+            translationKey: "key.mouse.right",
+            localized: "RMB"
+        }
+    };
 
     async function updateKeybinds() {
         const keybinds = await getMinecraftKeybinds();
@@ -32,6 +49,8 @@
     <Key key={keyBack} gridArea="c" />
     <Key key={keyRight} gridArea="d" />
     <Key key={keyJump} gridArea="e" />
+    <Key key={mouseLeftBind} gridArea="f" />
+    <Key key={mouseRightBind} gridArea="g" />
 </div>
 
 <style lang="scss">
@@ -40,7 +59,8 @@
       grid-template-areas:
         ". a ."
         "b c d"
-        "e e e";
+        "e e e"
+        "f . g";
       grid-template-columns: repeat(3, 50px);
       gap: 5px;
     }

@@ -19,20 +19,44 @@
     let regularButtonsShown = true;
     let clientButtonsShown = false;
 
-    onMount(() => {
-        setTimeout(async () => {
-            const clientUpdate = await getClientUpdate();
+    // Date and time state
+    let currentDate = new Date();
+    let formattedDate = "";
+    let formattedTime = "";
 
-            if (clientUpdate.update) {
-                notification.set({
-                    title: `LiquidBounce ${clientUpdate.update.clientVersion} has been released!`,
-                    message: `Download it from liquidbounce.net!`,
-                    error: false,
-                    delay: 99999999
-                });
-            }
-        }, 2000);
+    // Update date and time every second
+    onMount(() => {
+        // Initial update
+        updateDateTime();
+        
+        // Set up interval to update every second
+        const interval = setInterval(() => {
+            updateDateTime();
+        }, 1000);
+
+        // Cleanup on unmount
+        return () => clearInterval(interval);
     });
+
+    function updateDateTime() {
+        const now = new Date();
+        currentDate = now;
+        
+        // Format date: "Saturday, February 14"
+        const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+        const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        
+        const dayName = days[now.getDay()];
+        const monthName = months[now.getMonth()];
+        const day = now.getDate();
+        
+        formattedDate = `${dayName}, ${monthName} ${day}`;
+        
+        // Format time: "11:20"
+        const hours = now.getHours().toString().padStart(2, '0');
+        const minutes = now.getMinutes().toString().padStart(2, '0');
+        formattedTime = `${hours}:${minutes}`;
+    }
 
     function toggleButtons() {
         if (clientButtonsShown) {
@@ -51,17 +75,27 @@
 
 <Menu>
     <div class="content">
+        <!-- Background overlay with anime image -->
+        <div class="background-overlay"></div>
+        
+        <!-- Date and Time Display -->
+        <div class="date-time-container">
+            <div class="time">{formattedTime}</div>
+            <div class="date">{formattedDate}</div>
+        </div>
+
+        <!-- Main Buttons -->
         <div class="main-buttons">
             {#if regularButtonsShown}
                 <MainButton title="Singleplayer" icon="singleplayer" index={0}
                             on:click={() => openScreen("singleplayer")}/>
-
+                
                 <MainButton title="Multiplayer" icon="multiplayer" let:parentHovered
                             on:click={() => openScreen("multiplayer")} index={1}>
                     <ChildButton title="Realms" icon="realms" {parentHovered}
                                  on:click={() => openScreen("multiplayer_realms")}/>
                 </MainButton>
-                <MainButton title="LiquidBounce" icon="liquidbounce" on:click={toggleButtons} index={2}/>
+                <MainButton title="Alts" icon="liquidbounce" on:click={toggleButtons} index={2}/>
                 <MainButton title="Options" icon="options" on:click={() => openScreen("options")} index={3}/>
             {:else if clientButtonsShown}
                 <MainButton title="Proxy Manager" icon="proxymanager" on:click={() => openScreen("proxymanager")}
@@ -72,23 +106,12 @@
             {/if}
         </div>
 
-        <div class="additional-buttons" transition:fly|global={{duration: 700, y: 100}}>
+        <!-- Bottom Menu Buttons -->
+        <div class="bottom-buttons" transition:fly|global={{duration: 700, y: 100}}>
             <ButtonContainer>
                 <IconTextButton icon="icon-exit.svg" title="Exit" on:click={exitClient}/>
                 <IconTextButton icon="icon-change-background.svg" title="Toggle Shader"
                                 on:click={toggleBackgroundShaderEnabled}/>
-            </ButtonContainer>
-        </div>
-
-        <div class="social-buttons" transition:fly|global={{duration: 700, y: 100}}>
-            <ButtonContainer>
-                <IconButton title="Forum" icon="nodebb" on:click={() => browse("MAINTAINER_FORUM")}/>
-                <IconButton title="GitHub" icon="github" on:click={() => browse("MAINTAINER_GITHUB")}/>
-                <IconButton title="Discord" icon="discord" on:click={() => browse("MAINTAINER_DISCORD")}/>
-                <IconButton title="Twitter" icon="twitter" on:click={() => browse("MAINTAINER_TWITTER")}/>
-                <IconButton title="YouTube" icon="youtube" on:click={() => browse("MAINTAINER_YOUTUBE")}/>
-                <IconTextButton title="liquidbounce.net" icon="icon-liquidbounce.net.svg"
-                                on:click={() => browse("CLIENT_WEBSITE")}/>
             </ButtonContainer>
         </div>
     </div>
@@ -99,24 +122,85 @@
         flex: 1;
         display: grid;
         grid-template-areas:
-            "a ."
-            "b c";
-        grid-template-rows: 1fr max-content;
-        grid-template-columns: 1fr max-content;
+            "date"
+            "main"
+            "bottom";
+        grid-template-rows: auto 1fr auto;
+        position: relative;
+        overflow: hidden;
     }
 
+    /* Background overlay with anime image */
+    .background-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-size: cover;
+        background-position: center;
+        z-index: -1;
+        opacity: 0.8;
+    }
+
+    /* Date and Time Container */
+    .date-time-container {
+        grid-area: date;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+        text-align: center;
+        z-index: 10;
+    }
+
+    .date {
+        font-size: 24px;
+        color: white;
+        font-weight: 400;
+        margin-bottom: 8px;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+    }
+
+    .time {
+        font-size: 48px;
+        color: white;
+        font-weight: 600;
+        text-shadow: 0 4px 8px rgba(0, 0, 0, 0.7);
+        font-family: 'Axiforma', sans-serif;
+    }
+
+    /* Main Buttons Area */
     .main-buttons {
+        grid-area: main;
         display: flex;
         flex-direction: column;
         row-gap: 25px;
-        grid-area: a;
+        align-items: center;
+        padding: 40px 0;
     }
 
-    .additional-buttons {
-        grid-area: b;
+    /* Bottom Buttons */
+    .bottom-buttons {
+        grid-area: bottom;
+        display: flex;
+        justify-content: center;
+        padding: 20px;
+        z-index: 10;
     }
 
-    .social-buttons {
-        grid-area: c;
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .date {
+            font-size: 20px;
+        }
+        
+        .time {
+            font-size: 36px;
+        }
+        
+        .main-buttons {
+            padding: 20px 0;
+        }
     }
 </style>

@@ -15,10 +15,36 @@
 
         active = e.action === 1 || e.action === 2;
     });
+
+    function getDisplayText(): string {
+        if (!key) return "???";
+        
+        const translationKey = key.key.translationKey;
+        const localizedText = key.key.localized;
+        
+        // 处理空格键显示为长横线
+        if (translationKey === "key.keyboard.space") {
+            return "────────"; // 长横线
+        }
+        
+        // 处理鼠标按键
+        if (translationKey.startsWith("key.mouse.")) {
+            const mouseButton = translationKey.split(".")[2];
+            switch (mouseButton) {
+                case "left": return "LMB";
+                case "right": return "RMB";
+                case "middle": return "MMB";
+                default: return localizedText;
+            }
+        }
+        
+        // 其他按键保持原有显示
+        return localizedText;
+    }
 </script>
 
 <div class="key" style="grid-area: {gridArea};" class:active>
-    {key?.key.localized ?? "???"}
+    {getDisplayText()}
 </div>
 
 <style lang="scss">
@@ -31,16 +57,16 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 5px;
+    border-radius: 12px;
     font-size: 14px;
     font-weight: 500;
     transition: ease box-shadow .2s;
     position: relative;
-    box-shadow: inset 0 0 0 0 $accent-color;
+    box-shadow: inset 0 0 0 0 $md-dark-primary;
     text-align: center;
 
     &.active {
-      box-shadow: inset 0 0 0 25px $accent-color;
+      box-shadow: inset 0 0 0 25px $md-dark-primary;
     }
   }
 </style>

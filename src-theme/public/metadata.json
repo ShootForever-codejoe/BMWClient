@@ -35,7 +35,9 @@
     "Keystrokes",
     "Taco",
     "Image",
-    "Text"
+    "Text",
+    "KeyBinds",
+    "DynamicIsland"
   ],
   "fonts": [
     "Inter-Black.ttf",

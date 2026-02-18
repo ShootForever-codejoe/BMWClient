@@ -137,43 +137,81 @@
 
   .module {
     position: relative;
+    margin: 4px 8px;
+    border-radius: 16px;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.2, 0, 0, 1);
+    
+    &:first-child {
+      margin-top: 8px;
+    }
+    
+    &:last-child {
+      margin-bottom: 8px;
+    }
 
     .name {
       cursor: pointer;
-      transition: ease background-color 0.2s,
-      ease color 0.2s;
-
-      color: $clickgui-text-dimmed-color;
-      text-align: center;
-      font-size: 12px;
+      transition: all 0.3s cubic-bezier(0.2, 0, 0, 1);
+      color: var(--md-sys-color-on-surface-variant);
+      text-align: left;
+      font-size: 14px;
       font-weight: 500;
       position: relative;
-      padding: 10px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      background-color: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 48px;
 
-      &.highlight::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: calc(100% - 4px);
-        height: calc(100% - 4px);
-        border: solid 2px $accent-color;
+      &.highlight {
+        background-color: var(--md-sys-color-secondary-container);
+        color: var(--md-sys-color-on-secondary-container);
+        box-shadow: var(--md-sys-elevation-level1);
+        transform: scale(1.02);
+        
+        &::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          border: 2px solid var(--md-sys-color-primary);
+          border-radius: 16px;
+          pointer-events: none;
+          animation: pulse 2s infinite;
+        }
       }
 
       &:hover {
-        background-color: rgba($clickgui-base-color, 0.85);
-        color: $clickgui-text-color;
+        background-color: var(--md-sys-color-surface-container-highest);
+        color: var(--md-sys-color-on-surface);
+        transform: translateX(4px);
+      }
+
+      &:active {
+        transform: scale(0.98) translateX(4px);
       }
 
       &.enabled {
-        color: $accent-color;
+        color: var(--md-sys-color-primary);
+        background-color: rgba(var(--md-sys-color-primary-container), 0.3);
+        
+        &:hover {
+          background-color: rgba(var(--md-sys-color-primary-container), 0.5);
+        }
       }
     }
 
     .settings {
-      background-color: rgba($clickgui-base-color, 0.5);
-      border-left: solid 4px $accent-color;
-      padding: 0 11px 0 7px;
+      background-color: var(--md-sys-color-surface-container);
+      border-top: 1px solid var(--md-sys-color-outline-variant);
+      padding: 12px 16px;
+      border-radius: 0 0 16px 16px;
+      margin-top: 0;
     }
 
     &.has-settings {
@@ -181,24 +219,38 @@
         content: "";
         display: block;
         position: absolute;
-        height: 10px;
-        width: 10px;
-        right: 15px;
+        height: 20px;
+        width: 20px;
+        right: 16px;
         top: 50%;
         background-image: url("/img/clickgui/icon-settings-expand.svg");
         background-position: center;
         background-repeat: no-repeat;
-        opacity: 0.5;
+        background-size: 16px;
+        opacity: 0.6;
         transform-origin: 50% 50%;
         transform: translateY(-50%) rotate(-90deg);
-        transition: ease opacity 0.2s,
-        ease transform 0.4s;
+        transition: all 0.4s cubic-bezier(0.2, 0, 0, 1);
+        filter: invert(60%) sepia(0%) saturate(0%) hue-rotate(144deg) brightness(95%) contrast(85%);
       }
 
       &.expanded .name::after {
         transform: translateY(-50%) rotate(0);
         opacity: 1;
+        filter: invert(30%) sepia(9%) saturate(2807%) hue-rotate(213deg) brightness(95%) contrast(88%);
       }
+    }
+  }
+
+  @keyframes pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(var(--md-sys-color-primary), 0.7);
+    }
+    70% {
+      box-shadow: 0 0 0 8px rgba(var(--md-sys-color-primary), 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(var(--md-sys-color-primary), 0);
     }
   }
 </style>

@@ -198,7 +198,8 @@ class ItemCategorization(
                 Items.FIRE_CHARGE,
                 Items.WIND_CHARGE,
                 Items.TOTEM_OF_UNDYING,
-                Items.END_CRYSTAL -> {
+                Items.END_CRYSTAL,
+                Items.TNT -> {
                     add(object : ItemFacet(slot) {
                         override val category: ItemCategory
                             get() = ItemCategory(ItemType.USEFUL, 0)
@@ -206,13 +207,19 @@ class ItemCategorization(
                     })
                 }
 
+                Items.MACE -> {
+                    add(SharpWeaponFacet(slot))
+                }
+
                 // Treat animal armor as a normal item
                 is BowItem -> add(BowItemFacet(slot))
                 is CrossbowItem -> add(CrossbowItemFacet(slot))
                 is ArrowItem -> add(ArrowItemFacet(slot))
                 is AxeItem -> {
-                    if (slot.itemStack.sharpnessLevel >= 5) {
-                        add(SharpAxeFacet(slot))
+                    if (slot.itemStack.sharpnessLevel >= 100) {
+                        add(GodAxeFacet(slot))
+                    } else if (slot.itemStack.sharpnessLevel >= 5) {
+                        add(SharpWeaponFacet(slot))
                     } else {
                         add(MiningToolItemFacet(slot))
                     }

@@ -17,13 +17,13 @@
             "a b"
             "a c";
     grid-template-columns: max-content 1fr;
-    column-gap: 10px;
-    background: rgba(0, 0, 0, 0.68);
-    border-radius: 5px;
-    width: 300px;
-    overflow: hidden;
-    padding: 10px;
-    margin-bottom: 10px;
+    column-gap: 12px;
+    row-gap: 4px;
+    background: transparent; /* 使用父容器背景 */
+    border-radius: 24px;
+    width: 200px;
+    padding: 0;
+    margin: 0;
   }
 
   .icon {
@@ -31,55 +31,105 @@
     width: 40px;
     background-position: center;
     background-repeat: no-repeat;
-    border-radius: 4px;
+    border-radius: 12px; /* Android 16 圆角 */
     grid-area: a;
-    transition: background-color 0.2s;
+    transition: all 0.3s cubic-bezier(0.2, 0, 0, 1);
     position: relative;
-    background-image: url("/img/hud/notification/icon-toggle.svg");
-
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    /* 使用 Material Design 图标颜色 */
     &.success {
-      background-color: #4dac68;
-      background-image: url("/img/hud/notification/icon-success.svg");
+      background-color: var(--md-sys-color-primary-container);
+      color: var(--md-sys-color-on-primary-container);
+      &::before {
+        content: "✓";
+        font-size: 20px;
+        font-weight: bold;
+      }
     }
 
     &.error {
-      background-color: #fc4130;
-      background-image: url("/img/hud/notification/icon-error.svg");
+      background-color: var(--md-sys-color-error-container);
+      color: var(--md-sys-color-on-error-container);
+      &::before {
+        content: "✕";
+        font-size: 20px;
+        font-weight: bold;
+      }
     }
 
     &.info {
-      background-color: #4677ff;
-      background-image: url("/img/hud/notification/icon-info.svg");
+      background-color: var(--md-sys-color-secondary-container);
+      color: var(--md-sys-color-on-secondary-container);
+      &::before {
+        content: "ℹ";
+        font-size: 20px;
+        font-weight: bold;
+      }
+    }
+
+    &.warning {
+      background-color: var(--md-sys-color-warning-container);
+      color: var(--md-sys-color-on-warning-container);
+      &::before {
+        content: "⚠";
+        font-size: 20px;
+        font-weight: bold;
+      }
     }
 
     &.disabled,
     &.enabled {
+      background-color: transparent;
+      color: var(--md-sys-color-primary);
+      
+      &::before {
+        content: "";
+        position: absolute;
+        height: 20px;
+        width: 36px;
+        border-radius: 15px;
+        background: var(--md-sys-color-primary);
+        transition: all 0.3s cubic-bezier(0.2, 0, 0, 1);
+        border: 2px solid var(--md-sys-color-outline);
+        right: 0;
+      }
+      
       &::after {
         content: "";
         position: absolute;
-        height: 10px;
-        width: 10px;
-        border-radius: 5px;
+        height: 12px;
+        width: 12px;
+        border-radius: 6px;
+        background: var(--md-sys-color-primary);
+        transition: all 0.3s cubic-bezier(0.2, 0, 0, 1);
+        box-shadow: var(--md-sys-elevation-level1);
+        right: 18px;
         top: 50%;
-        transform: translate(-50%, -50%);
-        background: white;
-        transition: all 0.2s ease-out;
+        transform: translateY(-50%);
       }
     }
 
     &.enabled {
-      background-color: #4dac68;
-
+      &::before {
+        background: var(--md-sys-color-primary);
+      }
+      
       &::after {
-        left: 62%;
+        right: 6px;
+        background: white;
       }
     }
 
     &.disabled {
-      background-color: #fc4130;
-
+      &::before {
+        background: transparent;
+      }
+      
       &::after {
-        left: 38%;
+        right: 18px;
       }
     }
   }
@@ -87,13 +137,16 @@
   .title {
     grid-area: b;
     font-size: 14px;
-    color: white;
-    font-weight: 600;
+    color: var(--md-sys-color-primary);
+    font-weight: 500;
+    line-height: 1.4;
   }
 
   .message {
     grid-area: c;
     font-size: 12px;
-    color: #cbd1e3;
+    color: var(--md-sys-color-primary);
+    line-height: 1.4;
+    opacity: 0.87;
   }
 </style>

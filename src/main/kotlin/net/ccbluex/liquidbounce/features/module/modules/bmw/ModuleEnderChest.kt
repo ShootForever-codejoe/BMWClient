@@ -49,6 +49,7 @@ import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.hit.EntityHitResult
 import org.lwjgl.glfw.GLFW
 
+@Suppress("unused")
 object ModuleEnderChest : ClientModule("EnderChest", Category.BMW) {
 
     private val autoSaveResources by boolean("AutoSaveResources", true)

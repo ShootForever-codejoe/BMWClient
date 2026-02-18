@@ -39,3 +39,76 @@ $keystrokes-base-color: black;
 $keystrokes-text-color: white;
 
 $item-damage-base-color: black;
+
+$keybinds-base-color: black;
+$keybinds-text-color: white;
+$keybinds-enabled-color: #4dac68;
+
+/* Material Design 3 Colors for Android 16 */
+/* 亮色主题 */
+$md-primary: #6750A4;
+$md-on-primary: #FFFFFF;
+$md-primary-container: #EADDFF;
+$md-on-primary-container: #21005D;
+$md-secondary: #625B71;
+$md-on-secondary: #FFFFFF;
+$md-secondary-container: #E8DEF8;
+$md-on-secondary-container: #1D192B;
+$md-surface: #FFFBFE;
+$md-surface-container: #F0EBF4;
+$md-surface-container-high: #ECE6F0;
+$md-surface-container-highest: #E6E0E9;
+$md-on-surface: #1C1B1F;
+$md-on-surface-variant: #49454F;
+$md-outline: #79747E;
+$md-outline-variant: #CAC4D0;
+
+/* 暗色主题 */
+$md-dark-primary: #D0BCFF;
+$md-dark-on-primary: #381E72;
+$md-dark-primary-container: #4F378B;
+$md-dark-on-primary-container: #EADDFF;
+$md-dark-secondary: #CCC2DC;
+$md-dark-on-secondary: #332D41;
+$md-dark-secondary-container: #4A4458;
+$md-dark-on-secondary-container: #E8DEF8;
+$md-dark-surface: #141218;
+$md-dark-surface-dim: #141218;
+$md-dark-surface-bright: #3B383E;
+$md-dark-surface-container-lowest: #0F0D13;
+$md-dark-surface-container-low: #1D1B20;
+$md-dark-surface-container: #211F26;
+$md-dark-surface-container-high: #2B2930;
+$md-dark-surface-container-highest: #36343B;
+$md-dark-on-surface: #E6E0E9;
+$md-dark-on-surface-variant: #CAC4D0;
+$md-dark-outline: #938F99;
+$md-dark-outline-variant: #49454F;
+
+/* MD3 扩展颜色 */
+$md-error: #B3261E;
+$md-on-error: #FFFFFF;
+$md-error-container: #F9DEDC;
+$md-on-error-container: #410E0B;
+$md-warning: #ED6C02;
+$md-on-warning: #FFFFFF;
+$md-warning-container: #FFDDB3;
+$md-on-warning-container: #4E1D00;
+$md-success: #2E7D32;
+$md-on-success: #FFFFFF;
+$md-success-container: #C1E1C1;
+$md-on-success-container: #0A1F0B;
+
+/* MD3 暗色扩展 */
+$md-dark-error: #F2B8B5;
+$md-dark-on-error: #601410;
+$md-dark-error-container: #8C1D18;
+$md-dark-on-error-container: #F9DEDC;
+$md-dark-warning: #FFB74D;
+$md-dark-on-warning: #4E1D00;
+$md-dark-warning-container: #6F2C00;
+$md-dark-on-warning-container: #FFDDB3;
+$md-dark-success: #A5D6A7;
+$md-dark-on-success: #0A1F0B;
+$md-dark-success-container: #1B5E20;
+$md-dark-on-success-container: #C1E1C1;

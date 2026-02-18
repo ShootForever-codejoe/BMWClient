@@ -1,4 +1,4 @@
-<script lang="ts">
+ <script lang="ts">
     import {listen} from "../../../integration/ws";
     import type {ClientPlayerDataEvent} from "../../../integration/events";
     import type {PlayerData} from "../../../integration/types";

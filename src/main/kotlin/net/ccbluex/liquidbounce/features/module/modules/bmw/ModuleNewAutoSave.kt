@@ -176,8 +176,8 @@ object ModuleNewAutoSave : ClientModule("NewAutoSave", Category.BMW) {
                     event.cancelEvent()
                     sendPacketSilently(
                         PlayerMoveC2SPacket.LookAndOnGround(
-                            player.yaw + yawOffset,
-                            player.pitch + pitchOffset,
+                            yaw + yawOffset,
+                            pitch + pitchOffset,
                             player.isOnGround,
                             player.horizontalCollision
                         )

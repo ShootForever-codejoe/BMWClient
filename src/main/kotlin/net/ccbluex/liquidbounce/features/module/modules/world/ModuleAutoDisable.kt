@@ -35,15 +35,8 @@ import net.ccbluex.liquidbounce.event.tickUntil
 import net.ccbluex.liquidbounce.features.command.commands.module.CommandAutoDisable
 import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
-import net.ccbluex.liquidbounce.features.module.modules.bmw.delayblink.ModuleDelayBlink
-import net.ccbluex.liquidbounce.features.module.modules.bmw.fireballfly.ModuleFireballFly
+import net.ccbluex.liquidbounce.features.module.ModuleManager
 import net.ccbluex.liquidbounce.features.module.modules.combat.killaura.ModuleKillAura
-import net.ccbluex.liquidbounce.features.module.modules.movement.ModuleFreeze
-import net.ccbluex.liquidbounce.features.module.modules.movement.ModuleNoClip
-import net.ccbluex.liquidbounce.features.module.modules.movement.fly.ModuleFly
-import net.ccbluex.liquidbounce.features.module.modules.movement.speed.ModuleSpeed
-import net.ccbluex.liquidbounce.features.module.modules.player.ModuleBlink
-import net.ccbluex.liquidbounce.features.module.modules.world.scaffold.ModuleScaffold
 import net.ccbluex.liquidbounce.utils.client.notification
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 import java.util.EnumSet
@@ -93,16 +86,10 @@ object ModuleAutoDisable : ClientModule("AutoDisable", Category.WORLD) {
         }
     }
 
-    init {
-        add(ModuleFly)
-        add(ModuleSpeed)
-        add(ModuleNoClip)
-        add(ModuleKillAura)
-        add(ModuleScaffold)
-        add(ModuleDelayBlink)
-        add(ModuleBlink)
-        add(ModuleFreeze)
-        add(ModuleFireballFly)
+    @Suppress("unused")
+    private val moduleNamesUpdateHandler = tickHandler {
+        modules.clear()
+        moduleNames.forEach { ModuleManager.getModuleByName(it)?.let { element -> modules.add(element) } }
     }
 
     @Suppress("unused")

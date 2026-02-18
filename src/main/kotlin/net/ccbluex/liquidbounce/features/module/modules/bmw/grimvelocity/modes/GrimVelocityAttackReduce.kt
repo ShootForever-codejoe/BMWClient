@@ -32,14 +32,14 @@ import net.ccbluex.liquidbounce.features.module.modules.bmw.grimvelocity.GrimVel
 import net.ccbluex.liquidbounce.features.module.modules.bmw.grimvelocity.ModuleGrimVelocity
 import net.ccbluex.liquidbounce.features.module.modules.combat.killaura.ModuleKillAura
 import net.ccbluex.liquidbounce.features.module.modules.movement.ModuleFreeze
-import net.ccbluex.liquidbounce.features.module.modules.world.scaffold.ModuleScaffold
 import net.ccbluex.liquidbounce.render.engine.type.Color4b
 import net.ccbluex.liquidbounce.utils.aiming.RotationManager
-import net.ccbluex.liquidbounce.utils.aiming.utils.raytraceEntity
+import net.ccbluex.liquidbounce.utils.aiming.RotationTarget
+import net.ccbluex.liquidbounce.utils.aiming.data.Rotation
+import net.ccbluex.liquidbounce.utils.aiming.features.MovementCorrection
 import net.ccbluex.liquidbounce.utils.client.handlePacket
 import net.ccbluex.liquidbounce.utils.combat.shouldBeAttacked
-import net.ccbluex.liquidbounce.utils.entity.boxedDistanceTo
-import net.ccbluex.liquidbounce.utils.entity.rotation
+import net.ccbluex.liquidbounce.utils.kotlin.Priority
 import net.ccbluex.liquidbounce.utils.math.copy
 import net.ccbluex.liquidbounce.utils.math.sq
 import net.ccbluex.liquidbounce.utils.movement.DirectionalInput
@@ -61,19 +61,18 @@ import net.minecraft.network.packet.s2c.play.GameMessageS2CPacket
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 import net.minecraft.network.packet.s2c.play.PlayerRespawnS2CPacket
 import net.minecraft.util.Hand
+import net.minecraft.util.hit.EntityHitResult
 import kotlin.math.sqrt
 
 object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
 
-    private val attackCount by intRange("AttackCount", 3..3, 0..20)
+    private val attackCount by intRange("AttackCount", 4..4, 0..20)
     private val autoAttackCount by boolean("AutoAttackCount", true)
-    private val alinkTargetRange by floatRange("AlinkTargetRange", 2.5f..6f, 0f..20f)
+    private val alinkTargetRange by float("AlinkTargetRange", 6f, 0f..20f)
     private val alinkMaxDelay by int("AlinkMaxDelay", 20, 0..100, "ticks")
-    private val alinkRequireKillAura by boolean("AlinkRequireKillAura", true)
+    private val rotationTime by int("RotationTime", 3, 0..20, "ticks")
+    private val requireKillAura by boolean("RequireKillAura", false)
     private val debug by boolean("Debug", false)
-
-    private val canAlink: Boolean
-        get() = !alinkRequireKillAura || ModuleKillAura.running
 
     private var target: Entity? = null
     private var renderTarget: Entity? = null
@@ -101,37 +100,52 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
     }
 
     private fun findTarget() {
-        if (!canAlink && alinkTicks >= 0) {
-            target = renderTarget
-            return
-        }
+        target = (mc.crosshairTarget as? EntityHitResult)?.entity
+            ?.takeIf { !it.isRemoved && it.shouldBeAttacked() }
 
-        target = raytraceEntity(
-            (if (canAlink) {
-                alinkTargetRange.start.toDouble()
-            } else {
-                ModuleKillAura.range.toDouble()
-            }),
-            RotationManager.currentRotation ?: player.rotation
-        ) { !it.isRemoved && it.shouldBeAttacked() }?.entity
-
-        if (alinkTicks == -1) {
-            renderTarget = target
-        }
+        if (alinkTicks == -1) renderTarget = target
 
         if (target != null) return
 
-        if (alinkTicks >= 0) return
-
-        val farTarget = world.entities.filter { entity ->
+        var targetAround = world.entities.filter { entity ->
             entity is LivingEntity
                 && entity != player
                 && !entity.isRemoved
                 && entity.shouldBeAttacked()
-                && entity.boxedDistanceTo(player) <= alinkTargetRange.endInclusive
-        }.minByOrNull { entity -> entity.boxedDistanceTo(player) }
+                && entity.distanceTo(player) <= alinkTargetRange
+                && entity.id != renderTarget?.id
+        }.minByOrNull { entity -> entity.distanceTo(player) }
 
-        renderTarget = farTarget
+        var targetPos = targetAround?.pos
+
+        if (renderTarget != null
+            && renderTargetPos != null
+            && (targetPos == null
+                || renderTargetPos!!.pos.distanceTo(player.pos)
+                <= targetPos.distanceTo(player.pos))
+        ) {
+            targetPos = renderTargetPos!!.pos
+            targetAround = renderTarget
+        }
+
+        if (targetAround == null || targetPos == null) return
+
+        if (targetPos.distanceTo(player.pos) <= 3.0) {
+            RotationManager.setRotationTarget(
+                plan = RotationTarget(
+                    rotation = Rotation.lookingAt(targetPos, player.pos),
+                    ticksUntilReset = rotationTime,
+                    resetThreshold = 2f,
+                    considerInventory = false,
+                    movementCorrection = MovementCorrection.STRICT
+                ),
+                priority = Priority.IMPORTANT_FOR_PLAYER_LIFE,
+                provider = ModuleGrimVelocity
+            )
+            if (alinkTicks >= 0) target = targetAround
+        }
+
+        if (alinkTicks == -1) renderTarget = targetAround
     }
 
     private fun handle() {
@@ -144,13 +158,13 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
     private fun getCurrentAttackCount(): Int {
         if (!autoAttackCount) return attackCount.random()
 
-        if (velocity < 1000) {
+        if (velocity < 1000.0) {
             return 0
         } else if (velocity in 1000.0..<3000.0) {
             return 3
-        } else if (velocity in 3000.0..<15000.0) {
+        } else if (velocity in 3000.0..<10000.0) {
             return 4
-        } else if (velocity >= 15000) {
+        } else if (velocity >= 10000.0) {
             return 5
         }
 
@@ -182,26 +196,20 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
                     return@handler
                 }
 
-                is EntityS2CPacket -> {
-                    if (renderTargetPos != null && packet.getEntity(world) == renderTarget) {
-                        renderTargetPos!!.pos = renderTargetPos!!.withDelta(
-                            packet.deltaX.toLong(),
-                            packet.deltaY.toLong(),
-                            packet.deltaZ.toLong()
-                        )
-                    }
+                is EntityS2CPacket if (renderTargetPos != null && packet.getEntity(world) == renderTarget) -> {
+                    renderTargetPos!!.pos = renderTargetPos!!.withDelta(
+                        packet.deltaX.toLong(),
+                        packet.deltaY.toLong(),
+                        packet.deltaZ.toLong()
+                    )
                 }
 
-                is EntityPositionS2CPacket -> {
-                    if (renderTargetPos != null && packet.entityId == renderTarget!!.id) {
-                        renderTargetPos!!.pos = packet.change.position.copy()
-                    }
+                is EntityPositionS2CPacket if (renderTargetPos != null && packet.entityId == renderTarget?.id) -> {
+                    renderTargetPos!!.pos = packet.change.position.copy()
                 }
 
-                is EntityPositionSyncS2CPacket -> {
-                    if (renderTargetPos != null && packet.id == renderTarget!!.id) {
-                        renderTargetPos!!.pos = packet.values.position()
-                    }
+                is EntityPositionSyncS2CPacket if (renderTargetPos != null && packet.id == renderTarget?.id) -> {
+                    renderTargetPos!!.pos = packet.values.position()
                 }
             }
 
@@ -218,7 +226,10 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
 
         if (packet is EntityVelocityUpdateS2CPacket && packet.entityId == player.id && receiveDamage) {
             receiveDamage = false
-            if (player.isUsingItem || ModuleScaffold.running || ModuleFreeze.running) return@handler
+            if (player.isUsingItem
+                || ModuleFreeze.running
+                || !(!requireKillAura || ModuleKillAura.running)
+            ) return@handler
 
             findTarget()
             if (renderTarget == null) return@handler
@@ -228,17 +239,15 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
             val currentAttackCount = getCurrentAttackCount()
             if (currentAttackCount == 0) return@handler
 
-            if ((target == null && canAlink) || (target != null && !player.isSprinting)) {
+            if (target == null || !player.isSprinting) {
                 if (debug) {
-                    if (target != null) {
+                    if (!player.isSprinting) {
                         notifyAsMessage(ModuleGrimVelocity, "Alink... (not sprinting)")
                     } else {
                         notifyAsMessage(ModuleGrimVelocity, "Alink...")
                     }
                 }
-                if (target == null) {
-                    renderTargetPos = TrackedPosition().apply { this.pos = renderTarget!!.pos }
-                }
+                renderTargetPos = TrackedPosition().apply { pos = renderTarget!!.pos }
                 alinkTicks = alinkMaxDelay
                 event.cancelEvent()
                 packets.add(packet)
@@ -258,9 +267,16 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
 
             if (debug) notifyAsMessage(ModuleGrimVelocity, "Attack count: $attackQueue")
 
-            repeat(attackQueue) {
+            for (i in 1..attackQueue) {
+                if (target !in world.entities) break
+
                 if (player.isSprinting) player.isSprinting = false
-                network.sendPacket(PlayerInteractEntityC2SPacket.attack(target, false))
+                network.sendPacket(
+                    PlayerInteractEntityC2SPacket.attack(
+                        target,
+                        player.isSneaking
+                    )
+                )
                 player.swingHand(Hand.MAIN_HAND)
                 player.setVelocity(
                     player.velocity.x * 0.6,
@@ -306,7 +322,7 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
                     right = false
                 )
                 releaseReason = ""
-            } else if (player.squaredDistanceTo(renderTargetPos!!.pos) > alinkTargetRange.endInclusive.sq()) {
+            } else if (player.pos.distanceTo(renderTargetPos!!.pos) > alinkTargetRange) {
                 releaseReason = "out of range"
             } else if (alinkTicks == 0) {
                 releaseReason = "max delay"
@@ -324,7 +340,7 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
             renderTarget!!.pitch
         ).render(
             it,
-            Color4b(255, 255, 255, 87),
+            Color4b(255, 255, 255, 100),
             Color4b(255, 255, 255, 255)
         )
     }

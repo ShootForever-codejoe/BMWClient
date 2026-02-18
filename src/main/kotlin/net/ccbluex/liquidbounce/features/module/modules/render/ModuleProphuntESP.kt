@@ -21,6 +21,7 @@ package net.ccbluex.liquidbounce.features.module.modules.render
 import net.ccbluex.liquidbounce.config.types.NamedChoice
 import net.ccbluex.liquidbounce.event.events.GameTickEvent
 import net.ccbluex.liquidbounce.event.events.PacketEvent
+import net.ccbluex.liquidbounce.event.events.WorldChangeEvent
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
@@ -29,16 +30,17 @@ import net.ccbluex.liquidbounce.utils.render.placement.PlacementRenderer
 import net.minecraft.entity.FallingBlockEntity
 import net.minecraft.network.packet.s2c.play.BlockUpdateS2CPacket
 import net.minecraft.network.packet.s2c.play.ChunkDeltaUpdateS2CPacket
+import java.util.EnumSet
 
 object ModuleProphuntESP : ClientModule("ProphuntESP", Category.RENDER,
     aliases = listOf("BlockUpdateDetector", "FallingBlockESP")
 ) {
 
     private val renderer = PlacementRenderer("RenderBlockUpdates", true, this,
-        defaultColor = Color4b(255, 179, 72, 90), keep = false
+        defaultColor = Color4b(255, 179, 72, 90), keep = true
     )
 
-    private val tracking by multiEnumChoice("Tracking", Tracking.entries, canBeNone = false)
+    private val tracking by multiEnumChoice("Tracking", EnumSet.of(Tracking.BLOCK_UPDATES), canBeNone = false)
 
     private enum class Tracking(override val choiceName: String): NamedChoice {
         FALLING_BLOCKS("FallingBlocks"),
@@ -69,13 +71,27 @@ object ModuleProphuntESP : ClientModule("ProphuntESP", Category.RENDER,
     @Suppress("unused")
     private val networkHandler = handler<PacketEvent> { event ->
         val packet = event.packet
-        when {
-            packet is BlockUpdateS2CPacket && Tracking.BLOCK_UPDATES in tracking -> mc.execute {
-                renderer.addBlock(packet.pos, update = false)
+        when (packet) {
+            is BlockUpdateS2CPacket if Tracking.BLOCK_UPDATES in tracking -> {
+                if (world.getBlockState(packet.pos).isAir && !packet.state.isAir) {
+                    mc.execute {
+                        renderer.addBlock(packet.pos, update = false)
+                    }
+                } else if (!world.getBlockState(packet.pos).isAir && packet.state.isAir) {
+                    mc.execute {
+                        renderer.removeBlock(packet.pos)
+                    }
+                }
             }
-            packet is ChunkDeltaUpdateS2CPacket && Tracking.CHUNK_DELTA_UPDATES in tracking -> mc.execute {
+
+            is ChunkDeltaUpdateS2CPacket if Tracking.CHUNK_DELTA_UPDATES in tracking -> mc.execute {
                 packet.visitUpdates { pos, _ -> renderer.addBlock(pos, update = false) }
             }
         }
+    }
+
+    @Suppress("unused")
+    private val worldChangeEvnetHandler = handler<WorldChangeEvent> {
+        renderer.clearSilently()
     }
 }

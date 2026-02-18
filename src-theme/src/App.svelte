@@ -17,6 +17,7 @@
     import Disconnected from "./routes/menu/disconnected/Disconnected.svelte";
     import Browser from "./routes/browser/Browser.svelte";
 
+
     const routes = {
         "/clickgui": ClickGui,
         "/hud": Hud,

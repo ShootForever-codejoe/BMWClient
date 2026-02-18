@@ -189,87 +189,138 @@
   .search {
     position: fixed;
     left: 50%;
-    top: 50px;
+    top: 40px;
     transform: translateX(-50%);
-    background-color: rgba($clickgui-base-color, 0.9);
-    width: 600px;
-    border-radius: 30px;
+    background-color: var(--md-sys-color-surface-container-high);
+    width: 640px;
+    border-radius: 28px;
     overflow: hidden;
-    transition: ease border-radius 0.2s;
-    box-shadow: 0 0 10px rgba($clickgui-base-color, 0.5);
+    transition: all 0.3s cubic-bezier(0.2, 0, 0, 1);
+    box-shadow: var(--md-sys-elevation-level3);
+    border: 1px solid var(--md-sys-color-outline-variant);
+    backdrop-filter: blur(24px);
 
     &.has-results {
-      border-radius: 10px;
+      border-radius: 28px 28px 16px 16px;
+      box-shadow: var(--md-sys-elevation-level4);
     }
 
     &:focus-within {
       z-index: 9999999999;
+      transform: translateX(-50%) translateY(-2px);
+      box-shadow: var(--md-sys-elevation-level4);
     }
   }
 
   .results {
-    border-top: solid 2px $accent-color;
-    padding: 5px 25px;
-    max-height: 250px;
+    border-top: 2px solid var(--md-sys-color-primary);
+    padding: 8px 24px;
+    max-height: 280px;
     overflow: auto;
+    background-color: var(--md-sys-color-surface-container);
 
     .result {
-      font-size: 16px;
-      padding: 10px 0;
-      transition: ease padding-left 0.2s;
+      font-size: 15px;
+      padding: 12px 16px;
+      transition: all 0.3s cubic-bezier(0.2, 0, 0, 1);
       cursor: pointer;
-      display: grid;
-      grid-template-columns: max-content 1fr max-content;
-
+      display: flex;
+      align-items: center;
+      border-radius: 16px;
+      margin: 4px 0;
+      
       .module-name {
-        color: $clickgui-text-dimmed-color;
-        transition: ease color 0.2s;
+        color: var(--md-sys-color-on-surface-variant);
+        transition: all 0.2s ease;
+        font-weight: 500;
+        flex: 1;
       }
 
       &.enabled {
+        background-color: rgba(var(--md-sys-color-primary-container), 0.3);
         .module-name {
-          color: $accent-color;
+          color: var(--md-sys-color-primary);
         }
       }
 
       .aliases {
-        color: rgba($clickgui-text-dimmed-color, .6);
-        margin-left: 10px;
+        color: var(--md-sys-color-outline);
+        margin-left: 12px;
+        font-size: 13px;
+        font-weight: 400;
       }
 
       &.selected {
-        padding-left: 10px;
+        background-color: var(--md-sys-color-secondary-container);
+        .module-name {
+          color: var(--md-sys-color-on-secondary-container);
+        }
+        transform: translateX(8px);
       }
 
       &:hover {
-        color: $clickgui-text-color;
-
+        background-color: var(--md-sys-color-surface-container-highest);
+        color: var(--md-sys-color-on-surface);
+        transform: translateX(4px);
+        
         &::after {
-          content: "Right-click to locate";
-          color: rgba($clickgui-text-color, 0.4);
+          content: "右键定位模块";
+          color: var(--md-sys-color-outline);
           font-size: 12px;
+          margin-left: 16px;
+          font-weight: 400;
         }
+      }
+      
+      &:active {
+        transform: scale(0.98) translateX(4px);
       }
     }
 
     .placeholder {
-      color: $clickgui-text-dimmed-color;
-      font-size: 16px;
-      padding: 10px 0;
+      color: var(--md-sys-color-on-surface-variant);
+      font-size: 15px;
+      padding: 16px;
+      text-align: center;
+      font-style: italic;
     }
 
     &::-webkit-scrollbar {
-      width: 0;
+      width: 8px;
+    }
+    
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background-color: var(--md-sys-color-outline);
+      border-radius: 4px;
+      transition: all 0.2s ease;
+      
+      &:hover {
+        background-color: var(--md-sys-color-on-surface-variant);
+      }
     }
   }
 
   .search-input {
-    padding: 15px 25px;
+    padding: 16px 24px;
     background-color: transparent;
     border: none;
-    font-family: "Inter", sans-serif;
+    font-family: "Axiforma", sans-serif;
     font-size: 16px;
-    color: $clickgui-text-color;
+    color: var(--md-sys-color-on-surface);
     width: 100%;
+    transition: all 0.2s ease;
+    
+    &::placeholder {
+      color: var(--md-sys-color-outline);
+    }
+    
+    &:focus {
+      outline: none;
+      background-color: rgba(var(--md-sys-color-primary-container), 0.1);
+    }
   }
 </style>

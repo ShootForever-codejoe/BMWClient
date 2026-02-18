@@ -29,29 +29,53 @@ import net.ccbluex.liquidbounce.event.tickHandler
 import net.ccbluex.liquidbounce.event.waitTicks
 import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
+import net.ccbluex.liquidbounce.features.module.modules.combat.killaura.ModuleKillAura
+import net.ccbluex.liquidbounce.utils.aiming.RotationManager
 import net.ccbluex.liquidbounce.utils.aiming.data.Rotation
-import net.ccbluex.liquidbounce.utils.client.SilentHotbar
+import net.ccbluex.liquidbounce.utils.entity.rotation
 import net.ccbluex.liquidbounce.utils.kotlin.random
-import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import net.minecraft.util.shape.VoxelShape
+import kotlin.math.min
 
 object ModuleAutoMLG : ClientModule("AutoMLG", Category.BMW) {
 
-    private val fallDistance by float("FallDistance", 5f, 3f..15f)
+    private val fallDistance by float("FallDistance", 7f, 3f..15f)
 
-    private var pitch = -1f
     private var placeWater = false
-    private var timeout = 0
+    private var timeout = -1
+    private var oldRotation: Rotation? = null
+    private var oldSlot = -1
 
-    fun isOnGround(height: Double): Boolean {
+    private fun reset() {
+        placeWater = false
+        timeout = -1
+        oldRotation = null
+        oldSlot = -1
+    }
+
+    override fun onEnabled() {
+        reset()
+    }
+
+    private fun isOnGround(height: Double): Boolean {
         val collisions: Iterable<VoxelShape?> =
             world.getBlockCollisions(player, player.boundingBox.offset(0.0, height, 0.0))
         return collisions.iterator().hasNext()
+    }
+
+    private fun getWaterBucketSlot(): Int {
+        for (i in 0..8) {
+            if (player.inventory.getStack(i).item == Items.WATER_BUCKET) {
+                return i
+            }
+        }
+
+        return -1
     }
 
     @Suppress("unused")
@@ -59,23 +83,26 @@ object ModuleAutoMLG : ClientModule("AutoMLG", Category.BMW) {
         if (event.state != EventState.PRE) return@handler
 
         if (player.fallDistance > fallDistance) {
-            if (pitch >= 0 && isOnGround(player.velocity.y)) {
+            if (oldRotation != null
+                && oldSlot != -1
+                && isOnGround(player.velocity.y)
+                && getWaterBucketSlot() != -1
+            ) {
                 placeWater = true
-            } else if (isOnGround(player.velocity.y * 2.0)) {
-                for (i in 0..8) {
-                    val item: ItemStack = player.inventory.getStack(i)
-                    if (!item.isEmpty && item.item == Items.WATER_BUCKET) {
-                        SilentHotbar.selectSlotSilently(ModuleAutoMLG, i, 3)
-                        pitch = player.pitch
-                        player.pitch = 90f - (0.005f..0.01f).random()
-                        timeout = 10
-                    }
-                }
+                timeout = 10
+            } else if (isOnGround(min(player.velocity.y, -1.0) * 2.0)
+                && getWaterBucketSlot() != -1
+                && (!ModuleKillAura.running || ModuleKillAura.targetTracker.target == null)
+            ) {
+                oldRotation = RotationManager.currentRotation ?: player.rotation
+                player.pitch = 90f - (0.005f..0.01f).random()
+                oldSlot = player.inventory.selectedSlot
+                player.inventory.selectedSlot = getWaterBucketSlot()
             }
         }
 
-        if (--timeout == 0 && pitch >= 0) {
-            pitch = -1f
+        if (--timeout == 0) {
+            reset()
             notifyAsMessage(ModuleAutoMLG, "Failed to place water")
         }
     }
@@ -86,29 +113,28 @@ object ModuleAutoMLG : ClientModule("AutoMLG", Category.BMW) {
             placeWater = false
 
             var blockPos: BlockPos? = null
-            if (mc.crosshairTarget is BlockHitResult && (mc.crosshairTarget as BlockHitResult).side == Direction.UP) {
+            if ((mc.crosshairTarget as? BlockHitResult)?.side == Direction.UP) {
                 blockPos = (mc.crosshairTarget as BlockHitResult).blockPos
                 interaction.interactItem(player, Hand.MAIN_HAND)
+
+                val rotation = Rotation.lookingAt(blockPos.up().toCenterPos(), player.eyePos)
+                player.yaw = normalizeYaw(rotation.yaw + (-0.005f..0.005f).random())
+                player.pitch = clampPitchTo90(rotation.pitch + (-0.005f..0.005f).random())
             } else {
+                player.pitch = oldRotation!!.pitch
+                player.inventory.selectedSlot = oldSlot
+                reset()
                 notifyAsMessage(ModuleAutoMLG, "Failed to place water")
-                pitch = -1f
                 return@tickHandler
             }
 
             waitTicks(1)
 
-            val yaw = player.yaw
-            val rotation = Rotation.lookingAt(blockPos.up().toCenterPos(), player.eyePos)
-            player.yaw = normalizeYaw(rotation.yaw + (-0.005f..0.005f).random())
-            player.pitch = clampPitchTo90(rotation.pitch + (-0.005f..0.005f).random())
-
             interaction.interactItem(player, Hand.MAIN_HAND)
-
-            waitTicks(1)
-
-            player.yaw = yaw
-            player.pitch = pitch
-            pitch = -1f
+            player.yaw = oldRotation!!.yaw
+            player.pitch = oldRotation!!.pitch
+            player.inventory.selectedSlot = oldSlot
+            reset()
         }
     }
 

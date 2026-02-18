@@ -26,18 +26,27 @@ import net.ccbluex.liquidbounce.event.events.MovementInputEvent
 import net.ccbluex.liquidbounce.event.events.PacketEvent
 import net.ccbluex.liquidbounce.event.events.TickPacketProcessEvent
 import net.ccbluex.liquidbounce.event.events.TransferOrigin
+import net.ccbluex.liquidbounce.event.events.WorldRenderEvent
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.event.tickHandler
 import net.ccbluex.liquidbounce.features.module.modules.bmw.grimvelocity.GrimVelocityMode
 import net.ccbluex.liquidbounce.features.module.modules.combat.killaura.ModuleKillAura
 import net.ccbluex.liquidbounce.features.module.modules.player.nofall.modes.NoFallGrim
+import net.ccbluex.liquidbounce.render.engine.type.Color4b
 import net.ccbluex.liquidbounce.utils.client.handlePacket
 import net.ccbluex.liquidbounce.utils.inventory.InventoryManager
+import net.ccbluex.liquidbounce.utils.math.copy
+import net.ccbluex.liquidbounce.utils.render.WireframePlayer
 import net.minecraft.client.gui.screen.ingame.GenericContainerScreen
+import net.minecraft.entity.Entity
+import net.minecraft.entity.TrackedPosition
 import net.minecraft.network.packet.Packet
 import net.minecraft.network.packet.s2c.common.DisconnectS2CPacket
 import net.minecraft.network.packet.s2c.play.ChatMessageS2CPacket
 import net.minecraft.network.packet.s2c.play.EntityDamageS2CPacket
+import net.minecraft.network.packet.s2c.play.EntityPositionS2CPacket
+import net.minecraft.network.packet.s2c.play.EntityPositionSyncS2CPacket
+import net.minecraft.network.packet.s2c.play.EntityS2CPacket
 import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket
 import net.minecraft.network.packet.s2c.play.GameJoinS2CPacket
 import net.minecraft.network.packet.s2c.play.GameMessageS2CPacket
@@ -67,21 +76,26 @@ object GrimVelocityDelay : GrimVelocityMode("Delay") {
         )
     )
     private val requireKillAura by boolean("RequireKillAura", true)
+    private val renderTarget by boolean("RenderTarget", true)
 
     private var delaying = false
     private var damage = false
     private var delayTicks = 0
     private var jump = false
+    private var target: Entity? = null
+    private var targetPos: TrackedPosition? = null
     private val packets = Queues.newConcurrentLinkedQueue<Packet<*>>()
 
     override val shouldStopBacktrack: Boolean
         get() = delaying
 
-    override fun enable() {
+    override fun disable() {
         delaying = false
         damage = false
         delayTicks = 0
         jump = false
+        target = null
+        targetPos = null
         packets.clear()
     }
 
@@ -113,6 +127,22 @@ object GrimVelocityDelay : GrimVelocityMode("Delay") {
                     handle()
                     return@handler
                 }
+
+                is EntityS2CPacket if (targetPos != null && packet.getEntity(world) == target) -> {
+                    targetPos!!.pos = targetPos!!.withDelta(
+                        packet.deltaX.toLong(),
+                        packet.deltaY.toLong(),
+                        packet.deltaZ.toLong()
+                    )
+                }
+
+                is EntityPositionS2CPacket if (targetPos != null && packet.entityId == target?.id) -> {
+                    targetPos!!.pos = packet.change.position.copy()
+                }
+
+                is EntityPositionSyncS2CPacket if (targetPos != null && packet.id == target?.id) -> {
+                    targetPos!!.pos = packet.values.position()
+                }
             }
 
             event.cancelEvent()
@@ -134,6 +164,10 @@ object GrimVelocityDelay : GrimVelocityMode("Delay") {
                     else -> 0
                 }
                 delaying = true
+                if (renderTarget) {
+                    target = ModuleKillAura.targetTracker.target
+                    targetPos = TrackedPosition().apply { pos = target!!.pos }
+                }
                 event.cancelEvent()
                 packets.add(packet)
             }
@@ -160,6 +194,8 @@ object GrimVelocityDelay : GrimVelocityMode("Delay") {
             if (mode.activeChoice == DelayInAir && DelayInAir.jumpReset) {
                 jump = true
             }
+            target = null
+            targetPos = null
         }
     }
 
@@ -175,6 +211,21 @@ object GrimVelocityDelay : GrimVelocityMode("Delay") {
             }
             jump = false
         }
+    }
+
+    @Suppress("unused")
+    private val renderHandler = handler<WorldRenderEvent> {
+        if (!delaying || target == null || targetPos == null) return@handler
+
+        WireframePlayer(
+            targetPos!!.pos,
+            target!!.yaw,
+            target!!.pitch
+        ).render(
+            it,
+            Color4b(255, 255, 255, 100),
+            Color4b(255, 255, 255, 255)
+        )
     }
 
 }
