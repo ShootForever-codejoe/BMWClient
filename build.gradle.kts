@@ -20,14 +20,12 @@
 import com.github.gradle.node.npm.task.NpmTask
 import com.github.gradle.node.task.NodeTask
 import groovy.json.JsonOutput
-import io.gitlab.arturbosch.detekt.DetektCreateBaselineTask
 import org.gradle.kotlin.dsl.support.listFilesOrdered
 
 plugins {
     id("fabric-loom")
     kotlin("jvm")
     id("com.gorylenko.gradle-git-properties") version "2.5.3"
-    id("io.gitlab.arturbosch.detekt") version "1.23.6"
     id("com.github.node-gradle.node") version "7.1.0"
     id("org.jetbrains.dokka") version "2.1.0"
 }
@@ -314,28 +312,6 @@ tasks.withType<JavaCompile>().configureEach {
 
 tasks.test {
     useJUnitPlatform()
-}
-
-// Detekt check
-
-detekt {
-    config.setFrom(file("${rootProject.projectDir}/config/detekt/detekt.yml"))
-    buildUponDefaultConfig = true
-    baseline = file("${rootProject.projectDir}/config/detekt/baseline.xml")
-}
-
-tasks.register<DetektCreateBaselineTask>("detektProjectBaseline") {
-    description = "Overrides current baseline."
-    ignoreFailures.set(true)
-    parallel.set(true)
-    buildUponDefaultConfig.set(true)
-    setSource(files(rootDir))
-    config.setFrom(files("$rootDir/config/detekt/detekt.yml"))
-    baseline.set(file("$rootDir/config/detekt/baseline.xml"))
-    include("**/*.kt")
-    include("**/*.kts")
-    exclude("**/resources/**")
-    exclude("**/build/**")
 }
 
 // i18n check
