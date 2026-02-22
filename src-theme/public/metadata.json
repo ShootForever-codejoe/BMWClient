@@ -37,7 +37,8 @@
     "Image",
     "Text",
     "KeyBinds",
-    "DynamicIsland"
+    "DynamicIsland",
+    "Alink"
   ],
   "fonts": [
     "Inter-Black.ttf",

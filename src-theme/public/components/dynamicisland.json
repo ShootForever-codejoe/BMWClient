@@ -1,6 +1,6 @@
 {
   "name": "DynamicIsland",
-  "enabled": false,
+  "enabled": true,
   "singleton": true,
   "alignment": {
     "horizontalAlignment": "CenterTranslated",

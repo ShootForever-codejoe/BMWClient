@@ -40,6 +40,7 @@ import net.ccbluex.liquidbounce.utils.item.attackSpeed
 import net.ccbluex.liquidbounce.utils.item.isAxe
 import net.ccbluex.liquidbounce.utils.item.isConsumable
 import net.ccbluex.liquidbounce.utils.item.isSword
+import net.ccbluex.liquidbounce.utils.item.sharpnessLevel
 import net.minecraft.entity.Entity
 import net.minecraft.entity.LivingEntity
 import net.minecraft.item.MaceItem
@@ -61,6 +62,7 @@ object ModuleAutoWeapon : ClientModule("AutoWeapon", Category.COMBAT) {
 
     private val autoShieldBreak by boolean("AutoShieldBreak", true)
     private val autoMace by boolean("AutoMace", true)
+    private val skipWithGodAxe by boolean("SkipWithGodAxe", false)
 
     @Suppress("unused")
     private enum class WeaponType(
@@ -148,7 +150,12 @@ object ModuleAutoWeapon : ClientModule("AutoWeapon", Category.COMBAT) {
             return@handler
         }
 
-        SilentHotbar.selectSlotSilently(
+        if (skipWithGodAxe && player.inventory.getStack(SilentHotbar.clientsideSlot).sharpnessLevel >= 100) {
+            return@handler
+        }
+
+
+       SilentHotbar.selectSlotSilently(
             this,
             weaponSlot,
             switchBack

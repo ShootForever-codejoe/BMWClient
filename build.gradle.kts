@@ -98,6 +98,10 @@ repositories {
         name = "Lenni0451"
         url = uri("https://maven.lenni0451.net/everything")
     }
+    maven {
+        name = "ViaVersion Libraries"
+        url = uri("https://maven.florianreuth.de/snapshots/")
+    }
 }
 
 loom {

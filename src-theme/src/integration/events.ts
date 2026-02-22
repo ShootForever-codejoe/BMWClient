@@ -68,6 +68,9 @@ export interface EventMap {
 
     //PlayerEvents.kt
     death: void;
+
+    // BMW
+    alinkUpdate: AlinkUpdateEvent;
 }
 
 export interface ClickGuiValueChangeEvent {
@@ -263,4 +266,10 @@ export interface TitleEventClear {
 export interface VirtualScreenEvent {
     type: string;
     action: "open" | "close";
+}
+
+export interface AlinkUpdateEvent {
+    alinkTicks: number;
+    alinkMaxDelay: number;
+    visible: boolean;
 }

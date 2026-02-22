@@ -73,7 +73,9 @@ open class InventoryConstraints : Configurable("Constraints") {
 
     protected open fun requirementChoices(): EnumSet<InventoryRequirements> = EnumSet.of(
         InventoryRequirements.NO_MOVEMENT,
-        InventoryRequirements.NO_ROTATION
+        InventoryRequirements.NO_ROTATION,
+        InventoryRequirements.NO_SPRINTING,
+        InventoryRequirements.NO_SHIFT_CLICKING,
     )
 
     /**
@@ -103,6 +105,9 @@ enum class InventoryRequirements(
 
     NO_ROTATION("NoRotation"),
 
+    NO_SPRINTING("NoSprinting"),
+
+    NO_SHIFT_CLICKING("NoShiftClicking"),
     /**
      * When this option is not enabled, the inventory will be opened silently
      * depending on the Minecraft version chosen using ViaFabricPlus.
@@ -122,6 +127,8 @@ enum class InventoryRequirements(
     override fun test(action: InventoryAction): Boolean = when (this) {
         NO_MOVEMENT -> player.input.movementForward == 0.0f && player.input.movementSideways == 0.0f && !player.jumping
         NO_ROTATION -> RotationManager.rotationMatchesPreviousRotation()
+        NO_SPRINTING -> !player.input.playerInput.sprint
+        NO_SHIFT_CLICKING -> !player.input.playerInput.sneak
         OPEN_INVENTORY -> !action.requiresPlayerInventoryOpen() || InventoryManager.isInventoryOpen
     }
 }

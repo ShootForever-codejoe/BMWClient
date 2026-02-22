@@ -22,6 +22,7 @@
     import DraggableComponent from "./elements/DraggableComponent.svelte";
     import KeyBinds from "./elements/KeyBinds.svelte";
     import DynamicIsland from "./elements/DynamicIsland.svelte";
+    import Alink from "./elements/Alink.svelte";
 
     let zoom = 100;
     let metadata: Metadata;
@@ -91,6 +92,8 @@
                     <KeyBinds/>
                 {:else if c.name === "DynamicIsland"}
                     <DynamicIsland/>
+                {:else if c.name === "Alink"}
+                    <Alink/>
                 {/if}
             </DraggableComponent>
         {/if}
