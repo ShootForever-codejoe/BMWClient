@@ -54,7 +54,6 @@ object ModuleCriticals : ClientModule("Criticals", Category.COMBAT) {
     val modes = choices("Mode", 1) {
         arrayOf(
             NoneChoice(it),
-            CriticalsFreeze,
             CriticalsPacket,
             CriticalsNoGround,
             CriticalsJump,

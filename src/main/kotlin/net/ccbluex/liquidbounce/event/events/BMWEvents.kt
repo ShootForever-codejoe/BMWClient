@@ -20,6 +20,7 @@
 package net.ccbluex.liquidbounce.event.events
 
 import net.ccbluex.liquidbounce.event.Event
+import net.ccbluex.liquidbounce.integration.interop.protocol.event.WebSocketEvent
 import net.ccbluex.liquidbounce.utils.client.Nameable
 
 @Nameable("heypixelSWKill")
@@ -27,3 +28,11 @@ class HeypixelSWKillEvent(
     val victim: String,
     val killer: String
 ) : Event()
+
+@Suppress("unused")
+@Nameable("alinkUpdate")
+class AlinkUpdateEvent(
+    val alinkTicks: Int,
+    val alinkMaxDelay: Int,
+    val visible: Boolean
+) : Event(), WebSocketEvent

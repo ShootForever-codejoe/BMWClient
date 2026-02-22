@@ -52,7 +52,15 @@ object ModuleAutoDisable : ClientModule("AutoDisable", Category.WORLD) {
     val modules: Set<ClientModule>
         field: MutableSet<ClientModule> = ReferenceOpenHashSet()
 
-    private val moduleNames by registryList("Modules", hashSetOf<String>(), ValueType.CLIENT_MODULE)
+    private val moduleNames by registryList(
+        "Modules",
+        hashSetOf<String>(),
+        ValueType.CLIENT_MODULE
+    ).onChange { state ->
+        modules.clear()
+        state.forEach { ModuleManager.getModuleByName(it)?.let { element -> modules.add(element) } }
+        state
+    }
     private val disableOn by multiEnumChoice<DisableOn>(
         "On",
         EnumSet.of(
@@ -84,12 +92,6 @@ object ModuleAutoDisable : ClientModule("AutoDisable", Category.WORLD) {
         } else {
             false
         }
-    }
-
-    @Suppress("unused")
-    private val moduleNamesUpdateHandler = tickHandler {
-        modules.clear()
-        moduleNames.forEach { ModuleManager.getModuleByName(it)?.let { element -> modules.add(element) } }
     }
 
     @Suppress("unused")

@@ -30,6 +30,7 @@ import net.ccbluex.liquidbounce.event.waitTicks
 import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
 import net.ccbluex.liquidbounce.features.module.modules.combat.killaura.ModuleKillAura
+import net.ccbluex.liquidbounce.features.module.modules.world.scaffold.ModuleScaffold
 import net.ccbluex.liquidbounce.utils.aiming.RotationManager
 import net.ccbluex.liquidbounce.utils.aiming.data.Rotation
 import net.ccbluex.liquidbounce.utils.entity.rotation
@@ -39,33 +40,48 @@ import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
-import net.minecraft.util.shape.VoxelShape
-import kotlin.math.min
 
 object ModuleAutoMLG : ClientModule("AutoMLG", Category.BMW) {
 
-    private val fallDistance by float("FallDistance", 7f, 3f..15f)
+    private val fallDistance by float("FallDistance", 4f, 3f..15f)
 
     private var placeWater = false
     private var timeout = -1
     private var oldRotation: Rotation? = null
     private var oldSlot = -1
+    private var scaffold = false
 
-    private fun reset() {
+    override fun onEnabled() {
+        clear()
+    }
+
+    private fun clear() {
         placeWater = false
         timeout = -1
         oldRotation = null
         oldSlot = -1
+        scaffold = false
     }
 
-    override fun onEnabled() {
-        reset()
+    private fun reset() {
+        if (oldRotation != null) {
+            player.yaw = oldRotation!!.yaw
+            player.pitch = oldRotation!!.pitch
+        }
+        if (oldSlot != -1) {
+            player.inventory.selectedSlot = oldSlot
+        }
+        if (scaffold) {
+            ModuleScaffold.enabled = true
+        }
+        clear()
     }
 
-    private fun isOnGround(height: Double): Boolean {
-        val collisions: Iterable<VoxelShape?> =
-            world.getBlockCollisions(player, player.boundingBox.offset(0.0, height, 0.0))
-        return collisions.iterator().hasNext()
+    private fun willBeOnGround(height: Double): Boolean {
+        return world.getBlockCollisions(
+            player,
+            player.boundingBox.offset(0.0, height, 0.0)
+        ).iterator().hasNext()
     }
 
     private fun getWaterBucketSlot(): Int {
@@ -82,28 +98,28 @@ object ModuleAutoMLG : ClientModule("AutoMLG", Category.BMW) {
     private val preTickHandler = handler<PlayerNetworkMovementTickEvent> { event ->
         if (event.state != EventState.PRE) return@handler
 
-        if (player.fallDistance > fallDistance) {
-            if (oldRotation != null
-                && oldSlot != -1
-                && isOnGround(player.velocity.y)
-                && getWaterBucketSlot() != -1
-            ) {
+        if (player.fallDistance >= fallDistance) {
+            if (oldRotation != null && willBeOnGround(player.velocity.y)) {
                 placeWater = true
-                timeout = 10
-            } else if (isOnGround(min(player.velocity.y, -1.0) * 2.0)
+
+            } else if (oldRotation == null
+                && willBeOnGround(player.velocity.y * 3.0)
                 && getWaterBucketSlot() != -1
                 && (!ModuleKillAura.running || ModuleKillAura.targetTracker.target == null)
             ) {
+                scaffold = ModuleScaffold.enabled
+                if (scaffold) ModuleScaffold.enabled = false
                 oldRotation = RotationManager.currentRotation ?: player.rotation
-                player.pitch = 90f - (0.005f..0.01f).random()
+                player.pitch = 90f - (0.002f..0.004f).random()
                 oldSlot = player.inventory.selectedSlot
                 player.inventory.selectedSlot = getWaterBucketSlot()
+                timeout = 5
             }
         }
 
         if (--timeout == 0) {
             reset()
-            notifyAsMessage(ModuleAutoMLG, "Failed to place water")
+            notifyAsMessage(ModuleAutoMLG, "Failed to place water (timeout)")
         }
     }
 
@@ -118,22 +134,18 @@ object ModuleAutoMLG : ClientModule("AutoMLG", Category.BMW) {
                 interaction.interactItem(player, Hand.MAIN_HAND)
 
                 val rotation = Rotation.lookingAt(blockPos.up().toCenterPos(), player.eyePos)
-                player.yaw = normalizeYaw(rotation.yaw + (-0.005f..0.005f).random())
-                player.pitch = clampPitchTo90(rotation.pitch + (-0.005f..0.005f).random())
+                player.yaw = normalizeYaw(rotation.yaw + (-0.002f..0.002f).random())
+                player.pitch = clampPitchTo90(rotation.pitch + (-0.002f..0.002f).random())
             } else {
-                player.pitch = oldRotation!!.pitch
-                player.inventory.selectedSlot = oldSlot
                 reset()
-                notifyAsMessage(ModuleAutoMLG, "Failed to place water")
+                notifyAsMessage(ModuleAutoMLG, "Failed to place water (bad rotation)")
                 return@tickHandler
             }
 
             waitTicks(1)
 
             interaction.interactItem(player, Hand.MAIN_HAND)
-            player.yaw = oldRotation!!.yaw
-            player.pitch = oldRotation!!.pitch
-            player.inventory.selectedSlot = oldSlot
+
             reset()
         }
     }
