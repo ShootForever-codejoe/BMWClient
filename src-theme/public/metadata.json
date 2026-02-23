@@ -1,8 +1,8 @@
 {
-  "id": "liquidbounce",
-  "name": "LiquidBounce",
+  "id": "bmwclient",
+  "name": "BMWClient",
   "version": "0.1.0",
-  "authors": ["CCBlueX"],
+  "authors": ["CCBlueX", "ShootForever", "ImNoiq"],
   "screens": [
     "clickgui",
     "title",

@@ -48,8 +48,10 @@ import net.ccbluex.liquidbounce.utils.aiming.features.processors.anglesmooth.imp
 import net.ccbluex.liquidbounce.utils.aiming.features.processors.anglesmooth.impl.MinaraiAngleSmooth
 import net.ccbluex.liquidbounce.utils.aiming.features.processors.anglesmooth.impl.SigmoidAngleSmooth
 import net.ccbluex.liquidbounce.utils.client.handlePacket
+import net.ccbluex.liquidbounce.utils.client.sendPacketSilently
 import net.ccbluex.liquidbounce.utils.combat.shouldBeAttacked
 import net.ccbluex.liquidbounce.utils.kotlin.Priority
+import net.ccbluex.liquidbounce.utils.kotlin.random
 import net.ccbluex.liquidbounce.utils.math.copy
 import net.ccbluex.liquidbounce.utils.math.sq
 import net.ccbluex.liquidbounce.utils.movement.DirectionalInput
@@ -170,7 +172,7 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
         if (targetPos.distanceTo(player.pos) <= 3.0 && AutoRotate.canRotate) {
             RotationManager.setRotationTarget(
                 plan = RotationTarget(
-                    rotation = Rotation.lookingAt(targetPos, player.pos),
+                    rotation = Rotation.lookingAt(targetPos.add(0.0, (0.5..1.0).random(), 0.0), player.eyePos),
                     processors = listOf(AutoRotate.angleSmooth.activeChoice),
                     ticksUntilReset = AutoRotate.rotationTime,
                     resetThreshold = 2f,
@@ -319,7 +321,7 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
                 if (target !in world.entities) break
 
                 player.isSprinting = false
-                network.sendPacket(
+                sendPacketSilently(
                     PlayerInteractEntityC2SPacket.attack(
                         target,
                         player.isSneaking
@@ -361,8 +363,8 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
 
     @Suppress("unused")
     private val movementInputEventHandler = handler<MovementInputEvent> { event ->
-        if (alinkTicks > 0 && releaseReason == null) {
-            alinkTicks--
+        if (alinkTicks >= 0 && releaseReason == null) {
+            if (alinkTicks > 0) alinkTicks--
             findTarget()
 
             if (alinkTicks == 0) {
