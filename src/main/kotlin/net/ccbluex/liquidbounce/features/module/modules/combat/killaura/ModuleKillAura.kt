@@ -156,12 +156,11 @@ object ModuleKillAura : ClientModule("KillAura", Category.COMBAT) {
 
     @Suppress("unused")
     private val rotationUpdateHandler = handler<RotationUpdateEvent> {
-        // Make sure killaura-logic is not running while inventory is open
-        val isInInventoryScreen = (isInventoryOpen || mc.currentScreen is GenericContainerScreen) && !ModuleEnderChest.shouldHide
+        val isInventoryOpenCheck = isInventoryOpen || mc.currentScreen is GenericContainerScreen
+        val isInInventoryScreen = isInventoryOpenCheck && !ModuleEnderChest.shouldHide
         val shouldResetTarget = player.isSpectator || player.isDead || !requirementsMet
 
         if (isInInventoryScreen && !ignoreOpenInventory || shouldResetTarget) {
-            // Reset current target
             targetTracker.reset()
             return@handler
         }

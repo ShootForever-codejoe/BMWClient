@@ -232,7 +232,9 @@ class ItemCategorization(
                             add(BlockItemFacet(slot))
                         }
                     } else {
-                        if (itemStack.getBlock()?.defaultState?.isFullCube(ModuleInventoryCleaner.world, BlockPos.ORIGIN) == true) {
+                        val block = itemStack.getBlock()
+                        val isFullCube = block?.defaultState?.isFullCube(ModuleInventoryCleaner.world, BlockPos.ORIGIN) == true
+                        if (isFullCube) {
                             add(BlockItemFacet(slot))
                         }
                     }

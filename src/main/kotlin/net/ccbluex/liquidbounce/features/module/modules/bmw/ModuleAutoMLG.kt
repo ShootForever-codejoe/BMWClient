@@ -101,14 +101,11 @@ object ModuleAutoMLG : ClientModule("AutoMLG", Category.BMW) {
         if (player.fallDistance >= fallDistance) {
             if (oldRotation != null && willBeOnGround(player.velocity.y)) {
                 placeWater = true
-
-            } else if (oldRotation == null
-                && willBeOnGround(player.velocity.y * 3.0)
-                && getWaterBucketSlot() != -1
-                && (!ModuleKillAura.running || ModuleKillAura.targetTracker.target == null)
-            ) {
+            } else if (shouldPlaceWater()) {
                 scaffold = ModuleScaffold.enabled
-                if (scaffold) ModuleScaffold.enabled = false
+                if (scaffold) {
+                    ModuleScaffold.enabled = false
+                }
                 oldRotation = RotationManager.currentRotation ?: player.rotation
                 player.pitch = 90f - (0.002f..0.004f).random()
                 oldSlot = player.inventory.selectedSlot
@@ -121,6 +118,15 @@ object ModuleAutoMLG : ClientModule("AutoMLG", Category.BMW) {
             reset()
             notifyAsMessage(ModuleAutoMLG, "Failed to place water (timeout)")
         }
+    }
+
+    private fun shouldPlaceWater(): Boolean {
+        if (oldRotation != null) return false
+        if (!willBeOnGround(player.velocity.y * 3.0)) return false
+        if (getWaterBucketSlot() == -1) return false
+
+        val isTargetPresent = ModuleKillAura.running && ModuleKillAura.targetTracker.target != null
+        return !isTargetPresent
     }
 
     @Suppress("unused")

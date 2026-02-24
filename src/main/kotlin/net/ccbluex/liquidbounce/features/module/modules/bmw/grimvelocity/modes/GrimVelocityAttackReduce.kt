@@ -196,17 +196,16 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
     private fun getCurrentAttackCount(): Int {
         if (!autoAttackCount) return attackCount.random()
 
-        if (velocity < 1000.0) {
-            return 0
-        } else if (velocity in 1000.0..<3000.0) {
-            return 3
-        } else if (velocity in 3000.0..<10000.0) {
-            return 4
-        } else if (velocity >= 10000.0) {
-            return 5
+        return when {
+            velocity < 1000.0 -> 0
+            velocity < 3000.0 -> 3
+            velocity < 10000.0 -> 4
+            else -> 5
         }
+    }
 
-        return 0
+    private fun canAttackInCombat(): Boolean {
+        return !requireKillAura || ModuleKillAura.running
     }
 
     @Suppress("unused")
@@ -264,10 +263,9 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
 
         if (packet is EntityVelocityUpdateS2CPacket && packet.entityId == player.id && receiveDamage) {
             receiveDamage = false
-            if (player.isUsingItem
-                || ModuleFreeze.running
-                || !(!requireKillAura || ModuleKillAura.running)
-            ) return@handler
+            if (player.isUsingItem || ModuleFreeze.running || !canAttackInCombat()) {
+                return@handler
+            }
 
             findTarget()
             if (renderTarget == null) return@handler
@@ -289,7 +287,7 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
                 alinkTicks = alinkMaxDelay
                 event.cancelEvent()
                 packets.add(packet)
-            } else if (target != null) {
+            } else {
                 attackQueue = currentAttackCount
             }
         }

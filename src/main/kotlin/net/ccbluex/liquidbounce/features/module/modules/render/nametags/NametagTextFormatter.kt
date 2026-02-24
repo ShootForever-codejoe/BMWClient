@@ -53,31 +53,11 @@ class NametagTextFormatter(private val entity: Entity) {
 
         val name = entity.displayName!!
         val nameColor = this.nameColor
-
-        val isBaby = (entity as? MobEntity)?.isBaby == true
-        var baseNameString = (if (isBaby) "Baby " else "") + name.string
-
-        val nameText: Text = if (nameColor != null) {
-            if (ModuleIRC.running && "[BMW] " !in baseNameString) {
-                for (user in ModuleIRC.users) {
-                    baseNameString = baseNameString.replace(user, "[BMW] $user")
-                    if ("[BMW] " in baseNameString) break
-                }
-            }
-            baseNameString.asText().withColor(nameColor)
-        } else {
-            baseNameString.asText()
-        }
+        val nameText = this.buildNameText(name, nameColor)
 
         outputText.append(nameText)
 
-        if (ModuleCombineMobs.running) {
-            val count = ModuleCombineMobs.getCombinedCount(entity)
-            if (count > 1) {
-                val countText = ("x $count").asText().formatted(Formatting.AQUA).bold(true)
-                outputText.append(" ").append(countText)
-            }
-        }
+        this.appendEntityCountText(outputText)
 
         if (NametagShowOptions.HEALTH.isShowing()) {
             outputText.append(" ").append(this.healthText)
@@ -88,6 +68,32 @@ class NametagTextFormatter(private val entity: Entity) {
         }
 
         return outputText
+    }
+
+    private fun buildNameText(name: net.minecraft.text.Text, nameColor: TextColor?): Text {
+        val isBaby = (entity as? MobEntity)?.isBaby == true
+        var baseNameString = (if (isBaby) "Baby " else "") + name.string
+
+        if (nameColor != null) {
+            if (ModuleIRC.running && "[BMW] " !in baseNameString) {
+                for (user in ModuleIRC.users) {
+                    baseNameString = baseNameString.replace(user, "[BMW] $user")
+                    if ("[BMW] " in baseNameString) break
+                }
+            }
+            return baseNameString.asText().withColor(nameColor)
+        }
+        return baseNameString.asText()
+    }
+
+    private fun appendEntityCountText(outputText: net.minecraft.text.MutableText) {
+        if (ModuleCombineMobs.running) {
+            val count = ModuleCombineMobs.getCombinedCount(entity)
+            if (count > 1) {
+                val countText = ("x $count").asText().formatted(Formatting.AQUA).bold(true)
+                outputText.append(" ").append(countText)
+            }
+        }
     }
 
     private val isBot = ModuleAntiBot.isBot(entity)

@@ -38,6 +38,9 @@ import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 import net.minecraft.network.packet.s2c.play.PlayerRespawnS2CPacket
 import net.minecraft.util.ActionResult
 import net.minecraft.util.Hand
+import net.minecraft.util.hit.BlockHitResult
+import net.minecraft.util.math.BlockPos
+import net.minecraft.block.BlockState
 
 object GrimVelocityFull : GrimVelocityMode("Full") {
 
@@ -140,20 +143,23 @@ object GrimVelocityFull : GrimVelocityMode("Full") {
             val hitResult = raycast(rotation = Rotation(player.yaw, 90f))
             val pos = hitResult.blockPos.offset(hitResult.side)
             val blockState = world.getBlockState(hitResult.blockPos)
-            if (player.activeItem.useAction != UseAction.EAT
-                && player.activeItem.useAction != UseAction.DRINK
-                && !InventoryManager.isInventoryOpen
-                && mc.currentScreen !is GenericContainerScreen
-                && (!onlyOnGround || player.isOnGround)
-                && !hitResult.blockPos.getBlock().isInteractable(blockState)
-                && blockState.isSolid
-            ) {
+            if (canCancelVelocity(hitResult, blockState)) {
                 event.cancelEvent()
                 delay = true
                 needClick = true
             }
             canCancel = false
         }
+    }
+
+    private fun canCancelVelocity(hitResult: BlockHitResult, blockState: BlockState): Boolean {
+        if (player.activeItem.useAction == UseAction.EAT) return false
+        if (player.activeItem.useAction == UseAction.DRINK) return false
+        if (InventoryManager.isInventoryOpen) return false
+        if (mc.currentScreen is GenericContainerScreen) return false
+        if (onlyOnGround && !player.isOnGround) return false
+        if (hitResult.blockPos.getBlock().isInteractable(blockState)) return false
+        return blockState.isSolid
     }
 
     @Suppress("unused")

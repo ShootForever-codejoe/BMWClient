@@ -67,34 +67,38 @@ object ModuleNewAutoSave : ClientModule("NewAutoSave", Category.BMW) {
 
         if (yRange.isEmpty()) return true
 
-        val xOffsetRange = mutableListOf(0)
-        val zOffsetRange = mutableListOf(0)
-        if (player.x - floor(player.x) <= BLOCK_EDGE) {
-            xOffsetRange.add(-1)
-        } else if (ceil(player.x) - player.x <= BLOCK_EDGE) {
-            xOffsetRange.add(1)
-        }
-        if (player.z - floor(player.z) <= BLOCK_EDGE) {
-            zOffsetRange.add(-1)
-        } else if (ceil(player.z) - player.z <= BLOCK_EDGE) {
-            zOffsetRange.add(1)
-        }
+        val xOffsets = getBlockOffsets(player.x)
+        val zOffsets = getBlockOffsets(player.z)
 
-        for (xOffset in xOffsetRange) {
-            for (zOffset in zOffsetRange) {
+        return checkVoidBlocks(xOffsets, zOffsets, yRange)
+    }
+
+    private fun getBlockOffsets(coordinate: Double): List<Int> {
+        val offsets = mutableListOf(0)
+        if (coordinate - floor(coordinate) <= BLOCK_EDGE) {
+            offsets.add(-1)
+        } else if (ceil(coordinate) - coordinate <= BLOCK_EDGE) {
+            offsets.add(1)
+        }
+        return offsets
+    }
+
+    private fun checkVoidBlocks(xOffsets: List<Int>, zOffsets: List<Int>, yRange: IntRange): Boolean {
+        for (xOffset in xOffsets) {
+            for (zOffset in zOffsets) {
                 for (y in yRange.reversed()) {
-                    val blockState = world.getBlockState(BlockPos(
+                    val blockPos = BlockPos(
                         player.x.toInt() + xOffset,
                         y,
                         player.z.toInt() + zOffset
-                    ))
+                    )
+                    val blockState = world.getBlockState(blockPos)
                     if (!blockState.isAir && !blockState.isLiquid) {
                         return false
                     }
                 }
             }
         }
-
         return true
     }
 
@@ -111,11 +115,12 @@ object ModuleNewAutoSave : ClientModule("NewAutoSave", Category.BMW) {
                 for (dz in -searchRadius..searchRadius) {
                     val distanceSquared = dx * dx + dy * dy + dz * dz
                     if (distanceSquared <= searchRadiusSquared) {
-                        val blockState = world.getBlockState(BlockPos(
+                        val blockPos = BlockPos(
                             playerX.toInt() + dx,
                             playerY.toInt() + dy,
                             playerZ.toInt() + dz
-                        ))
+                        )
+                        val blockState = world.getBlockState(blockPos)
                         if (!blockState.isAir && !blockState.isReplaceable) {
                             return true
                         }
@@ -125,6 +130,18 @@ object ModuleNewAutoSave : ClientModule("NewAutoSave", Category.BMW) {
         }
 
         return false
+    }
+
+    private fun canSave(): Boolean {
+        if (notDuringCombat && ModuleKillAura.running && ModuleKillAura.targetTracker.target != null) {
+            return false
+        }
+        if (player.y > lastY + maxSavingHeight) return false
+        if (ModuleScaffold.enabled) return false
+        if (ModuleFreeze.enabled) return false
+        if (player.isInFluid) return false
+        if (!aboveVoid()) return false
+        return reachable()
     }
 
     @Suppress("unused")
@@ -264,14 +281,7 @@ object ModuleNewAutoSave : ClientModule("NewAutoSave", Category.BMW) {
             return@tickHandler
         }
 
-        if ((!notDuringCombat || !ModuleKillAura.running || ModuleKillAura.targetTracker.target == null)
-            && player.y <= lastY + maxSavingHeight
-            && !ModuleScaffold.enabled
-            && !ModuleFreeze.enabled
-            && !player.isInFluid
-            && aboveVoid()
-            && reachable()
-        ) {
+        if (canSave()) {
             ModuleScaffold.enabled = true
             savingTicks = maxSavingTime
         }

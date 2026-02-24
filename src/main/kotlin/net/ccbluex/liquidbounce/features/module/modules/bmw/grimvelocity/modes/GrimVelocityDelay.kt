@@ -202,15 +202,19 @@ object GrimVelocityDelay : GrimVelocityMode("Delay") {
     @Suppress("unused")
     private val movementInputEventHandler = handler<MovementInputEvent> { event ->
         if (jump) {
-            if (!InventoryManager.isInventoryOpen
-                && mc.currentScreen !is GenericContainerScreen
-                && player.isOnGround
-                && !(NoFallGrim.running && NoFallGrim.jumping)
-            ) {
+            if (canJump()) {
                 event.jump = true
             }
             jump = false
         }
+    }
+
+    private fun canJump(): Boolean {
+        if (InventoryManager.isInventoryOpen) return false
+        if (mc.currentScreen is GenericContainerScreen) return false
+        if (!player.isOnGround) return false
+        if (NoFallGrim.running && NoFallGrim.jumping) return false
+        return true
     }
 
     @Suppress("unused")
