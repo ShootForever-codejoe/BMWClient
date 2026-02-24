@@ -113,7 +113,9 @@ object DelayBlinkPacketManager : EventListener, MinecraftShortcuts {
             if (it.ticks + ModuleDelayBlink.delay < ticks) {
                 handle(it)
                 true
-            } else false
+            } else {
+                false
+            }
         }
     }
 

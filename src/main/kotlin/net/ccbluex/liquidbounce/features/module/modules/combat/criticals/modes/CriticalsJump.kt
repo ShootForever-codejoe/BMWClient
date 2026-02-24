@@ -32,11 +32,15 @@ import net.ccbluex.liquidbounce.features.module.modules.combat.criticals.ModuleC
 import net.ccbluex.liquidbounce.features.module.modules.combat.killaura.ModuleKillAura
 import net.ccbluex.liquidbounce.features.module.modules.misc.debugrecorder.modes.GenericDebugRecorder
 import net.ccbluex.liquidbounce.features.module.modules.render.ModuleDebug
+import net.ccbluex.liquidbounce.features.module.modules.world.scaffold.ModuleScaffold
 import net.ccbluex.liquidbounce.utils.aiming.data.Rotation
 import net.ccbluex.liquidbounce.utils.combat.findEnemies
 import net.ccbluex.liquidbounce.utils.entity.FallingPlayer
 import net.ccbluex.liquidbounce.utils.entity.SimulatedPlayer
 import net.ccbluex.liquidbounce.utils.movement.DirectionalInput
+import net.minecraft.block.Blocks
+import net.minecraft.block.SlabBlock
+import net.minecraft.block.StairsBlock
 import net.minecraft.entity.Entity
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.util.math.Vec3d
@@ -241,15 +245,19 @@ object CriticalsJump : Choice("Jump") {
             return false
         }
 
+        if (!ModuleCriticals.running) return false
+        if (player.isTouchingWater || player.isInLava) return false
+        if (player.world.getBlockState(player.blockPos).block == Blocks.COBWEB) return false
+        val blockAtFeet = player.world.getBlockState(player.blockPos).block
+        if (blockAtFeet is StairsBlock || blockAtFeet is SlabBlock) return false
+        if (ModuleScaffold.running) return false
+
         // if both module checks are disabled, we can safely say that we are active
         if (!checkKillaura && !checkAutoClicker) {
             return true
         }
-
         return (ModuleKillAura.running && checkKillaura) ||
             (ModuleAutoClicker.running && checkAutoClicker)
     }
 
 }
-
-

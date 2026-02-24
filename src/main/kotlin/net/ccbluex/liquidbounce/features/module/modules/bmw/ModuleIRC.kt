@@ -128,31 +128,7 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
                 }
 
                 override fun onMessage(webSocket: WebSocket, text: String) {
-                    val messageJson = JsonParser.parseString(text).asJsonObject
-                    when (messageJson.get("func").asString) {
-                        "send_msg" -> {
-                            notifyAsMessage(
-                                ModuleIRC, "${
-                                    if (messageJson.get("name").asString == "错误") "§c"
-                                    else "§a"
-                                }${messageJson.get("name").asString}§f: ${messageJson.get("msg").asString}"
-                            )
-                        }
-
-                        "create_user" -> {
-                            val name = messageJson.get("name").asString
-                            if (!users.contains(name)) {
-                                users.add(name)
-                            }
-                        }
-
-                        "remove_user" -> {
-                            val name = messageJson.get("name").asString
-                            if (users.contains(name)) {
-                                users.remove(name)
-                            }
-                        }
-                    }
+                    handleIrcMessage(text)
                 }
 
                 override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
@@ -172,6 +148,36 @@ object ModuleIRC : ClientModule("IRC", Category.BMW) {
                     reset()
                 }
             })
+        }
+    }
+
+    private fun handleIrcMessage(text: String) {
+        val messageJson = JsonParser.parseString(text).asJsonObject
+        when (messageJson.get("func").asString) {
+            "send_msg" -> handleSendMessage(messageJson)
+            "create_user" -> handleCreateUser(messageJson)
+            "remove_user" -> handleRemoveUser(messageJson)
+        }
+    }
+
+    private fun handleSendMessage(messageJson: JsonObject) {
+        val name = messageJson.get("name").asString
+        val msg = messageJson.get("msg").asString
+        val prefix = if (name == "错误") "§c" else "§a"
+        notifyAsMessage(ModuleIRC, "$prefix$name§f: $msg")
+    }
+
+    private fun handleCreateUser(messageJson: JsonObject) {
+        val name = messageJson.get("name").asString
+        if (!users.contains(name)) {
+            users.add(name)
+        }
+    }
+
+    private fun handleRemoveUser(messageJson: JsonObject) {
+        val name = messageJson.get("name").asString
+        if (users.contains(name)) {
+            users.remove(name)
         }
     }
 
