@@ -19,7 +19,7 @@
 
 package net.ccbluex.liquidbounce.features.module.modules.bmw
 
-import net.ccbluex.liquidbounce.bmw.clampPitchTo90
+import net.ccbluex.liquidbounce.bmw.normalizePitch
 import net.ccbluex.liquidbounce.bmw.normalizeYaw
 import net.ccbluex.liquidbounce.bmw.notifyAsMessage
 import net.ccbluex.liquidbounce.event.EventState
@@ -50,6 +50,8 @@ object ModuleAutoMLG : ClientModule("AutoMLG", Category.BMW) {
     private var oldRotation: Rotation? = null
     private var oldSlot = -1
     private var scaffold = false
+    private var killAura = false
+    private var rotateAtGround = false
 
     override fun onEnabled() {
         clear()
@@ -61,6 +63,8 @@ object ModuleAutoMLG : ClientModule("AutoMLG", Category.BMW) {
         oldRotation = null
         oldSlot = -1
         scaffold = false
+        killAura = false
+        rotateAtGround = false
     }
 
     private fun reset() {
@@ -74,13 +78,16 @@ object ModuleAutoMLG : ClientModule("AutoMLG", Category.BMW) {
         if (scaffold) {
             ModuleScaffold.enabled = true
         }
+        if (killAura) {
+            ModuleKillAura.enabled = true
+        }
         clear()
     }
 
-    private fun willBeOnGround(height: Double): Boolean {
+    private fun willBeOnGround(velocityY: Double): Boolean {
         return world.getBlockCollisions(
             player,
-            player.boundingBox.offset(0.0, height, 0.0)
+            player.boundingBox.offset(0.0, velocityY, 0.0)
         ).iterator().hasNext()
     }
 
@@ -103,16 +110,24 @@ object ModuleAutoMLG : ClientModule("AutoMLG", Category.BMW) {
                 placeWater = true
 
             } else if (oldRotation == null
+                && willBeOnGround(player.velocity.y * 2.0)
+                && getWaterBucketSlot() != -1
+            ) {
+                oldRotation = RotationManager.currentRotation ?: player.rotation
+                rotateAtGround = true
+                oldSlot = player.inventory.selectedSlot
+                player.inventory.selectedSlot = getWaterBucketSlot()
+
+            } else if (oldRotation == null
                 && willBeOnGround(player.velocity.y * 3.0)
                 && getWaterBucketSlot() != -1
-                && (!ModuleKillAura.running || ModuleKillAura.targetTracker.target == null)
             ) {
                 scaffold = ModuleScaffold.enabled
                 if (scaffold) ModuleScaffold.enabled = false
-                oldRotation = RotationManager.currentRotation ?: player.rotation
-                player.pitch = 90f - (0.002f..0.004f).random()
-                oldSlot = player.inventory.selectedSlot
-                player.inventory.selectedSlot = getWaterBucketSlot()
+
+                killAura = ModuleKillAura.enabled
+                if (killAura) ModuleKillAura.enabled = false
+
                 timeout = 5
             }
         }
@@ -125,6 +140,11 @@ object ModuleAutoMLG : ClientModule("AutoMLG", Category.BMW) {
 
     @Suppress("unused")
     private val tickHandler = tickHandler {
+        if (rotateAtGround) {
+            player.pitch = 90f - (0.002f..0.004f).random()
+            rotateAtGround = false
+        }
+
         if (placeWater) {
             placeWater = false
 
@@ -135,7 +155,7 @@ object ModuleAutoMLG : ClientModule("AutoMLG", Category.BMW) {
 
                 val rotation = Rotation.lookingAt(blockPos.up().toCenterPos(), player.eyePos)
                 player.yaw = normalizeYaw(rotation.yaw + (-0.002f..0.002f).random())
-                player.pitch = clampPitchTo90(rotation.pitch + (-0.002f..0.002f).random())
+                player.pitch = normalizePitch(rotation.pitch + (-0.002f..0.002f).random())
             } else {
                 reset()
                 notifyAsMessage(ModuleAutoMLG, "Failed to place water (bad rotation)")

@@ -37,7 +37,7 @@
   }
 
   .alink-box {
-    background: rgba($md-dark-on-primary, 0.45);
+    background: rgba($md-dark-on-primary, 0.3);
     border-radius: 8px;
     padding: 6px 12px;
     min-width: 200px;

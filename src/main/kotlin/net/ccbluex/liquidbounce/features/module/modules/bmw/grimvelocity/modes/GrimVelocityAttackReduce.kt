@@ -172,7 +172,11 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
         if (targetPos.distanceTo(player.pos) <= 3.0 && AutoRotate.canRotate) {
             RotationManager.setRotationTarget(
                 plan = RotationTarget(
-                    rotation = Rotation.lookingAt(targetPos.add(0.0, (0.5..1.0).random(), 0.0), player.eyePos),
+                    rotation = Rotation.lookingAt(targetPos.add(
+                        (-0.05..0.05).random(),
+                        (-0.05..0.05).random(),
+                        (-0.05..0.05).random()
+                    ), player.pos),
                     processors = listOf(AutoRotate.angleSmooth.activeChoice),
                     ticksUntilReset = AutoRotate.rotationTime,
                     resetThreshold = 2f,

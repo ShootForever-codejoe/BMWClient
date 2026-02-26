@@ -25,6 +25,8 @@ import net.ccbluex.liquidbounce.event.events.PacketEvent
 import net.ccbluex.liquidbounce.event.events.TransferOrigin
 import net.ccbluex.liquidbounce.utils.client.sendPacketSilently
 import net.minecraft.network.packet.Packet
+import net.minecraft.util.math.MathHelper.wrapDegrees
+import java.lang.Math.clamp
 
 fun sendPacketNoEvent(parent: EventListener, packet: Packet<*>) {
     sendPacketSilently(packet)
@@ -33,22 +35,9 @@ fun sendPacketNoEvent(parent: EventListener, packet: Packet<*>) {
 }
 
 fun normalizeYaw(yaw: Float): Float {
-    var yaw = yaw
-    while (yaw > 180.0f) {
-        yaw -= 360.0f
-    }
-
-    while (yaw < -180.0f) {
-        yaw += 360.0f
-    }
-
-    return yaw
+    return wrapDegrees(yaw)
 }
 
-fun clampPitchTo90(pitch: Float): Float {
-    return if (pitch > 90.0f) {
-        90.0f
-    } else {
-        if (pitch < -90.0f) -90.0f else pitch
-    }
+fun normalizePitch(pitch: Float): Float {
+    return clamp(pitch, -90.0f, 90.0f)
 }
