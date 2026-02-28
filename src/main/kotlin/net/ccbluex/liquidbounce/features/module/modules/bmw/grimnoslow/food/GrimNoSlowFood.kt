@@ -32,10 +32,11 @@ object GrimNoSlowFood : ToggleableConfigurable(ModuleGrimNoSlow, "Food", true) {
     )
 
     @Suppress("unused")
-    private val modes = choices("Mode") {
+    val modes = choices("Mode") {
         arrayOf(
             GrimNoSlowShareHalf(it, useActions),
-            GrimNoSlowFoodDrop(it)
+            GrimNoSlowFoodDrop(it),
+            GrimNoSlowFoodNoC0F(it)
         )
     }
 

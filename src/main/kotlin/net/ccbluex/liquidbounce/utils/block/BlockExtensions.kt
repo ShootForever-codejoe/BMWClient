@@ -98,6 +98,16 @@ val BlockPos.outlineBox: Box
 val BlockPos.collisionShape: VoxelShape
     get() = this.getState()!!.getCollisionShape(world, this)
 
+fun BlockState.outlineBox(blockPos: BlockPos): Box {
+    val outlineShape = this.getOutlineShape(world, blockPos)
+
+    return if (outlineShape.isEmpty) {
+        FULL_BOX
+    } else {
+        outlineShape.boundingBox
+    }
+}
+
 fun VoxelShape.offset(pos: Vec3i): VoxelShape = offset(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
 
 fun VoxelShape.getClosestSquaredDistanceTo(position: Position): Double {

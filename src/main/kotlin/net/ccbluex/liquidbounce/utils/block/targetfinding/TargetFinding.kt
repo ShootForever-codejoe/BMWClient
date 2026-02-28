@@ -23,12 +23,16 @@ import net.ccbluex.liquidbounce.utils.aiming.RotationManager
 import net.ccbluex.liquidbounce.utils.aiming.data.Rotation
 import net.ccbluex.liquidbounce.utils.block.canBeReplacedWith
 import net.ccbluex.liquidbounce.utils.block.getState
+import net.ccbluex.liquidbounce.utils.block.outlineBox
+import net.ccbluex.liquidbounce.utils.block.toBlockPos
 import net.ccbluex.liquidbounce.utils.client.getFace
 import net.ccbluex.liquidbounce.utils.client.mc
 import net.ccbluex.liquidbounce.utils.client.player
 import net.ccbluex.liquidbounce.utils.client.world
+import net.ccbluex.liquidbounce.utils.entity.squaredBoxedDistanceTo
 import net.ccbluex.liquidbounce.utils.inventory.HotbarItemSlot
 import net.ccbluex.liquidbounce.utils.math.geometry.AlignedFace
+import net.ccbluex.liquidbounce.utils.math.geometry.Line
 import net.minecraft.block.BlockState
 import net.minecraft.block.ShapeContext
 import net.minecraft.block.SideShapeType
@@ -66,6 +70,24 @@ class BlockPlacementTargetFindingOptions(
         val PRIORITIZE_LEAST_BLOCK_DISTANCE: Comparator<Vec3i> = compareByDescending { vec ->
             player.squaredDistanceTo(vec.x.toDouble(), vec.y.toDouble(), vec.z.toDouble())
         }
+
+        @JvmStatic
+        fun leastBlockDistanceToLine(optimalLine: Line): Comparator<Vec3i> =
+            compareBy { vec ->
+                val blockPos = vec.toBlockPos()
+                val blockState = world.getBlockState(blockPos)
+                val box = blockState.outlineBox(blockPos)
+                -optimalLine.squaredDistanceTo(box)
+            }
+
+        @JvmStatic
+        fun leastBlockDistanceToPos(pos: Vec3d): Comparator<Vec3i> =
+            compareBy { vec ->
+                val blockPos = vec.toBlockPos()
+                val blockState = world.getBlockState(blockPos)
+                val box = blockState.outlineBox(blockPos)
+                -box.squaredBoxedDistanceTo(pos)
+            }
     }
 }
 

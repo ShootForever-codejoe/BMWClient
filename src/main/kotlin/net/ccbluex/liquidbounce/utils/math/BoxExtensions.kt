@@ -20,6 +20,7 @@ package net.ccbluex.liquidbounce.utils.math
 
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
+import net.minecraft.util.math.Position
 import net.minecraft.util.math.Vec3d
 import kotlin.math.max
 import kotlin.math.min
@@ -73,4 +74,15 @@ fun Box.getCoordinate(direction: Direction): Double {
     } else {
         this.getMin(direction.axis)
     }
+}
+
+/**
+ * Get the nearest point of a box. Very useful to calculate the distance of an enemy.
+ */
+fun Box.getNearestPoint(from: Position): Vec3d {
+    return Vec3d(
+        from.x.coerceIn(minX, maxX),
+        from.y.coerceIn(minY, maxY),
+        from.z.coerceIn(minZ, maxZ),
+    )
 }

@@ -29,6 +29,8 @@ import net.ccbluex.liquidbounce.config.types.ValueType
 import net.ccbluex.liquidbounce.config.types.nesting.Configurable
 import net.ccbluex.liquidbounce.config.types.nesting.ToggleableConfigurable
 import net.ccbluex.liquidbounce.event.EventListener
+import net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.food.GrimNoSlowFood
+import net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.food.GrimNoSlowFoodNoC0F
 import net.ccbluex.liquidbounce.utils.aiming.RotationManager
 import net.ccbluex.liquidbounce.utils.block.SwingMode
 import net.ccbluex.liquidbounce.utils.client.*
@@ -76,6 +78,7 @@ open class InventoryConstraints : Configurable("Constraints") {
         InventoryRequirements.NO_ROTATION,
         InventoryRequirements.NO_SPRINTING,
         InventoryRequirements.NO_SHIFT_CLICKING,
+        InventoryRequirements.NO_USING_ITEM
     )
 
     /**
@@ -108,6 +111,9 @@ enum class InventoryRequirements(
     NO_SPRINTING("NoSprinting"),
 
     NO_SHIFT_CLICKING("NoShiftClicking"),
+
+    NO_USING_ITEM("NoUsingItem"),
+
     /**
      * When this option is not enabled, the inventory will be opened silently
      * depending on the Minecraft version chosen using ViaFabricPlus.
@@ -129,6 +135,10 @@ enum class InventoryRequirements(
         NO_ROTATION -> RotationManager.rotationMatchesPreviousRotation()
         NO_SPRINTING -> !player.input.playerInput.sprint
         NO_SHIFT_CLICKING -> !player.input.playerInput.sneak
+        NO_USING_ITEM -> !player.usingItem
+            && !(GrimNoSlowFood.running
+            && GrimNoSlowFood.modes.activeChoice is GrimNoSlowFoodNoC0F
+            && (GrimNoSlowFood.modes.activeChoice as GrimNoSlowFoodNoC0F).step != GrimNoSlowFoodNoC0F.Step.NONE)
         OPEN_INVENTORY -> !action.requiresPlayerInventoryOpen() || InventoryManager.isInventoryOpen
     }
 }

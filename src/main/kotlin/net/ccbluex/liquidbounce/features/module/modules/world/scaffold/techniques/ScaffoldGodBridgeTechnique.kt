@@ -130,8 +130,8 @@ object ScaffoldGodBridgeTechnique : ScaffoldTechnique("GodBridge"), ScaffoldLedg
     ): BlockPlacementTarget? {
         val searchOptions = BlockPlacementTargetFindingOptions(
             BlockOffsetOptions(
-                NORMAL_INVESTIGATION_OFFSETS,
-                BlockPlacementTargetFindingOptions.PRIORITIZE_LEAST_BLOCK_DISTANCE,
+                BlockPosOffsets.NORMAL.offsets,
+                BlockPlacementTargetFindingOptions.leastBlockDistanceToPos(predictedPos),
             ),
             FaceHandlingOptions(CenterTargetPositionFactory),
             stackToPlaceWith = bestStack,

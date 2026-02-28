@@ -28,6 +28,7 @@ import net.ccbluex.liquidbounce.event.waitTicks
 import net.ccbluex.liquidbounce.event.events.BlockCountChangeEvent
 import net.ccbluex.liquidbounce.event.events.MovementInputEvent
 import net.ccbluex.liquidbounce.event.events.RotationUpdateEvent
+import net.ccbluex.liquidbounce.event.events.WorldChangeEvent
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.event.tickHandler
 import net.ccbluex.liquidbounce.features.module.Category
@@ -303,12 +304,21 @@ object ModuleScaffold : ClientModule("Scaffold", Category.WORLD) {
     }
 
     override fun onDisabled() {
+        reset()
+    }
+
+    private fun reset() {
         NoFallBlink.waitUntilGround = false
         ScaffoldMovementPlanner.reset()
         SilentHotbar.resetSlot(this)
         updateRenderCount()
         forceSneak = 0
         renderer.clearSilently()
+    }
+
+    @Suppress("unused")
+    private val worldChangeHandler = handler<WorldChangeEvent> {
+        reset()
     }
 
     private fun updateRenderCount(count: Int? = null) = EventManager.callEvent(BlockCountChangeEvent(count))

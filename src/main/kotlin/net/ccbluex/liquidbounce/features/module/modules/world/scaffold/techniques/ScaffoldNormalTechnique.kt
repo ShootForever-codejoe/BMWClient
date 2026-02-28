@@ -71,17 +71,17 @@ object ScaffoldNormalTechnique : ScaffoldTechnique("Normal") {
     ): BlockPlacementTarget? {
         // Prioritize the block that is closest to the line, if there was no line found, prioritize the nearest block
         val priorityComparator: Comparator<Vec3i> = if (optimalLine != null) {
-            compareByDescending { vec -> optimalLine.squaredDistanceTo(Vec3d.ofCenter(vec)) }
+            BlockPlacementTargetFindingOptions.leastBlockDistanceToLine(optimalLine)
         } else {
-            BlockPlacementTargetFindingOptions.PRIORITIZE_LEAST_BLOCK_DISTANCE
+            BlockPlacementTargetFindingOptions.leastBlockDistanceToPos(predictedPos)
         }
 
         val offsets = if (ModuleFreeze.running) {
-            FULL_INVESTIGATION_OFFSETS
+            BlockPosOffsets.FULL.offsets
         } else if (ScaffoldDownFeature.shouldGoDown) {
-            INVESTIGATE_DOWN_OFFSETS
+            BlockPosOffsets.DOWN.offsets
         } else {
-            NORMAL_INVESTIGATION_OFFSETS
+            BlockPosOffsets.NORMAL.offsets
         }
 
         // Face position factory for current config

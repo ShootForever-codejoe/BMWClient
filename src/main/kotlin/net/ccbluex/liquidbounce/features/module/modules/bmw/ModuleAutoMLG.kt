@@ -106,17 +106,11 @@ object ModuleAutoMLG : ClientModule("AutoMLG", Category.BMW) {
         if (event.state != EventState.PRE) return@handler
 
         if (player.fallDistance >= fallDistance) {
-            if (oldRotation != null && willBeOnGround(player.velocity.y)) {
-                placeWater = true
-
-            } else if (oldRotation == null
-                && willBeOnGround(player.velocity.y * 2.0)
+            if (oldRotation != null
+                && willBeOnGround(player.velocity.y)
                 && getWaterBucketSlot() != -1
             ) {
-                oldRotation = RotationManager.currentRotation ?: player.rotation
-                rotateAtGround = true
-                oldSlot = player.inventory.selectedSlot
-                player.inventory.selectedSlot = getWaterBucketSlot()
+                placeWater = true
 
             } else if (oldRotation == null
                 && willBeOnGround(player.velocity.y * 3.0)
@@ -127,6 +121,11 @@ object ModuleAutoMLG : ClientModule("AutoMLG", Category.BMW) {
 
                 killAura = ModuleKillAura.enabled
                 if (killAura) ModuleKillAura.enabled = false
+
+                oldRotation = RotationManager.currentRotation ?: player.rotation
+                rotateAtGround = true
+                oldSlot = player.inventory.selectedSlot
+                player.inventory.selectedSlot = getWaterBucketSlot()
 
                 timeout = 5
             }

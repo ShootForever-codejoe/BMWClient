@@ -23,7 +23,7 @@ import it.unimi.dsi.fastutil.objects.ObjectIntPair
 import net.ccbluex.liquidbounce.features.module.modules.player.invcleaner.ItemFunction
 import net.ccbluex.liquidbounce.utils.inventory.ItemSlot
 
-class SharpWeaponFacet(slot: ItemSlot) : WeaponItemFacet(slot) {
+class SharpAxeFacet(slot: ItemSlot) : WeaponItemFacet(slot) {
     override fun shouldKeep(): Boolean = true
     override val providedItemFunctions: List<ObjectIntPair<ItemFunction>>
         get() = emptyList()

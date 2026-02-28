@@ -16,7 +16,7 @@ import net.minecraft.entity.decoration.EndCrystalEntity
 
 object ModuleAttackCrystal : ClientModule("AttackCrystal", Category.BMW) {
 
-    private val range by float("Range", 4.5f, 0f..4.5f)
+    private val range by float("Range", 3f, 0f..4.5f)
     private val delay by int("Delay", 0, 0..1000, "ms")
     private val swingMode by enumChoice("SwingMode", SwingMode.DO_NOT_HIDE)
 

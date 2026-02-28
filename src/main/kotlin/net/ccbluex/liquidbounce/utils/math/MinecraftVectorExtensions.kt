@@ -22,6 +22,7 @@ package net.ccbluex.liquidbounce.utils.math
 
 import net.ccbluex.liquidbounce.render.engine.type.Vec3
 import net.minecraft.util.math.*
+import kotlin.text.toLong
 
 inline operator fun BlockPos.rangeTo(other: BlockPos): BlockBox = BlockBox.create(this, other)
 
@@ -49,6 +50,13 @@ inline operator fun Vec3d.minus(other: Vec3i): Vec3d =
     subtract(other.x.toDouble(), other.y.toDouble(), other.z.toDouble())
 
 inline operator fun Vec3d.times(scalar: Double): Vec3d = multiply(scalar)
+
+fun Vec3i.lengthSqr(): Long {
+    val x1 = x.toLong()
+    val y1 = y.toLong()
+    val z1 = z.toLong()
+    return x1 * x1 + y1 * y1 + z1 * z1
+}
 
 val Vec3d.isLikelyZero: Boolean
     get() = MathHelper.approximatelyEquals(this.lengthSquared(), 1.0E-6)

@@ -48,7 +48,6 @@ import net.ccbluex.liquidbounce.utils.aiming.features.processors.anglesmooth.imp
 import net.ccbluex.liquidbounce.utils.aiming.features.processors.anglesmooth.impl.MinaraiAngleSmooth
 import net.ccbluex.liquidbounce.utils.aiming.features.processors.anglesmooth.impl.SigmoidAngleSmooth
 import net.ccbluex.liquidbounce.utils.client.handlePacket
-import net.ccbluex.liquidbounce.utils.client.sendPacketSilently
 import net.ccbluex.liquidbounce.utils.combat.shouldBeAttacked
 import net.ccbluex.liquidbounce.utils.kotlin.Priority
 import net.ccbluex.liquidbounce.utils.kotlin.random
@@ -97,7 +96,7 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
                 MinaraiAngleSmooth(it, interpolationAngleSmooth)
             ).toTypedArray()
         }
-        val notDuringKillAura by boolean("NotDuringKillAura", true)
+        val notDuringKillAura by boolean("NotDuringKillAura", false)
         val canRotate: Boolean
             get() = enabled
                 && (!notDuringKillAura
@@ -325,7 +324,7 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
                 if (target !in world.entities) break
 
                 player.isSprinting = false
-                sendPacketSilently(
+                network.sendPacket(
                     PlayerInteractEntityC2SPacket.attack(
                         target,
                         player.isSneaking

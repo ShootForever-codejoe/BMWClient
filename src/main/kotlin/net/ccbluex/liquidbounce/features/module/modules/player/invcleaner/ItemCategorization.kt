@@ -207,10 +207,6 @@ class ItemCategorization(
                     })
                 }
 
-                Items.MACE -> {
-                    add(SharpWeaponFacet(slot))
-                }
-
                 // Treat animal armor as a normal item
                 is BowItem -> add(BowItemFacet(slot))
                 is CrossbowItem -> add(CrossbowItemFacet(slot))
@@ -219,7 +215,7 @@ class ItemCategorization(
                     if (slot.itemStack.sharpnessLevel >= 100) {
                         add(GodAxeFacet(slot))
                     } else if (slot.itemStack.sharpnessLevel >= 5) {
-                        add(SharpWeaponFacet(slot))
+                        add(SharpAxeFacet(slot))
                     } else {
                         add(MiningToolItemFacet(slot))
                     }
