@@ -49,7 +49,7 @@
         });
 
         apiSlider.on("set", () => {
-            dispatch("change");
+            dispatch("change", setting);
         });
     });
 </script>

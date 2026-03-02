@@ -24,6 +24,7 @@
 
     export let setting: ModuleSetting;
     export let path: string;
+    export let moduleName: string;
 </script>
 
 
@@ -31,7 +32,7 @@
     {#if setting.valueType === "BOOLEAN"}
         <BooleanSetting bind:setting={setting} on:change/>
     {:else if setting.valueType === "CHOICE"}
-        <ChoiceSetting {path} bind:setting={setting} on:change/>
+        <ChoiceSetting {path} bind:setting={setting} moduleName={moduleName} on:change/>
     {:else if setting.valueType === "FILE"}
         <FileSetting bind:setting={setting} on:change/>
     {:else if setting.valueType === "CHOOSE"}
@@ -39,7 +40,7 @@
     {:else if setting.valueType === "MULTI_CHOOSE"}
         <MultiChooseSetting {path} bind:setting={setting} on:change/>
     {:else if setting.valueType === "TOGGLEABLE"}
-        <TogglableSetting {path} bind:setting={setting} on:change/>
+        <TogglableSetting {path} bind:setting={setting} moduleName={moduleName} on:change/>
     {:else if setting.valueType === "INT"}
         <IntSetting bind:setting={setting} on:change/>
     {:else if setting.valueType === "INT_RANGE"}
@@ -49,7 +50,7 @@
     {:else if setting.valueType === "FLOAT_RANGE"}
         <FloatRangeSetting bind:setting={setting} on:change/>
     {:else if setting.valueType === "CONFIGURABLE"}
-        <ConfigurableSetting {path} bind:setting={setting} on:change/>
+        <ConfigurableSetting {path} bind:setting={setting} moduleName={moduleName} on:change/>
     {:else if setting.valueType === "COLOR"}
         <ColorSetting bind:setting={setting} on:change/>
     {:else if setting.valueType === "TEXT"}
@@ -61,7 +62,7 @@
     {:else if setting.valueType === "REGISTRY_LIST" }
         <RegistryListSetting {path} bind:setting={setting} on:change/>
     {:else if setting.valueType === "BIND"}
-        <BindSetting bind:setting={setting} on:change/>
+        <BindSetting bind:setting={setting} moduleName={moduleName} on:change/>
     {:else if setting.valueType === "VECTOR3_I" || setting.valueType === "VECTOR3_D" }
         <VectorSetting bind:setting={setting} on:change/>
     {:else if setting.valueType === "KEY"}

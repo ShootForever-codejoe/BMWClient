@@ -6,8 +6,8 @@
     import type {KeyboardKeyEvent, MouseButtonEvent} from "../../../integration/events";
     import {convertToSpacedString, spaceSeperatedNames} from "../../../theme/theme_config";
     import Dropdown from "./common/Dropdown.svelte";
-
     export let setting: ModuleSetting;
+    export let moduleName: string;
 
     const cSetting = setting as BindSetting;
 
@@ -38,17 +38,14 @@
             return;
         }
 
-        binding = false;
-
         if (e.keyCode !== 256) {
             cSetting.value.boundKey = e.key;
         } else {
             cSetting.value.boundKey = UNKNOWN_KEY;
         }
-
         setting = {...cSetting};
-
         dispatch("change");
+        binding = false;
     });
 
     listen("mouseButton", async (e: MouseButtonEvent) => {
@@ -60,26 +57,21 @@
         if (!binding || (e.button === 0 && isHovered)) {
             return;
         }
-
-        binding = false;
-
-        cSetting.value.boundKey = e.key;
-
+        cSetting.value.boundKey = `mouse.${e.button}`;
         setting = {...cSetting};
-
         dispatch("change");
+        binding = false;
     })
 
     async function toggleBinding() {
         if (binding) {
             cSetting.value.boundKey = UNKNOWN_KEY;
+            setting = {...cSetting};
+            binding = false;
+            dispatch("change");
+        } else {
+            binding = true;
         }
-
-        binding = !binding;
-
-        setting = {...cSetting};
-
-        dispatch("change");
     }
 
     function handleActionChange() {
@@ -118,7 +110,7 @@
   @use "../../../colors.scss" as *;
 
   .setting {
-    padding: 7px 0px;
+    padding: 5px 0px;
     display: grid;
     grid-template-columns: 1fr;
     column-gap: 5px;
@@ -129,18 +121,19 @@
   }
 
   .change-bind {
-    background-color: transparent;
-    border: solid 2px $accent-color;
-    border-radius: 3px;
+    background: $clickgui-settings-color;
+    border: solid 1px $clickgui-border-color;
+    border-radius: 5px;
+    padding: 8px;
     cursor: pointer;
-    padding: 4px;
     font-weight: 500;
+    justify-content: center;
+    align-items: center;
     color: $clickgui-text-color;
     font-size: 12px;
     font-family: "Inter", sans-serif;
     width: 100%;
     display: flex;
-    justify-content: center;
     column-gap: 5px;
 
     .name {

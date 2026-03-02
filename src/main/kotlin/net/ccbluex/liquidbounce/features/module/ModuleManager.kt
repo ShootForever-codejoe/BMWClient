@@ -456,7 +456,6 @@ object ModuleManager : EventListener, Collection<ClientModule> by modules {
             ModuleGrimNoSlow,
             ModuleNewAutoSave,
             ModuleAttackCrystal,
-            ModuleStaffCheck,
             ModuleAutoMLG
         )
 

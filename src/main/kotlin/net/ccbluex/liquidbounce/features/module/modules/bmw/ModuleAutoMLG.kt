@@ -44,6 +44,7 @@ import net.minecraft.util.math.Direction
 object ModuleAutoMLG : ClientModule("AutoMLG", Category.BMW) {
 
     private val fallDistance by float("FallDistance", 4f, 3f..15f)
+    private val notDuringKillAura by boolean("NotDuringKillAura", false)
 
     private var placeWater = false
     private var timeout = -1
@@ -115,6 +116,7 @@ object ModuleAutoMLG : ClientModule("AutoMLG", Category.BMW) {
             } else if (oldRotation == null
                 && willBeOnGround(player.velocity.y * 3.0)
                 && getWaterBucketSlot() != -1
+                && (!notDuringKillAura || !ModuleKillAura.running || ModuleKillAura.targetTracker.target == null)
             ) {
                 scaffold = ModuleScaffold.enabled
                 if (scaffold) ModuleScaffold.enabled = false

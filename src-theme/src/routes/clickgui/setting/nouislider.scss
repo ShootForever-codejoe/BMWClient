@@ -2,13 +2,13 @@
 @use "../../../colors.scss" as *;
 
 .noUi-handle {
-    background-color: $accent-color;
+    background-color: white;
     box-shadow: unset;
     border: none;
     border-radius: 50%;
     height: 12px !important;
     width: 12px !important;
-    transform: translate(-5px, 1px);
+    transform: translate(-6px, 2.5px);
 }
 
 .noUi-handle::after,
@@ -18,12 +18,12 @@
 
 .noUi-target {
     margin: 10px 0;
-    height: 2px;
+    height: 5px;
     border: none;
-    background-color: color.adjust($clickgui-text-color, $lightness: -80%);
+    background-color: color.adjust($clickgui-text-color, $lightness: -60%);
     box-shadow: unset;
 }
 
 .noUi-connect {
-    background-color: $accent-color;
+    background-color: rgba(var(--accent-color), 1);
 }

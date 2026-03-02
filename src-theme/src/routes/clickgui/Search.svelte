@@ -8,6 +8,7 @@
     import {convertToSpacedString, spaceSeperatedNames} from "../../theme/theme_config";
 
     export let modules: Module[];
+    export let onJumpToModule: (moduleName: string) => void;
 
     let resultElements: HTMLElement[] = [];
     let searchContainerElement: HTMLElement;
@@ -15,7 +16,8 @@
     let searchInputElement: HTMLElement;
     let query: string;
     let filteredModules: Module[] = [];
-    let selectedIndex = 0;
+    let selectedIndex = -1;
+    let isFocused = false;
 
     function reset() {
         filteredModules = [];
@@ -28,8 +30,7 @@
             reset();
             return;
         }
-
-        selectedIndex = 0;
+        selectedIndex = -1;
 
         const pureQuery = query.toLowerCase().replaceAll(" ", "");
 
@@ -134,193 +135,222 @@
 
 <svelte:window on:click={handleWindowClick} on:keydown={handleWindowKeyDown} on:contextmenu={handleWindowClick}/>
 
-<div
-        class="search"
-        class:has-results={query}
-        bind:this={searchContainerElement}
->
-    <input
-            type="text"
-            class="search-input"
-            placeholder="Search"
-            spellcheck="false"
-            bind:value={query}
-            bind:this={searchInputElement}
-            on:input={filterModules}
-            on:keydown={handleBrowserKeyDown}
-            on:focusin={async () => await setTyping(true)}
-            on:focusout={async () => await setTyping(false)}
-    />
-
+<div class="search-bar-wrapper">
+  <div
+    class="search {query && filteredModules.length > 0 ? 'open' : ''}"
+    class:has-results={query}
+    bind:this={searchContainerElement}
+  >
+    <div class="search-input-wrapper">
+      <span class="search-icon-wrapper">
+        {#if isFocused}
+          <img src="./img/clickgui/icon-search.gif" alt="search" class="search-icon-img" />
+        {:else}
+          <img src="./img/clickgui/icon-search.svg" alt="search" class="search-icon-img" />
+        {/if}
+      </span>
+      <input
+        type="text"
+        class="search-input"
+        placeholder="Search modules..."
+        spellcheck="false"
+        bind:value={query}
+        bind:this={searchInputElement}
+        on:input={filterModules}
+        on:keydown={handleBrowserKeyDown}
+        on:focusin={() => { isFocused = true; setTyping(true); }}
+        on:focusout={() => { isFocused = false; setTyping(false); }}
+      />
+    </div>
     {#if query}
-        <div class="results">
-            {#if filteredModules.length > 0}
-                {#each filteredModules as {name, enabled, aliases}, index (name)}
-                    <!-- svelte-ignore a11y-click-events-have-key-events -->
-                    <!-- svelte-ignore a11y-no-static-element-interactions -->
-                    <div
-                            class="result"
-                            class:enabled
-                            on:click={() => toggleModule(name, !enabled)}
-                            on:contextmenu|preventDefault={() => $highlightModuleName = name}
-                            class:selected={selectedIndex === index}
-                            bind:this={resultElements[index]}
-                    >
-                        <div class="module-name">
-                            {$spaceSeperatedNames ? convertToSpacedString(name) : name}
-                        </div>
-                        <div class="aliases">
-                            {#if aliases.length > 0}
-                                (aka {aliases.map(name => $spaceSeperatedNames ? convertToSpacedString(name) : name).join(", ")})
-                            {/if}
-                        </div>
-                    </div>
-                {/each}
-            {:else}
-                <div class="placeholder">No modules found</div>
-            {/if}
-        </div>
+      <div class="results open">
+        {#if filteredModules.length > 0}
+          {#each filteredModules as {name, enabled, aliases}, index (name)}
+            <div class="result"
+    class:enabled
+    on:click={() => { if (!enabled) toggleModule(name, true); }}
+    on:contextmenu|preventDefault={() => { onJumpToModule && onJumpToModule(name); reset(); }}
+    class:selected={selectedIndex === index}
+    on:mouseenter={() => selectedIndex = index}
+    on:mouseleave={() => selectedIndex = -1}
+    bind:this={resultElements[index]}
+            >
+              <div class="module-name">
+                {name}
+              </div>
+              <div class="aliases">
+                {#if aliases.length > 0}
+                  (aka {aliases.map(name => $spaceSeperatedNames ? convertToSpacedString(name) : name).join(", ")})
+                {/if}
+              </div>
+            </div>
+          {/each}
+        {:else}
+          <div class="placeholder">No modules found...<img src="./img/clickgui/icon-nomodules.gif" alt="search" class="search-nomodules-found"/></div>
+        {/if}
+      </div>
     {/if}
+  </div>
 </div>
 
 <style lang="scss">
   @use "../../colors.scss" as *;
 
-  .search {
-    position: fixed;
-    left: 50%;
-    top: 40px;
-    transform: translateX(-50%);
-    background-color: var(--md-sys-color-surface-container-high);
-    width: 640px;
-    border-radius: 28px;
-    overflow: hidden;
-    transition: all 0.3s cubic-bezier(0.2, 0, 0, 1);
-    box-shadow: var(--md-sys-elevation-level3);
-    border: 1px solid var(--md-sys-color-outline-variant);
-    backdrop-filter: blur(24px);
-
-    &.has-results {
-      border-radius: 28px 28px 16px 16px;
-      box-shadow: var(--md-sys-elevation-level4);
-    }
-
-    &:focus-within {
-      z-index: 9999999999;
-      transform: translateX(-50%) translateY(-2px);
-      box-shadow: var(--md-sys-elevation-level4);
-    }
-  }
-
-  .results {
-    border-top: 2px solid var(--md-sys-color-primary);
-    padding: 8px 24px;
-    max-height: 280px;
-    overflow: auto;
-    background-color: var(--md-sys-color-surface-container);
-
-    .result {
-      font-size: 15px;
-      padding: 12px 16px;
-      transition: all 0.3s cubic-bezier(0.2, 0, 0, 1);
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      border-radius: 16px;
-      margin: 4px 0;
-      
-      .module-name {
-        color: var(--md-sys-color-on-surface-variant);
-        transition: all 0.2s ease;
-        font-weight: 500;
-        flex: 1;
-      }
-
-      &.enabled {
-        background-color: rgba(var(--md-sys-color-primary-container), 0.3);
-        .module-name {
-          color: var(--md-sys-color-primary);
-        }
-      }
-
-      .aliases {
-        color: var(--md-sys-color-outline);
-        margin-left: 12px;
-        font-size: 13px;
-        font-weight: 400;
-      }
-
-      &.selected {
-        background-color: var(--md-sys-color-secondary-container);
-        .module-name {
-          color: var(--md-sys-color-on-secondary-container);
-        }
-        transform: translateX(8px);
-      }
-
-      &:hover {
-        background-color: var(--md-sys-color-surface-container-highest);
-        color: var(--md-sys-color-on-surface);
-        transform: translateX(4px);
-        
-        &::after {
-          content: "右键定位模块";
-          color: var(--md-sys-color-outline);
-          font-size: 12px;
-          margin-left: 16px;
-          font-weight: 400;
-        }
-      }
-      
-      &:active {
-        transform: scale(0.98) translateX(4px);
-      }
-    }
-
-    .placeholder {
-      color: var(--md-sys-color-on-surface-variant);
-      font-size: 15px;
-      padding: 16px;
-      text-align: center;
-      font-style: italic;
-    }
-
-    &::-webkit-scrollbar {
-      width: 8px;
-    }
-    
-    &::-webkit-scrollbar-track {
-      background: transparent;
-    }
-    
-    &::-webkit-scrollbar-thumb {
-      background-color: var(--md-sys-color-outline);
-      border-radius: 4px;
-      transition: all 0.2s ease;
-      
-      &:hover {
-        background-color: var(--md-sys-color-on-surface-variant);
-      }
-    }
-  }
-
-  .search-input {
-    padding: 16px 24px;
-    background-color: transparent;
-    border: none;
-    font-family: "Axiforma", sans-serif;
-    font-size: 16px;
-    color: var(--md-sys-color-on-surface);
+  .search-bar-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
     width: 100%;
-    transition: all 0.2s ease;
-    
-    &::placeholder {
-      color: var(--md-sys-color-outline);
+    height: 100%;
+    padding-right: 0;
+  }
+  .search {
+    width: 250px;
+    max-width: 400px;
+    background: $clickgui-settings-color;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    margin: 0;
+    position: relative;
+    border: 1px solid $clickgui-border-color;
+    transition: box-shadow 0.2s, border-color 0.2s, border-radius 0.18s;
+    &:focus-within, &.open {
+      border: 1px solid rgba(var(--accent-color), 1);
+      box-shadow: 0 0 10px rgba(var(--accent-color), 0.5);
+      border-radius: 10px 10px 0 0;
     }
-    
-    &:focus {
-      outline: none;
-      background-color: rgba(var(--md-sys-color-primary-container), 0.1);
+    &.open {
+      border-radius: 10px 10px 0 0;
+    }
+  }
+  .search-input-wrapper {
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    height: 38px;
+    position: relative;
+  }
+  .search-icon-wrapper {
+    position: absolute;
+    left: 12.5px;
+    top: 18px;
+    transform: translateY(-50%);
+    opacity: 0.5;
+    pointer-events: none;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .search-icon-img {
+    width: 24px;
+    height: 24px;
+    display: block;
+  }
+  .search-input {
+    width: 100%;
+    padding: 10px 18px 10px 32.5px;
+    font-size: 15px;
+    background: transparent;
+    color: $clickgui-text-color;
+    border: none;
+    outline: none;
+    border-radius: 10px;
+    transition: background 0.2s;
+    &::placeholder {
+      color: $clickgui-text-dimmed-color;
+      opacity: 0.7;
+      font-size: 15px;
+    }
+  }
+  .results {
+    position: absolute;
+    left: 0;
+    top: 100%;
+    width: 100%;
+    z-index: 10;
+    background: $clickgui-settings-color;
+    border-radius: 0 0 10px 10px;
+    max-height: 225px;
+    overflow-y: auto;
+    border-top: 1px solid rgba(var(--accent-color), 1);
+    margin-top: 0;
+    animation: fadeIn 0.18s;
+    transition: box-shadow 0.2s, border-radius 0.2s;
+    &.open {
+      border: 1px solid rgba(var(--accent-color), 1);
+      box-shadow: 0 0 10px rgba(var(--accent-color), 0.5);
+    }
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .result {
+    padding: 10px 10px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    transition: background 0.15s;
+    border-radius: 5px;
+    overflow: hidden;
+    margin: 2px 2px;
+    color: $clickgui-text-color;
+    &:hover, &.selected {
+      background: rgba(var(--accent-color), 0.1);
+    }
+    &.enabled {
+      color: var(--accent-color);
+    }
+  }
+  .module-name {
+    font-weight: 600;
+    font-size: 15px;
+    color: $clickgui-text-color;
+  }
+  .aliases {
+    font-size: 13px;
+    color: $clickgui-text-dimmed-color;
+  }
+  .placeholder {
+    padding: 12px 18px;
+    color: $clickgui-text-dimmed-color;
+    text-align: center;
+  }
+  .search-nomodules-found {
+    margin-left: -1px;
+    margin-bottom: -2px;
+    width: 20px;
+    height: 20px;
+  }
+  @media (max-width: 700px) {
+    .search-bar-wrapper {
+      width: 100%;
+      padding: 0;
+    }
+    .search {
+      width: 100%;
+      min-width: 0;
+      max-width: 100%;
+      border-radius: 10px;
+    }
+    .search-input {
+      font-size: 15px;
+      padding-left: 38px;
+      border-radius: 10px;
+    }
+    .results {
+      border-radius: 0 0 10px 10px;
+      max-height: 120px;
     }
   }
 </style>

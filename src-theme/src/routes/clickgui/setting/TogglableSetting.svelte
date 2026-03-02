@@ -9,6 +9,7 @@
 
     export let setting: ModuleSetting;
     export let path: string;
+    export let moduleName: string;
 
     const cSetting = setting as TogglableSetting;
     const thisPath = `${path}.${cSetting.name}`;
@@ -57,7 +58,7 @@
     {#if expanded}
         <div class="nested-settings">
             {#each nestedSettings as setting (setting.name)}
-                <GenericSetting  path={thisPath} bind:setting on:change={handleChange} />
+                <GenericSetting path={thisPath} bind:setting moduleName={moduleName} on:change={handleChange} />
             {/each}
         </div>
     {/if}
@@ -84,7 +85,9 @@
     }
 
     .nested-settings {
-        border-left: solid 2px $accent-color;
-        padding-left: 7px;
+      background: rgba($clickgui-settings-color, 0.75);
+      border-radius: 10px;
+      border: 1px solid $clickgui-border-color;
+      padding: 2.5px 7.5px 2.5px 7.5px;
     }
 </style>

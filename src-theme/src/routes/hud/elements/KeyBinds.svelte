@@ -11,7 +11,7 @@
     let modules: Module[] = $state([]);
 
     async function updateModulesWithBinds() {
-        modules = (await getModules()).filter(m => m.keyBind.boundKey !== UNKNOWN_KEY);
+        modules = (await getModules()).filter(m => m.enabled && m.keyBind.boundKey !== UNKNOWN_KEY);
     }
 
     listen("moduleToggle", updateModulesWithBinds);
@@ -54,7 +54,7 @@
                         <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2z"/>
                     </svg>
                 </div>
-                <span class="empty-text">No active bindings</span>
+                <span class="empty-text">No active modules</span>
             </div>
         {/each}
     </div>
@@ -87,18 +87,20 @@
   }
 
   .md3-widget {
-    background-color: var(--md-sys-color-surface-container);
+    background-color: transparent;
     border-radius: 24px; /* MD3 标准圆角 */
     width: 240px;
     padding-bottom: 8px;
+    font-family: "google", "sans-serif";
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    /* MD3 Level 1 Elevation */
-    box-shadow: 0 1px 3px 1px rgba(0, 0, 0, 0.15), 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+    /* 透明背景下的阴影调整 */
+    box-shadow: 0 1px 3px 1px rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.2);
   }
 
   .header {
+    font-family: "google", "sans-serif";
     display: flex;
     align-items: center;
     padding: 16px 20px 12px 20px;
@@ -106,12 +108,13 @@
     color: var(--md-sys-color-on-surface);
 
     .icon-container {
+      font-family: "google", "sans-serif";
       width: 24px;
       height: 24px;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--md-sys-color-primary);
+      color: var(74, 68, 88);
 
       svg {
         width: 24px;
@@ -120,6 +123,7 @@
     }
 
     .title {
+      font-family: "google", "sans-serif";
       font-size: var(--md-sys-typescale-title-medium);
       font-weight: 500;
       letter-spacing: 0.15px;
@@ -127,6 +131,7 @@
   }
 
   .list-content {
+    font-family: "google", "sans-serif";
     display: flex;
     flex-direction: column;
     padding: 0 8px;
@@ -136,6 +141,7 @@
   /* 列表项 - 胶囊形状 */
   .list-item {
     position: relative;
+    font-family: "google", "sans-serif";
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -149,6 +155,7 @@
 
     /* State Layer (悬停效果) */
     .state-layer {
+      font-family: "google", "sans-serif";
       position: absolute;
       inset: 0;
       background-color: var(--md-sys-color-on-surface);
@@ -158,12 +165,12 @@
     }
 
     &:hover .state-layer {
-      opacity: 0.08;
+      opacity: 0.12; /* 在透明背景下稍微增强悬停效果 */
     }
 
     /* 选中/启用状态 */
     &.active {
-      background-color: var(--md-sys-color-secondary-container);
+      font-family: "google", "sans-serif";
       color: var(--md-sys-color-on-secondary-container);
 
       .state-layer {
@@ -188,6 +195,7 @@
 
     /* 按键显示 Chip */
     .key-chip {
+      font-family: "google", "sans-serif";
       display: inline-flex;
       align-items: center;
       justify-content: center;
@@ -211,6 +219,7 @@
   }
 
   .empty-state {
+    font-family: "google", "sans-serif";
     display: flex;
     flex-direction: column;
     align-items: center;

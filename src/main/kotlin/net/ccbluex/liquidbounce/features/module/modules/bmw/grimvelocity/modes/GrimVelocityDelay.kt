@@ -32,7 +32,10 @@ import net.ccbluex.liquidbounce.event.tickHandler
 import net.ccbluex.liquidbounce.features.module.modules.bmw.grimvelocity.GrimVelocityMode
 import net.ccbluex.liquidbounce.features.module.modules.combat.killaura.ModuleKillAura
 import net.ccbluex.liquidbounce.features.module.modules.player.nofall.modes.NoFallGrim
+import net.ccbluex.liquidbounce.render.drawBox
 import net.ccbluex.liquidbounce.render.engine.type.Color4b
+import net.ccbluex.liquidbounce.render.renderEnvironmentForWorld
+import net.ccbluex.liquidbounce.render.withPositionRelativeToCamera
 import net.ccbluex.liquidbounce.utils.client.handlePacket
 import net.ccbluex.liquidbounce.utils.inventory.InventoryManager
 import net.ccbluex.liquidbounce.utils.math.copy
@@ -52,6 +55,9 @@ import net.minecraft.network.packet.s2c.play.GameJoinS2CPacket
 import net.minecraft.network.packet.s2c.play.GameMessageS2CPacket
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 import net.minecraft.network.packet.s2c.play.PlayerRespawnS2CPacket
+import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Box
+import net.minecraft.util.math.Vec3d
 
 object GrimVelocityDelay : GrimVelocityMode("Delay") {
 
@@ -75,8 +81,15 @@ object GrimVelocityDelay : GrimVelocityMode("Delay") {
             DelayByTicks
         )
     )
+
+    private val renderTargetMode = choices(
+        "RenderTargetMode", Wireframe, arrayOf(
+            Box, Model, Wireframe, None
+        )
+    )
+
     private val requireKillAura by boolean("RequireKillAura", true)
-    private val renderTarget by boolean("RenderTarget", true)
+
 
     private var delaying = false
     private var damage = false
@@ -164,7 +177,7 @@ object GrimVelocityDelay : GrimVelocityMode("Delay") {
                     else -> 0
                 }
                 delaying = true
-                if (renderTarget) {
+                if (ModuleKillAura.running && ModuleKillAura.targetTracker.target != null) {
                     target = ModuleKillAura.targetTracker.target
                     targetPos = TrackedPosition().apply { pos = target!!.pos }
                 }
@@ -213,19 +226,78 @@ object GrimVelocityDelay : GrimVelocityMode("Delay") {
         }
     }
 
-    @Suppress("unused")
-    private val renderHandler = handler<WorldRenderEvent> {
-        if (!delaying || target == null || targetPos == null) return@handler
+    private sealed class RenderChoice(name: String) : Choice(name) {
+        final override val parent: ChoiceConfigurable<*>
+            get() = renderTargetMode
 
-        WireframePlayer(
-            targetPos!!.pos,
-            target!!.yaw,
-            target!!.pitch
-        ).render(
-            it,
-            Color4b(255, 255, 255, 100),
-            Color4b(255, 255, 255, 255)
-        )
+        protected fun getEntityPosition(): Pair<Entity, Vec3d>? {
+            if (!delaying) return null
+            val entity = target ?: return null
+            val pos = targetPos?.pos ?: return null
+            return entity to pos
+        }
     }
+
+    private object Box : RenderChoice("Box") {
+        private val color by color("Color", Color4b(36, 32, 147, 87))
+
+        @Suppress("unused")
+        private val renderHandler = handler<WorldRenderEvent> { event ->
+            val (entity, pos) = getEntityPosition() ?: return@handler
+
+            val dimensions = entity.getDimensions(entity.pose)
+            val d = dimensions.width.toDouble() / 2.0
+
+            val box = Box(-d, 0.0, -d, d, dimensions.height.toDouble(), d).expand(0.05)
+
+            renderEnvironmentForWorld(event.matrixStack) {
+                withPositionRelativeToCamera(pos) {
+                    drawBox(box, color)
+                }
+            }
+        }
+    }
+
+    private object Model : RenderChoice("Model") {
+        private val lightAmount by float("LightAmount", 0.3f, 0.01f..1f)
+
+        @Suppress("unused")
+        private val renderHandler = handler<WorldRenderEvent> { event ->
+            val (entity, pos) = getEntityPosition() ?: return@handler
+
+            val light = world.getLightLevel(BlockPos.ORIGIN)
+            val reducedLight = (light * lightAmount.toDouble()).toInt()
+
+            renderEnvironmentForWorld(event.matrixStack) {
+                withPositionRelativeToCamera(pos) {
+                    mc.entityRenderDispatcher.render(
+                        entity,
+                        0.0,
+                        0.0,
+                        0.0,
+                        1f,
+                        event.matrixStack,
+                        mc.bufferBuilders.entityVertexConsumers,
+                        reducedLight
+                    )
+                }
+            }
+        }
+    }
+
+    private object Wireframe : RenderChoice("Wireframe") {
+        private val color by color("Color", Color4b(255, 255, 255, 100))
+        private val outlineColor by color("OutlineColor", Color4b(255, 255, 255, 255))
+
+        @Suppress("unused")
+        private val renderHandler = handler<WorldRenderEvent> {
+            val (entity, pos) = getEntityPosition() ?: return@handler
+
+            val wireframePlayer = WireframePlayer(pos, entity.yaw, entity.pitch)
+            wireframePlayer.render(it, color, outlineColor)
+        }
+    }
+
+    private object None : RenderChoice("None")
 
 }

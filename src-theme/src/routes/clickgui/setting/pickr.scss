@@ -6,20 +6,21 @@
 
 .pcr-app {
     width: 100% !important;
-    padding: 0 !important;
-    background-color: transparent;
-    margin-top: 8px;
-    margin-bottom: -10px;
+    padding: 10px 15px 1px 15px !important;
+    background-color: $clickgui-settings-color;
+    border: 1px solid $clickgui-border-color;
+    margin-top: 5px;
+    margin-bottom: -5px;
 }
 
 /* NOTE: Border radius disabled because of slight render bug */
 .pcr-palette::before,
 .pcr-palette {
-    border-radius: 0 !important;
+    border-radius: 0px !important;
 }
 
 .color-pickr-button {
-    border: 1px solid $accent-color !important;
+    border: 1px solid white !important;
 }
 
 .color-pickr-button:focus {

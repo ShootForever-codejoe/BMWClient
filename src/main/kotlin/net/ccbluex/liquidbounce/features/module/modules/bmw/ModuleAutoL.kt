@@ -88,17 +88,14 @@ object ModuleAutoL : ClientModule("AutoL", Category.BMW) {
         )
     )
 
+    private val globalMessage by boolean("GlobalMessage", true)
     private val nameInFront by boolean("NameInFront", true)
     private val advertisement by boolean("Advertisement", true)
-    private object RandomTextInEnd : ToggleableConfigurable(this, "RandomTextInEnd", true) {
+    private val randomTextInEnd = tree(object : ToggleableConfigurable(this, "RandomTextInEnd", true) {
         val length by intRange("Length", 5..10, 0..50)
-    }
+    })
 
-    init {
-        tree(RandomTextInEnd)
-    }
-
-    private const val CHARSET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+    private const val CHARSET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_"
     private val poems = listOf(
         "海内存知己，天涯若比邻",
         "莫愁前路无知己，天下谁人不识君",
@@ -153,19 +150,23 @@ object ModuleAutoL : ClientModule("AutoL", Category.BMW) {
     )
 
     private fun sayL(name: String) {
-        var message = when (wordPattern.activeChoice) {
+        var message = ""
+        if (globalMessage) {
+            message += "!"
+        }
+        if (nameInFront) {
+            message += "$name "
+        }
+        message += when (wordPattern.activeChoice) {
             is WordPatternCustom -> (wordPattern.activeChoice as WordPatternCustom).customMessages.random()
             is WordPatternPoem -> poems.random()
             else -> ""
         }
-        if (nameInFront) {
-            message = "$name $message"
-        }
         if (advertisement) {
             message += " --BMWClient"
         }
-        if (RandomTextInEnd.enabled) {
-            message += " <" + (1..RandomTextInEnd.length.random())
+        if (randomTextInEnd.enabled) {
+            message += " <" + (1..randomTextInEnd.length.random())
                 .map {  CHARSET.random() }
                 .joinToString("") + ">"
         }

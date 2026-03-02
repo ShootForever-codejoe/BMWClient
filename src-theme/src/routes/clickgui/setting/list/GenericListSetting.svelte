@@ -96,7 +96,7 @@
   .search-input {
     width: 100%;
     border: none;
-    border-bottom: solid 1px $accent-color;
+    border-bottom: solid 1px rgba(var(--accent-color), 1);
     font-family: "Inter", sans-serif;
     font-size: 12px;
     padding: 5px;

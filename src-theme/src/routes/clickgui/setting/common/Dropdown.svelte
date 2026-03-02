@@ -59,33 +59,33 @@
 
     &.expanded {
       .text::after {
-        transform: translateY(-50%) rotate(0);
+        transform: translateY(-50%) rotate(-180deg);
         opacity: 1;
       }
 
       .head {
-        border-radius: 3px 3px 0 0;
       }
     }
   }
 
   .head {
-    background-color: $accent-color;
-    padding: 6px 10px;
-    cursor: pointer;
+    background: $clickgui-settings-color;
+    border: 1px solid $clickgui-border-color;
+    padding: 8px;
     display: flex;
     align-items: center;
     position: relative;
-    border-radius: 3px;
-    transition: ease border-radius .2s;
+    cursor: pointer;
+    border-radius: 7.5px;
+    transition: color 0.2s ease, border-color 0.2s ease;
 
     .text {
-      font-weight: 500;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
       color: $clickgui-text-color;
       font-size: 12px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      font-weight: 500;
       margin-right: 20px;
     }
 
@@ -101,37 +101,37 @@
       background-position: center;
       background-repeat: no-repeat;
       transform-origin: 50% 50%;
-      transform: translateY(-50%) rotate(-90deg);
+      transform: translateY(-50%) rotate(-0deg);
       transition: ease opacity 0.2s,
-      ease transform 0.4s;
+      ease transform 0.3s;
     }
   }
 
   .options {
-    padding: 6px 10px;
-    background-color: $clickgui-base-color;
-    border: solid 1px $accent-color;
-    border-top: none;
-    border-radius: 0 0 3px 3px;
-    z-index: 9999;
-    width: 100%;
     position: absolute;
+    top: 35px;
+    width: 100%;
+    background: $clickgui-settings-color;
+    border: 1px solid $clickgui-border-color;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.35);
+    z-index: 10;
+    overflow: hidden;
+    color: rgba(255, 255, 255, 0.4);
 
     .option {
-      color: $clickgui-text-dimmed-color;
-      font-weight: 500;
-      font-size: 12px;
-      padding: 5px 0;
+      padding: 5px 10px;
       cursor: pointer;
-      text-align: center;
-      transition: ease color 0.2s;
+      transition: background 0.15s ease, color 0.15s ease;
 
       &:hover {
+        background: rgba(var(--accent-color), 0.15);
         color: $clickgui-text-color;
       }
 
       &.active {
-        color: $accent-color;
+        color: rgba(var(--accent-color), 1);
+        text-shadow: 0 0 10px rgba(var(--accent-color), 0.5);
       }
     }
   }

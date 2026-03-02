@@ -24,7 +24,7 @@ import net.ccbluex.liquidbounce.config.types.nesting.Choice
 import net.ccbluex.liquidbounce.config.types.nesting.ChoiceConfigurable
 import net.ccbluex.liquidbounce.event.events.PacketEvent
 import net.ccbluex.liquidbounce.event.events.PlayerUseMultiplier
-import net.ccbluex.liquidbounce.event.sequenceHandler
+import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.event.tickHandler
 import net.ccbluex.liquidbounce.utils.client.sendPacketSilently
 import net.ccbluex.liquidbounce.utils.inventory.InventoryManager
@@ -34,11 +34,13 @@ import net.minecraft.network.packet.c2s.common.CommonPongC2SPacket
 import net.minecraft.network.packet.c2s.play.CloseHandledScreenC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
 import net.minecraft.network.packet.s2c.play.ScreenHandlerSlotUpdateS2CPacket
+import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
 internal class GrimNoSlowFoodNoC0F(
-    override val parent: ChoiceConfigurable<*>
+    override val parent: ChoiceConfigurable<*>,
+    val useActions: Array<UseAction>
 ) : Choice("NoC0F") {
 
     var step = Step.NONE
@@ -65,6 +67,14 @@ internal class GrimNoSlowFoodNoC0F(
         step = Step.NONE
     }
 
+    private fun isUsable(useAction: UseAction) = useAction in arrayOf(
+        UseAction.EAT,
+        UseAction.DRINK,
+        UseAction.BOW,
+        UseAction.SPEAR,
+        UseAction.CROSSBOW
+    )
+
     @Suppress("unused")
     private val tickHandler = tickHandler {
         if (step != Step.EATING) {
@@ -76,16 +86,26 @@ internal class GrimNoSlowFoodNoC0F(
             noUsingItemTicks = 0
         } else {
             noUsingItemTicks++
-            if (noUsingItemTicks >= 10) {
+            if (noUsingItemTicks >= 5) {
                 release()
             }
         }
     }
 
     @Suppress("unused")
-    private val playerUseMultiplierHandler = sequenceHandler<PlayerUseMultiplier> { event ->
-        if (player.activeItem.useAction != UseAction.EAT || player.itemUseTimeLeft <= 0) {
-            return@sequenceHandler
+    private val playerUseMultiplierHandler = handler<PlayerUseMultiplier> { event ->
+        if (player.activeItem.useAction !in useActions || player.itemUseTimeLeft <= 0) {
+            return@handler
+        }
+
+        val oppositeHand = if (player.activeHand == Hand.MAIN_HAND) {
+            Hand.OFF_HAND
+        } else {
+            Hand.MAIN_HAND
+        }
+
+        if (isUsable(player.getStackInHand(oppositeHand).useAction)) {
+            return@handler
         }
 
         if (step != Step.EATING) {
@@ -105,7 +125,7 @@ internal class GrimNoSlowFoodNoC0F(
     }
 
     @Suppress("unused")
-    private val packetHandler = sequenceHandler<PacketEvent> { event ->
+    private val packetHandler = handler<PacketEvent> { event ->
         val packet = event.packet
 
         if (packet is CommonPongC2SPacket && step != Step.NONE) {

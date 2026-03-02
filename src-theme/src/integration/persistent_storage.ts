@@ -43,3 +43,11 @@ export async function setItem(name: string, value: string) {
     localStorage.setItem(name ,value);
     await updatePersistentData();
 }
+
+export const saveClickGuiColor = async (color: string) => {
+    await setItem("clickgui.color", color);
+};
+
+export const getClickGuiColor = (): string | null => {
+    return localStorage.getItem("clickgui.color");
+};

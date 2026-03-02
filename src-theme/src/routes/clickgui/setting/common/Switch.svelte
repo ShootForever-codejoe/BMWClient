@@ -7,10 +7,10 @@
     const dispatch = createEventDispatcher();
 </script>
 
-<label class="switch-container">
-    <div class="switch">
+<label class="checkbox-container">
+    <div class="checkbox-wrapper">
         <input type="checkbox" bind:checked={value} on:change={() => dispatch("change")}/>
-        <span class="slider"></span>
+        <span class="checkbox"></span>
     </div>
 
     <div class="name">{name}</div>
@@ -20,7 +20,7 @@
   @use "sass:color";
   @use "../../../../colors.scss" as *;
 
-  .switch-container {
+  .checkbox-container {
     display: flex;
     align-items: center;
     cursor: pointer;
@@ -36,46 +36,52 @@
     text-overflow: ellipsis;
   }
 
-  .slider {
-    position: absolute;
-    top: 2px;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: color.adjust($clickgui-text-color, $lightness: -55%);
-    transition: ease 0.4s;
-    height: 8px;
-    border-radius: 4px;
-
-    &::before {
-      position: absolute;
-      content: "";
-      height: 12px;
-      width: 12px;
-      top: -2px;
-      left: 0;
-      background-color: $clickgui-text-color;
-      transition: ease 0.4s;
-      border-radius: 50%;
-    }
+  .checkbox-wrapper {
+    position: relative;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
-  .switch {
-    position: relative;
-    width: 22px;
-    height: 12px;
+  .checkbox {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 21px;
+    height: 21px;
+    background: $clickgui-settings-color;
+    border: 1px solid $clickgui-border-color;
+    border-radius: 5px;
+    box-sizing: border-box;
+    transition: background 0.5s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 
-    input {
-      display: none;
-    }
+  input {
+    display: none;
+  }
 
-    input:checked + .slider {
-      background-color: color.adjust($accent-color, $saturation: -60%, $lightness: -15%);
-    }
+  input:checked + .checkbox {
+    background: rgba(255, 255, 255, 0.01);
+  }
 
-    input:checked + .slider:before {
-      transform: translateX(10px);
-      background-color: $accent-color;
-    }
+  .checkbox::after {
+    content: "";
+    display: none;
+    position: absolute;
+    top: 1px;
+    width: 4px;
+    height: 11px;
+    border: solid rgba(var(--accent-color), 1);
+    border-width: 0 3px 3px 0;
+    transform: rotate(45deg);
+  }
+
+  input:checked + .checkbox::after {
+    display: block;
   }
 </style>

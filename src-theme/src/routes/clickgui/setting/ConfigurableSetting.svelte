@@ -8,6 +8,7 @@
 
     export let setting: ModuleSetting;
     export let path: string;
+    export let moduleName: string;
 
     const cSetting = setting as ConfigurableSetting;
     const thisPath = `${path}.${cSetting.name}`;
@@ -38,7 +39,7 @@
     {#if expanded}
         <div class="nested-settings">
             {#each cSetting.value as setting (setting.name)}
-                <GenericSetting path={thisPath} bind:setting on:change={handleChange}/>
+                <GenericSetting path={thisPath} bind:setting moduleName={moduleName} on:change={handleChange}/>
             {/each}
         </div>
     {/if}
@@ -68,7 +69,9 @@
   }
 
   .nested-settings {
-    border-left: solid 2px $accent-color;
-    padding-left: 7px;
+    background: rgba($clickgui-settings-color, 0.65);
+    border-radius: 10px;
+    border: 1px solid $clickgui-border-color;
+    padding: 5px 10px 5px 10px;
   }
 </style>

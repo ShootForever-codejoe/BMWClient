@@ -304,8 +304,12 @@
     transition: ease height 0.2s, ease opacity 0.2s;
 
     &.visible {
-      height: 180px;
+      height: 200px;
       opacity: 1;
+      //background: rgba(13, 17, 23, 0.65);
+      //border: 1px solid rgba(255, 255, 255, 0.15);
+      //border-radius: 10px;
+      //padding: 2.5px;
     }
   }
 

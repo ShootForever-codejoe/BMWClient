@@ -66,15 +66,15 @@
     <div class="name">{$spaceSeperatedNames ? convertToSpacedString(cSetting.name) : cSetting.name}</div>
     <div class="value-spot">
         <input
-            class="value"
-            bind:value={hex}
-            on:input={handleValueInput}
+                class="value"
+                bind:value={hex}
+                on:input={handleValueInput}
         />
         <!-- svelte-ignore a11y_consider_explicit_label -->
         <button
-            class="color-pickr-button"
-            on:click={() => (hidden = !hidden)}
-            style="background-color: {hex};"
+                class="color-pickr-button"
+                on:click={() => (hidden = !hidden)}
+                style="background-color: {hex};"
         ></button>
     </div>
     <!-- svelte-ignore a11y_consider_explicit_label -->
@@ -85,65 +85,66 @@
 </div>
 
 <style lang="scss">
-    @use "../../../colors.scss" as *;
+  @use "../../../colors.scss" as *;
 
-    .setting {
-        display: grid;
-        grid-template-areas:
+  .setting {
+    display: grid;
+    grid-template-areas:
             "a b"
             "c c";
-        padding: 7px 0px;
-    }
+    padding: 7px 0px;
+  }
 
-    .name {
-        grid-area: a;
-        font-weight: 500;
-        color: $clickgui-text-color;
-        font-size: 12px;
-    }
+  .name {
+    grid-area: a;
+    font-weight: 500;
+    color: $clickgui-text-color;
+    font-size: 12px;
+  }
 
-    .hidden {
-        height: 0px;
-        display: none;
-    }
+  .hidden {
+    height: 0px;
+    display: none;
+  }
 
-    .value {
-        font-weight: 500;
-        color: $clickgui-text-color;
-        text-align: right;
-        font-size: 12px;
-        cursor: text;
-        text-transform: uppercase;
-        background-color: transparent;
-        border: none;
-        padding: 0;
-        margin: 0;
-        margin-right: 15px;
-        margin-left: auto;
-        width: 70px;
-        font-family: monospace;
-    }
+  .value {
+    font-weight: 500;
+    color: $clickgui-text-color;
+    background: $clickgui-settings-color;
+    border-radius: 5px;
+    text-align: center;
+    font-size: 12px;
+    cursor: text;
+    text-transform: uppercase;
+    border: 1px solid $clickgui-border-color;
+    padding: 0;
+    margin: 0;
+    margin-right: 7.5px;
+    margin-left: auto;
+    width: 65px;
+    font-family: monospace;
+  }
 
-    .value-spot {
-        grid-area: b;
-        display: flex;
+  .value-spot {
+    grid-area: b;
+    display: flex;
 
-        align-items: stretch;
-    }
+    align-items: stretch;
+  }
 
-    .color-picker {
-        grid-area: c;
-    }
+  .color-picker {
+    grid-area: c;
+  }
 
-    .color-pickr-button {
-        margin-top: -2px;
-        margin-bottom: -2px;
-        width: 30px;
-        border-radius: 3px;
-        background-color: blue;
-        border-style: none;
-    }
-    .color-pickr-button:focus {
-        outline: 3px solid #ffffff;
-    }
+  .color-pickr-button {
+    margin-top: -3.5px;
+    margin-bottom: -1px;
+    width: 21px;
+    border-radius: 50%;
+    background-color: transparent;
+    border-style: none;
+  }
+  .color-pickr-button:focus {
+    outline: 3px solid #ffffff;
+  }
 </style>

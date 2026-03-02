@@ -23,6 +23,8 @@ package net.ccbluex.liquidbounce.features.module.modules.bmw.grimvelocity.modes
 
 import com.google.common.collect.Queues
 import net.ccbluex.liquidbounce.bmw.notifyAsMessage
+import net.ccbluex.liquidbounce.config.types.nesting.Choice
+import net.ccbluex.liquidbounce.config.types.nesting.ChoiceConfigurable
 import net.ccbluex.liquidbounce.config.types.nesting.ToggleableConfigurable
 import net.ccbluex.liquidbounce.event.EventManager
 import net.ccbluex.liquidbounce.event.events.AlinkUpdateEvent
@@ -37,7 +39,10 @@ import net.ccbluex.liquidbounce.features.module.modules.bmw.grimvelocity.GrimVel
 import net.ccbluex.liquidbounce.features.module.modules.bmw.grimvelocity.ModuleGrimVelocity
 import net.ccbluex.liquidbounce.features.module.modules.combat.killaura.ModuleKillAura
 import net.ccbluex.liquidbounce.features.module.modules.movement.ModuleFreeze
+import net.ccbluex.liquidbounce.render.drawBox
 import net.ccbluex.liquidbounce.render.engine.type.Color4b
+import net.ccbluex.liquidbounce.render.renderEnvironmentForWorld
+import net.ccbluex.liquidbounce.render.withPositionRelativeToCamera
 import net.ccbluex.liquidbounce.utils.aiming.RotationManager
 import net.ccbluex.liquidbounce.utils.aiming.RotationTarget
 import net.ccbluex.liquidbounce.utils.aiming.data.Rotation
@@ -73,6 +78,9 @@ import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 import net.minecraft.network.packet.s2c.play.PlayerRespawnS2CPacket
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.EntityHitResult
+import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Box
+import net.minecraft.util.math.Vec3d
 import kotlin.math.sqrt
 
 object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
@@ -82,7 +90,9 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
     private val alinkTargetRange by float("AlinkTargetRange", 10f, 0f..20f)
     private val alinkMaxDelay by int("AlinkMaxDelay", 60, 0..200, "ticks")
 
-    private object AutoRotate : ToggleableConfigurable(this, "AutoRotate", true) {
+    private val autoRotate = tree(object : ToggleableConfigurable(
+        this, "AutoRotate", true
+    ) {
         val rotationTime by int("RotationTime", 3, 0..20, "ticks")
         val angleSmooth = choices(GrimVelocityAttackReduce, "AngleSmooth", 0) {
             val linearAngleSmooth = LinearAngleSmooth(it)
@@ -97,19 +107,22 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
             ).toTypedArray()
         }
         val notDuringKillAura by boolean("NotDuringKillAura", false)
+
         val canRotate: Boolean
             get() = enabled
                 && (!notDuringKillAura
                 || !ModuleKillAura.running
                 || ModuleKillAura.targetTracker.target == null)
-    }
+    })
+
+    private val renderTargetMode = choices(
+        "RenderTargetMode", Wireframe, arrayOf(
+            Box, Model, Wireframe, None
+        )
+    )
 
     private val requireKillAura by boolean("RequireKillAura", false)
     private val debug by boolean("Debug", false)
-
-    init {
-        tree(AutoRotate)
-    }
 
     private var target: Entity? = null
     private var renderTarget: Entity? = null
@@ -168,16 +181,18 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
 
         if (targetAround == null || targetPos == null) return
 
-        if (targetPos.distanceTo(player.pos) <= 3.0 && AutoRotate.canRotate) {
+        if (targetPos.distanceTo(player.pos) <= 3.0 && autoRotate.canRotate) {
             RotationManager.setRotationTarget(
                 plan = RotationTarget(
-                    rotation = Rotation.lookingAt(targetPos.add(
-                        (-0.05..0.05).random(),
-                        (-0.05..0.05).random(),
-                        (-0.05..0.05).random()
-                    ), player.pos),
-                    processors = listOf(AutoRotate.angleSmooth.activeChoice),
-                    ticksUntilReset = AutoRotate.rotationTime,
+                    rotation = Rotation.lookingAt(
+                        targetPos.add(
+                            (-0.05..0.05).random(),
+                            (-0.05..0.05).random(),
+                            (-0.05..0.05).random()
+                        ), player.pos
+                    ),
+                    processors = listOf(autoRotate.angleSmooth.activeChoice),
+                    ticksUntilReset = autoRotate.rotationTime,
                     resetThreshold = 2f,
                     considerInventory = false,
                     movementCorrection = MovementCorrection.STRICT
@@ -302,15 +317,17 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
 
     @Suppress("unused")
     private val tickHandler = tickHandler {
-        EventManager.callEvent(AlinkUpdateEvent(
-            if (alinkTicks == -1) {
-                0
-            } else {
-                alinkMaxDelay - alinkTicks
-            },
-            alinkMaxDelay,
-            true
-        ))
+        EventManager.callEvent(
+            AlinkUpdateEvent(
+                if (alinkTicks == -1) {
+                    0
+                } else {
+                    alinkMaxDelay - alinkTicks
+                },
+                alinkMaxDelay,
+                true
+            )
+        )
 
         if (attackQueue > 0) {
             if (target == null) {
@@ -402,5 +419,79 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
             Color4b(255, 255, 255, 255)
         )
     }
+
+    private sealed class RenderChoice(name: String) : Choice(name) {
+        final override val parent: ChoiceConfigurable<*>
+            get() = renderTargetMode
+
+        protected fun getEntityPosition(): Pair<Entity, Vec3d>? {
+            if (alinkTicks == -1) return null
+            val entity = renderTarget ?: return null
+            val pos = renderTargetPos?.pos ?: return null
+            return entity to pos
+        }
+    }
+
+    private object Box : RenderChoice("Box") {
+        private val color by color("Color", Color4b(36, 32, 147, 87))
+
+        @Suppress("unused")
+        private val renderHandler = handler<WorldRenderEvent> { event ->
+            val (entity, pos) = getEntityPosition() ?: return@handler
+
+            val dimensions = entity.getDimensions(entity.pose)
+            val d = dimensions.width.toDouble() / 2.0
+
+            val box = Box(-d, 0.0, -d, d, dimensions.height.toDouble(), d).expand(0.05)
+
+            renderEnvironmentForWorld(event.matrixStack) {
+                withPositionRelativeToCamera(pos) {
+                    drawBox(box, color)
+                }
+            }
+        }
+    }
+
+    private object Model : RenderChoice("Model") {
+        private val lightAmount by float("LightAmount", 0.3f, 0.01f..1f)
+
+        @Suppress("unused")
+        private val renderHandler = handler<WorldRenderEvent> { event ->
+            val (entity, pos) = getEntityPosition() ?: return@handler
+
+            val light = world.getLightLevel(BlockPos.ORIGIN)
+            val reducedLight = (light * lightAmount.toDouble()).toInt()
+
+            renderEnvironmentForWorld(event.matrixStack) {
+                withPositionRelativeToCamera(pos) {
+                    mc.entityRenderDispatcher.render(
+                        entity,
+                        0.0,
+                        0.0,
+                        0.0,
+                        1f,
+                        event.matrixStack,
+                        mc.bufferBuilders.entityVertexConsumers,
+                        reducedLight
+                    )
+                }
+            }
+        }
+    }
+
+    private object Wireframe : RenderChoice("Wireframe") {
+        private val color by color("Color", Color4b(255, 255, 255, 100))
+        private val outlineColor by color("OutlineColor", Color4b(255, 255, 255, 255))
+
+        @Suppress("unused")
+        private val renderHandler = handler<WorldRenderEvent> {
+            val (entity, pos) = getEntityPosition() ?: return@handler
+
+            val wireframePlayer = WireframePlayer(pos, entity.yaw, entity.pitch)
+            wireframePlayer.render(it, color, outlineColor)
+        }
+    }
+
+    private object None : RenderChoice("None")
 
 }

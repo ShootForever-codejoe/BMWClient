@@ -83,7 +83,7 @@
     font-family: monospace;
     font-size: 12px;
     color: $clickgui-text-color;
-    background-color: $accent-color;
+    background-color: rgba(var(--accent-color), 1);
     border: none;
     padding: 6px 10px;
     border-radius: 3px;

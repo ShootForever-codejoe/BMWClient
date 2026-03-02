@@ -9,6 +9,7 @@
 
     export let setting: ModuleSetting;
     export let path: string;
+    export let moduleName: string;
 
     const cSetting = setting as ChoiceSetting;
     const thisPath = `${path}.${cSetting.name}`;
@@ -26,7 +27,7 @@
 
     function handleChange() {
         setting = { ...cSetting };
-        dispatch("change");
+        dispatch("change", setting);
     }
 
     function toggleExpanded() {
@@ -60,7 +61,7 @@
     {#if expanded && nestedSettings.length > 0}
         <div class="nested-settings">
             {#each nestedSettings as setting (setting.name)}
-                <GenericSetting path={thisPath} bind:setting={setting} on:change={handleChange} />
+                <GenericSetting path={thisPath} bind:setting={setting} moduleName={moduleName} on:change={handleChange} />
             {/each}
         </div>
     {/if}
@@ -70,7 +71,7 @@
     @use "../../../colors.scss" as *;
 
     .setting {
-        padding: 7px 0px;
+        padding: 5px 0px;
 
         .head {
           transition: ease margin-bottom .2s;
@@ -86,7 +87,9 @@
         }
     }
     .nested-settings {
-        border-left: solid 2px $accent-color;
-        padding-left: 7px;
+      //background: rgba(13, 17, 23, 0.5);
+      //border: 1px solid rgba(255, 255, 255, 0.15);
+      //border-radius: 10px;
+      //padding: 5px;
     }
 </style>

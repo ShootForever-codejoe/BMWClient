@@ -780,7 +780,6 @@
   "liquidbounce.module.autoBreakOut.description": "在Heypixel起床战争中自动破笼并在游戏开始前延迟数据包。",
   "liquidbounce.module.grimNoSlow.description": "绕过GrimAC反作弊的使用物品减速检测（食物、弓箭等）。",
   "liquidbounce.module.autoMLG.description": "高空坠落时自动使用水桶落地水。",
-  "liquidbounce.module.staffCheck.description": "检测服务器管理员是否在线（通过检测空消息）。",
   "liquidbounce.module.attackCrystal.description": "自动攻击附近的末影水晶。",
   "liquidbounce.module.enderChest.description": "保持末影箱开启但不显示界面，可远程储存资源进末影箱，无法绕过布吉岛"
 }

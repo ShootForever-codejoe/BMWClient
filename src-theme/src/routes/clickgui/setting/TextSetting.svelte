@@ -43,14 +43,13 @@
 
   .value {
     width: 100%;
-    background-color: rgba($clickgui-base-color, .36);
+    background-color: $clickgui-settings-color;
     font-family: monospace;
     font-size: 12px;
     color: $clickgui-text-color;
-    border: none;
-    border-bottom: solid 2px $accent-color;
-    padding: 5px;
-    border-radius: 3px;
+    border: 1px solid $clickgui-border-color;
+    padding: 5px 10px 5px 10px;
+    border-radius: 5px;
     transition: ease border-color .2s;
 
     &::-webkit-scrollbar {

@@ -69,16 +69,17 @@
   @use "../../../colors.scss" as *;
 
   .watermark {
-    padding: 8px 14px;
-    background: rgba($md-dark-on-primary, 0.45);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    box-shadow: 0 4px 14px rgba($md-dark-primary, 0.5);
-    border-radius: 7.5px;
+    padding: 6px 12px;
+    background: rgba(30, 30, 30, 0.25);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 1px 4px rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
     color: white;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     display: flex;
     align-items: center;
+    backdrop-filter: blur(4px);
   }
 
   .watermark-content {
@@ -89,19 +90,20 @@
 
   .logo img {
     display: block;
-    width: 24px;
-    height: 24px;
-    filter: drop-shadow(0 0 10px rgba(var(--accent-color), 0.5));
+    width: 22px;
+    height: 22px;
+    filter: drop-shadow(0 0 8px rgba(var(--accent-color), 0.4));
   }
 
   .information {
     display: flex;
     align-items: center;
-    gap: 5px;
-    padding: 3px 6px;
-    border-radius: 6px;
-    background: rgba(255, 255, 255, 0.1);
+    gap: 4px;
+    padding: 2px 5px;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.08);
     transition: 0.25s ease;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
   }
 
   .fps-value {

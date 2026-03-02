@@ -46,11 +46,12 @@
   .value {
     font-family: monospace;
     color: $clickgui-text-color;
+    background: $clickgui-settings-color;
+    border-radius: 5px;
+    padding: 2.5px 3.5px 2.5px 3.5px;
     font-weight: 500;
     font-size: 12px;
-    background-color: transparent;
-    border: none;
-    min-width: 5px;
+    border: 1px solid $clickgui-border-color;
     display: inline-block;
   }
 </style>

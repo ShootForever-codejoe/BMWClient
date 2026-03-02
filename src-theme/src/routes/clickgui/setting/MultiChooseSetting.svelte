@@ -91,17 +91,17 @@
   }
 
   .choice {
-    color: $clickgui-text-dimmed-color;
-    background-color: rgba($clickgui-base-color, 0.3);
-    border-radius: 3px;
-    padding: 3px 6px;
+    color: rgba(255, 255, 255, 0.6);
+    background-color: $clickgui-settings-color;
+    border-radius: 5px;
+    padding: 3px 5px;
     cursor: pointer;
     font-weight: 500;
     transition: ease color 0.2s;
     overflow-wrap: anywhere;
 
     &:hover {
-      color: $clickgui-text-color;
+      color: $clickgui-text-color
     }
 
     &.error {
@@ -110,8 +110,8 @@
     }
 
     &.active {
-      background-color: rgba($accent-color, 0.1);
-      color: $accent-color;
+      background-color: rgba(var(--accent-color), 0.1);
+      color: rgba(var(--accent-color), 1);
     }
   }
 
@@ -134,9 +134,11 @@
   }
 
   .choices {
-    border-left: solid 2px $accent-color;
+    background: rgba($clickgui-settings-color, 0.5);
+    border-radius: 10px;
+    border: 1px solid $clickgui-border-color;
     color: $clickgui-text-color;
-    padding: 7px 7px;
+    padding: 7.5px 7.5px;
     display: flex;
     flex-wrap: wrap;
     gap: 7px;
