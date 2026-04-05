@@ -2,21 +2,19 @@ package net.ccbluex.liquidbounce.bmw
 
 import net.ccbluex.liquidbounce.event.EventListener
 import net.ccbluex.liquidbounce.event.EventManager
+import net.ccbluex.liquidbounce.event.events.ChatReceiveEvent
 import net.ccbluex.liquidbounce.event.events.HeypixelSWKillEvent
-import net.ccbluex.liquidbounce.event.events.PacketEvent
 import net.ccbluex.liquidbounce.event.handler
-import net.minecraft.network.packet.s2c.play.GameMessageS2CPacket
 
 const val HEYPIXEL_SW_END_MESSAGE = "可以用 /hub 退出观察者模式并返回大厅"
 
 object HeypixelSWKillEventListener : EventListener {
 
     @Suppress("unused")
-    private val packetEventHandler = handler<PacketEvent> { event ->
-        val packet = event.packet
-        if (packet !is GameMessageS2CPacket) return@handler
+    private val packetEventHandler = handler<ChatReceiveEvent> { event ->
+        if (event.type != ChatReceiveEvent.ChatType.GAME_MESSAGE) return@handler
 
-        val message = packet.content.string
+        val message = event.message
 
         val patterns = listOf(
             Regex("(.+?) 被 (.+?) 击败.*"),
@@ -25,7 +23,8 @@ object HeypixelSWKillEventListener : EventListener {
             Regex("(.+?) 被架在了烧烤架上, 熟透了, 最终还是被 (.+?) 击败.*"),
             Regex("(.+?) 跑得很快, 但是他还是摔了一跤, 最终被 (.+?) 击败.*"),
             Regex("(.+?) 被 (.+?) 用弓箭射穿了.*"),
-            Regex("(.+?) 被重压地无法呼吸, 最终还是被 (.+?) 击败.*")
+            Regex("(.+?) 被重压地无法呼吸, 最终还是被 (.+?) 击败.*"),
+            Regex("(.+?) 与虚空娘在异世界相遇, 最终还是被 (.+?) 击败")
         )
 
         for (pattern in patterns) {

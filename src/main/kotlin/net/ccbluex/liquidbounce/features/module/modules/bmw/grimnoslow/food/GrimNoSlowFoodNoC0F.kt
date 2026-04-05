@@ -33,6 +33,7 @@ import net.minecraft.network.packet.Packet
 import net.minecraft.network.packet.c2s.common.CommonPongC2SPacket
 import net.minecraft.network.packet.c2s.play.CloseHandledScreenC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
+import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket
 import net.minecraft.network.packet.s2c.play.ScreenHandlerSlotUpdateS2CPacket
 import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
@@ -45,7 +46,13 @@ internal class GrimNoSlowFoodNoC0F(
 
     var step = Step.NONE
     private var noUsingItemTicks = 0
-    private var packets = Queues.newConcurrentLinkedQueue<Packet<*>>()
+    private var pongPackets = Queues.newConcurrentLinkedQueue<Packet<*>>()
+
+    override fun disable() {
+        step = Step.NONE
+        noUsingItemTicks = 0
+        pongPackets.clear()
+    }
 
     enum class Step {
         NONE,
@@ -55,7 +62,8 @@ internal class GrimNoSlowFoodNoC0F(
     }
 
     private fun release() {
-        packets.removeIf {
+        step = Step.NONE
+        pongPackets.removeIf {
             sendPacketSilently(it)
             true
         }
@@ -64,7 +72,6 @@ internal class GrimNoSlowFoodNoC0F(
             BlockPos.ORIGIN,
             Direction.DOWN
         ))
-        step = Step.NONE
     }
 
     private fun isUsable(useAction: UseAction) = useAction in arrayOf(
@@ -88,6 +95,7 @@ internal class GrimNoSlowFoodNoC0F(
             noUsingItemTicks++
             if (noUsingItemTicks >= 5) {
                 release()
+                return@tickHandler
             }
         }
     }
@@ -130,7 +138,7 @@ internal class GrimNoSlowFoodNoC0F(
 
         if (packet is CommonPongC2SPacket && step != Step.NONE) {
             event.cancelEvent()
-            packets.add(packet)
+            pongPackets.add(packet)
             if (step == Step.CANCEL_C0F) {
                 step = Step.SWAP_HANDS
                 mc.send {
@@ -154,14 +162,12 @@ internal class GrimNoSlowFoodNoC0F(
         ) {
             release()
         }
-    }
 
-    override fun disable() {
-        step = Step.NONE
-        noUsingItemTicks = 0
-        packets.removeIf {
-            sendPacketSilently(it)
-            true
+        if (packet is EntityVelocityUpdateS2CPacket
+            && packet.entityId == player.id
+            && step == Step.EATING
+        ) {
+            mc.options.useKey.isPressed = false
         }
     }
 

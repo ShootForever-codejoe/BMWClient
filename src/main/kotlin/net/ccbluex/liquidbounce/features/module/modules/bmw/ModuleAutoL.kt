@@ -95,7 +95,7 @@ object ModuleAutoL : ClientModule("AutoL", Category.BMW) {
         val length by intRange("Length", 5..10, 0..50)
     })
 
-    private const val CHARSET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_"
+    const val CHARSET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_"
     private val poems = listOf(
         "海内存知己，天涯若比邻",
         "莫愁前路无知己，天下谁人不识君",

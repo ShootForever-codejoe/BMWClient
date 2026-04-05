@@ -20,7 +20,7 @@ import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.ranges.reversed
 
-object ModuleAutoSave : ClientModule("AutoSave", Category.BMW) {
+object ModuleOldAutoSave : ClientModule("OldAutoSave", Category.BMW) {
 
     private object AutoStuck : ToggleableConfigurable(this, "AutoStuck", true) {
         val stuckOnlyVoid by boolean("StuckOnlyVoid", true)

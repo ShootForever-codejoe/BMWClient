@@ -775,7 +775,7 @@
   "liquidbounce.module.reportHelper.description": "Automatically starts a report and confirms it for you.",
   "liquidbounce.module.protectionZones.description": "Allows you to see areas protected by protection blocks and suggests optimal placement spots.",
   "liquidbounce.module.autoL.description": "Automatically taunts enemies you killed.",
-  "liquidbounce.module.autoSave.description": "Automatically scaffolds or freezes to save yourself from falling.",
+  "liquidbounce.module.oldAutoSave.description": "Automatically scaffolds or freezes to save yourself from falling.",
   "liquidbounce.module.delayBlink.description": "Makes your actions appear delayed to other players.",
   "liquidbounce.module.iRC.description": "Chat with other BMWClient users and prevents KillAura from attacking them.",
   "liquidbounce.module.grimVelocity.description": "Bypasses GrimAC velocity checks.",
@@ -783,8 +783,8 @@
   "liquidbounce.module.fireballFly.description": "Delays fireball knockback to achieve flight effect.",
   "liquidbounce.module.autoBreakOut.description": "Automatically breaks out of spawn cages.",
   "liquidbounce.module.grimNoSlow.description": "Bypasses GrimAC no-slow checks.",
-  "liquidbounce.module.newAutoSave.description": "Automatically freezes and scaffolds to save yourself.",
+  "liquidbounce.module.clutch.description": "Automatically freezes and scaffolds to save yourself.",
   "liquidbounce.module.attackCrystal.description": "Automatically attacks end crystals.",
-  "liquidbounce.module.autoMLG.description": "Automatically places water bucket when falling."
-
+  "liquidbounce.module.autoMLG.description": "Automatically places water bucket when falling.",
+  "liquidbounce.module.autoInvite.description": "Automatically invites your enemies to your team, and taunt, sing and teleport in Heypixel."
 }

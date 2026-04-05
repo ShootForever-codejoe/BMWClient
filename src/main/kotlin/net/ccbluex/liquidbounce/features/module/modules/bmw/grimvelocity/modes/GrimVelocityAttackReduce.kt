@@ -17,24 +17,20 @@
  * along with LiquidBounce. If not, see <https://www.gnu.org/licenses/>.
  */
 
-@file:Suppress("DEPRECATION")
-
 package net.ccbluex.liquidbounce.features.module.modules.bmw.grimvelocity.modes
 
 import com.google.common.collect.Queues
 import net.ccbluex.liquidbounce.bmw.notifyAsMessage
+import net.ccbluex.liquidbounce.config.types.NamedChoice
 import net.ccbluex.liquidbounce.config.types.nesting.Choice
 import net.ccbluex.liquidbounce.config.types.nesting.ChoiceConfigurable
 import net.ccbluex.liquidbounce.config.types.nesting.ToggleableConfigurable
 import net.ccbluex.liquidbounce.event.EventManager
-import net.ccbluex.liquidbounce.event.events.AlinkUpdateEvent
-import net.ccbluex.liquidbounce.event.events.MovementInputEvent
-import net.ccbluex.liquidbounce.event.events.PacketEvent
-import net.ccbluex.liquidbounce.event.events.TickPacketProcessEvent
-import net.ccbluex.liquidbounce.event.events.TransferOrigin
-import net.ccbluex.liquidbounce.event.events.WorldRenderEvent
+import net.ccbluex.liquidbounce.event.events.*
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.event.tickHandler
+import net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.food.GrimNoSlowFood
+import net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.food.GrimNoSlowFoodNoC0F
 import net.ccbluex.liquidbounce.features.module.modules.bmw.grimvelocity.GrimVelocityMode
 import net.ccbluex.liquidbounce.features.module.modules.bmw.grimvelocity.ModuleGrimVelocity
 import net.ccbluex.liquidbounce.features.module.modules.combat.killaura.ModuleKillAura
@@ -47,15 +43,16 @@ import net.ccbluex.liquidbounce.utils.aiming.RotationManager
 import net.ccbluex.liquidbounce.utils.aiming.RotationTarget
 import net.ccbluex.liquidbounce.utils.aiming.data.Rotation
 import net.ccbluex.liquidbounce.utils.aiming.features.MovementCorrection
-import net.ccbluex.liquidbounce.utils.aiming.features.processors.anglesmooth.impl.AccelerationAngleSmooth
-import net.ccbluex.liquidbounce.utils.aiming.features.processors.anglesmooth.impl.InterpolationAngleSmooth
-import net.ccbluex.liquidbounce.utils.aiming.features.processors.anglesmooth.impl.LinearAngleSmooth
-import net.ccbluex.liquidbounce.utils.aiming.features.processors.anglesmooth.impl.MinaraiAngleSmooth
-import net.ccbluex.liquidbounce.utils.aiming.features.processors.anglesmooth.impl.SigmoidAngleSmooth
+import net.ccbluex.liquidbounce.utils.aiming.features.processors.anglesmooth.impl.*
+import net.ccbluex.liquidbounce.utils.aiming.utils.projectPointsOnBox
+import net.ccbluex.liquidbounce.utils.aiming.utils.withFixedYaw
 import net.ccbluex.liquidbounce.utils.client.handlePacket
 import net.ccbluex.liquidbounce.utils.combat.shouldBeAttacked
+import net.ccbluex.liquidbounce.utils.entity.boxedDistanceTo
+import net.ccbluex.liquidbounce.utils.entity.getBoundingBoxAt
+import net.ccbluex.liquidbounce.utils.entity.getNearestPoint
+import net.ccbluex.liquidbounce.utils.entity.squaredBoxedDistanceTo
 import net.ccbluex.liquidbounce.utils.kotlin.Priority
-import net.ccbluex.liquidbounce.utils.kotlin.random
 import net.ccbluex.liquidbounce.utils.math.copy
 import net.ccbluex.liquidbounce.utils.math.sq
 import net.ccbluex.liquidbounce.utils.movement.DirectionalInput
@@ -65,17 +62,9 @@ import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.TrackedPosition
 import net.minecraft.network.packet.Packet
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
+import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket
 import net.minecraft.network.packet.s2c.common.DisconnectS2CPacket
-import net.minecraft.network.packet.s2c.play.ChatMessageS2CPacket
-import net.minecraft.network.packet.s2c.play.EntityDamageS2CPacket
-import net.minecraft.network.packet.s2c.play.EntityPositionS2CPacket
-import net.minecraft.network.packet.s2c.play.EntityPositionSyncS2CPacket
-import net.minecraft.network.packet.s2c.play.EntityS2CPacket
-import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket
-import net.minecraft.network.packet.s2c.play.GameJoinS2CPacket
-import net.minecraft.network.packet.s2c.play.GameMessageS2CPacket
-import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
-import net.minecraft.network.packet.s2c.play.PlayerRespawnS2CPacket
+import net.minecraft.network.packet.s2c.play.*
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.EntityHitResult
 import net.minecraft.util.math.BlockPos
@@ -87,17 +76,32 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
 
     private val attackCount by intRange("AttackCount", 4..4, 0..20)
     private val autoAttackCount by boolean("AutoAttackCount", true)
-    private val alinkTargetRange by float("AlinkTargetRange", 10f, 0f..20f)
-    private val alinkMaxDelay by int("AlinkMaxDelay", 60, 0..200, "ticks")
+
+    private enum class AttackMode(override val choiceName: String) : NamedChoice {
+        ONE_TIME("OneTime"),
+        PER_TICK("PerTick")
+    }
+
+    private val attackMode by enumChoice("AttackMode", AttackMode.PER_TICK)
+
+    private val attackTargetRange by float("AttackTargetRange", 2f, 0f..6f)
+    private val alinkTargetRange by float("AlinkTargetRange", 8f, 0f..20f)
+    private val alinkMaxDelay by int("AlinkMaxDelay", 40, 0..200, "ticks")
+
+    private enum class RotationTiming(override val choiceName: String) : NamedChoice {
+        NORMAL("Normal"),
+        ON_TICK("OnTick")
+    }
 
     private val autoRotate = tree(object : ToggleableConfigurable(
         this, "AutoRotate", true
     ) {
-        val rotationTime by int("RotationTime", 3, 0..20, "ticks")
+        val rotationTime by int("RotationTime", 2, 0..20, "ticks")
         val angleSmooth = choices(GrimVelocityAttackReduce, "AngleSmooth", 0) {
             val linearAngleSmooth = LinearAngleSmooth(it)
             val interpolationAngleSmooth = InterpolationAngleSmooth(it)
 
+            @Suppress("DEPRECATION")
             listOfNotNull(
                 linearAngleSmooth,
                 SigmoidAngleSmooth(it),
@@ -106,6 +110,7 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
                 MinaraiAngleSmooth(it, interpolationAngleSmooth)
             ).toTypedArray()
         }
+        val rotationTiming by enumChoice("RotationTiming", RotationTiming.NORMAL)
         val notDuringKillAura by boolean("NotDuringKillAura", false)
 
         val canRotate: Boolean
@@ -121,13 +126,15 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
         )
     )
 
-    private val requireKillAura by boolean("RequireKillAura", false)
+    private val attackCheck by boolean("AttackCheck", true)
+    private val requireKillAura by boolean("RequireKillAura", true)
     private val debug by boolean("Debug", false)
 
     private var target: Entity? = null
     private var renderTarget: Entity? = null
     private var renderTargetPos: TrackedPosition? = null
-    private var attackQueue = 0
+    var attackQueue = 0
+        private set
     private var receiveDamage = false
     private var alinkTicks = -1
     private var releaseReason: String? = null
@@ -150,9 +157,86 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
         EventManager.callEvent(AlinkUpdateEvent(0, alinkMaxDelay, false))
     }
 
+    private fun rotate(target: Entity, targetPos: Vec3d) {
+        val box = target.getBoundingBoxAt(targetPos)
+        val points = mutableListOf<Vec3d>().apply {
+            projectPointsOnBox(player.eyePos, box) { point ->
+                add(point)
+            }
+        }
+        val bestPoint = points.minByOrNull { it.squaredDistanceTo(player.eyePos) }
+            ?: getNearestPoint(player.eyePos, box)
+        val rotation = Rotation.lookingAt(bestPoint, player.eyePos)
+
+        RotationManager.setRotationTarget(
+            plan = RotationTarget(
+                rotation = rotation,
+                processors = listOf(autoRotate.angleSmooth.activeChoice),
+                ticksUntilReset = autoRotate.rotationTime,
+                resetThreshold = 2f,
+                considerInventory = false,
+                movementCorrection = MovementCorrection.STRICT
+            ),
+            priority = Priority.IMPORTANT_FOR_USER_SAFETY,
+            provider = ModuleGrimVelocity
+        )
+    }
+
+    private fun attack(target: Entity) {
+        val box = target.getBoundingBoxAt(target.pos)
+        val points = mutableListOf<Vec3d>().apply {
+            projectPointsOnBox(player.eyePos, box) { point ->
+                add(point)
+            }
+        }
+        val bestPoint = points.minByOrNull { it.squaredDistanceTo(player.eyePos) }
+            ?: getNearestPoint(player.eyePos, box)
+        val rotation = Rotation.lookingAt(bestPoint, player.eyePos)
+
+        if (autoRotate.canRotate && autoRotate.rotationTiming == RotationTiming.ON_TICK) {
+            network.sendPacket(
+                PlayerMoveC2SPacket.Full(
+                    player.x,
+                    player.y,
+                    player.z,
+                    rotation.yaw,
+                    rotation.pitch,
+                    player.isOnGround,
+                    player.horizontalCollision
+                )
+            )
+        }
+
+        network.sendPacket(
+            PlayerInteractEntityC2SPacket.attack(
+                target,
+                player.isSneaking
+            )
+        )
+        player.swingHand(Hand.MAIN_HAND)
+
+        if (autoRotate.canRotate && autoRotate.rotationTiming == RotationTiming.ON_TICK) {
+            network.sendPacket(
+                PlayerMoveC2SPacket.Full(
+                    player.x,
+                    player.y,
+                    player.z,
+                    player.withFixedYaw(rotation),
+                    player.pitch,
+                    player.isOnGround,
+                    player.horizontalCollision
+                )
+            )
+        }
+    }
+
     private fun findTarget() {
         target = (mc.crosshairTarget as? EntityHitResult)?.entity
-            ?.takeIf { !it.isRemoved && it.shouldBeAttacked() }
+            ?.takeIf {
+                !it.isRemoved
+                    && it.shouldBeAttacked()
+                    && it.boxedDistanceTo(player) <= attackTargetRange
+            }
 
         if (alinkTicks == -1) renderTarget = target
 
@@ -163,7 +247,7 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
                 && entity != player
                 && !entity.isRemoved
                 && entity.shouldBeAttacked()
-                && entity.distanceTo(player) <= alinkTargetRange
+                && entity.boxedDistanceTo(player) <= alinkTargetRange
                 && entity.id != renderTarget?.id
         }.minByOrNull { entity -> entity.distanceTo(player) }
 
@@ -172,8 +256,8 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
         if (renderTarget != null
             && renderTargetPos != null
             && (targetPos == null
-                || renderTargetPos!!.pos.distanceTo(player.pos)
-                <= targetPos.distanceTo(player.pos))
+                || renderTarget!!.getBoundingBoxAt(renderTargetPos!!.pos).squaredBoxedDistanceTo(player.eyePos)
+                <= targetAround!!.getBoundingBoxAt(targetPos).squaredBoxedDistanceTo(player.eyePos))
         ) {
             targetPos = renderTargetPos!!.pos
             targetAround = renderTarget
@@ -181,26 +265,15 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
 
         if (targetAround == null || targetPos == null) return
 
-        if (targetPos.distanceTo(player.pos) <= 3.0 && autoRotate.canRotate) {
-            RotationManager.setRotationTarget(
-                plan = RotationTarget(
-                    rotation = Rotation.lookingAt(
-                        targetPos.add(
-                            (-0.05..0.05).random(),
-                            (-0.05..0.05).random(),
-                            (-0.05..0.05).random()
-                        ), player.pos
-                    ),
-                    processors = listOf(autoRotate.angleSmooth.activeChoice),
-                    ticksUntilReset = autoRotate.rotationTime,
-                    resetThreshold = 2f,
-                    considerInventory = false,
-                    movementCorrection = MovementCorrection.STRICT
-                ),
-                priority = Priority.IMPORTANT_FOR_PLAYER_LIFE,
-                provider = ModuleGrimVelocity
-            )
-            if (alinkTicks >= 0) target = targetAround
+        if (targetAround.getBoundingBoxAt(targetPos).squaredBoxedDistanceTo(player.eyePos) <= attackTargetRange.sq()
+            && autoRotate.canRotate
+        ) {
+            if (autoRotate.rotationTiming == RotationTiming.NORMAL) {
+                rotate(targetAround, targetPos)
+            }
+            if (alinkTicks >= 0 || autoRotate.rotationTiming == RotationTiming.ON_TICK) {
+                target = targetAround
+            }
         }
 
         if (alinkTicks == -1) renderTarget = targetAround
@@ -216,17 +289,21 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
     private fun getCurrentAttackCount(): Int {
         if (!autoAttackCount) return attackCount.random()
 
-        if (velocity < 1000.0) {
-            return 0
-        } else if (velocity in 1000.0..<3000.0) {
-            return 3
-        } else if (velocity in 3000.0..<10000.0) {
-            return 4
-        } else if (velocity >= 10000.0) {
+        if (attackMode == AttackMode.PER_TICK) {
             return 5
         }
 
-        return 0
+        return if (velocity < 1000.0) {
+            0
+        } else if (velocity in 1000.0..<2000.0) {
+            3
+        } else if (velocity in 2000.0..<10000.0) {
+            4
+        } else if (velocity >= 10000.0) {
+            5
+        } else {
+            0
+        }
     }
 
     @Suppress("unused")
@@ -287,6 +364,10 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
             if (player.isUsingItem
                 || ModuleFreeze.running
                 || !(!requireKillAura || ModuleKillAura.running)
+                || (GrimNoSlowFood.running
+                    && GrimNoSlowFood.modes.activeChoice is GrimNoSlowFoodNoC0F
+                    && (GrimNoSlowFood.modes.activeChoice as GrimNoSlowFoodNoC0F).step !=
+                    GrimNoSlowFoodNoC0F.Step.NONE)
             ) return@handler
 
             findTarget()
@@ -311,6 +392,7 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
                 packets.add(packet)
             } else if (target != null) {
                 attackQueue = currentAttackCount
+                if (debug) notifyAsMessage(ModuleGrimVelocity, "Attack count: $attackQueue")
             }
         }
     }
@@ -330,40 +412,81 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
         )
 
         if (attackQueue > 0) {
-            if (target == null) {
+            if (target == null || target !in world.entities) {
                 attackQueue = 0
+                target = null
                 return@tickHandler
             }
 
-            if (debug) notifyAsMessage(ModuleGrimVelocity, "Attack count: $attackQueue")
+            when (attackMode) {
+                AttackMode.ONE_TIME -> {
+                    if (attackCheck) {
+                        if (target!!.boxedDistanceTo(player) > 3) {
+                            if (debug) notifyAsMessage(ModuleGrimVelocity, "Target is too far to attack")
+                            attackQueue = 0
+                            target = null
+                            return@tickHandler
+                        }
+                    }
 
-            for (i in 1..attackQueue) {
-                if (target !in world.entities) break
+                    for (i in 1..attackQueue) {
+                        if (target !in world.entities) break
 
-                player.isSprinting = false
-                network.sendPacket(
-                    PlayerInteractEntityC2SPacket.attack(
-                        target,
-                        player.isSneaking
+                        player.isSprinting = false
+                        attack(target!!)
+                        player.setVelocity(
+                            player.velocity.x * 0.6,
+                            player.velocity.y,
+                            player.velocity.z * 0.6
+                        )
+                    }
+
+                    attackQueue = 0
+                    target = null
+                }
+
+                AttackMode.PER_TICK -> {
+                    if (attackCheck) {
+                        if (target!!.boxedDistanceTo(player) > 3) {
+                            if (debug) notifyAsMessage(ModuleGrimVelocity, "Target is too far to attack")
+                            attackQueue--
+                            if (attackQueue == 0) {
+                                target = null
+                            }
+                            return@tickHandler
+                        }
+                    }
+
+                    if (autoRotate.canRotate && autoRotate.rotationTiming == RotationTiming.NORMAL){
+                        rotate(target!!, target!!.pos)
+                    }
+
+                    player.isSprinting = false
+                    attack(target!!)
+                    player.setVelocity(
+                        player.velocity.x * 0.6,
+                        player.velocity.y,
+                        player.velocity.z * 0.6
                     )
-                )
-                player.swingHand(Hand.MAIN_HAND)
-                player.setVelocity(
-                    player.velocity.x * 0.6,
-                    player.velocity.y,
-                    player.velocity.z * 0.6
-                )
+
+                    attackQueue--
+                    if (attackQueue == 0) {
+                        target = null
+                    }
+                }
             }
-            attackQueue = 0
-            target = null
         }
     }
 
     @Suppress("unused")
     private val tickPacketProcessEventHandler = handler<TickPacketProcessEvent> {
         if (releaseReason != null) {
+            if (releaseReason == "back") {
+                return@handler
+            }
+
             if (releaseReason!!.isEmpty() && !player.isSprinting) {
-                releaseReason = null
+                releaseReason = "back"
                 return@handler
             }
 
@@ -374,6 +497,7 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
             if (releaseReason!!.isEmpty()) {
                 if (debug) notifyAsMessage(ModuleGrimVelocity, "Finish alink")
                 attackQueue = getCurrentAttackCount()
+                if (debug) notifyAsMessage(ModuleGrimVelocity, "Attack count: $attackQueue")
             } else {
                 if (debug) notifyAsMessage(ModuleGrimVelocity, "Finish alink ($releaseReason)")
             }
@@ -383,6 +507,15 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
 
     @Suppress("unused")
     private val movementInputEventHandler = handler<MovementInputEvent> { event ->
+        if (attackQueue > 0) {
+            event.directionalInput = DirectionalInput(
+                forwards = true,
+                backwards = false,
+                left = false,
+                right = false
+            )
+        }
+
         if (alinkTicks >= 0 && releaseReason == null) {
             if (alinkTicks > 0) alinkTicks--
             findTarget()
@@ -402,6 +535,16 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
                 )
                 releaseReason = ""
             }
+        }
+
+        if (releaseReason == "back") {
+            event.directionalInput = DirectionalInput(
+                forwards = false,
+                backwards = true,
+                left = false,
+                right = false
+            )
+            releaseReason = null
         }
     }
 

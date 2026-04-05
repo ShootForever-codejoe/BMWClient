@@ -58,7 +58,7 @@ object ModuleAutoWeapon : ClientModule("AutoWeapon", Category.COMBAT) {
      * The weapon type to prefer, which on 1.8 and 1.9+ versions is usually a sword,
      * due to the attack speed.
      */
-    private val preferredWeapon by enumChoice("Preferred", WeaponType.SWORD)
+    private val preferredWeapon by enumChoice("Preferred", WeaponType.ANY)
 
     private val autoShieldBreak by boolean("AutoShieldBreak", true)
     private val autoMace by boolean("AutoMace", true)

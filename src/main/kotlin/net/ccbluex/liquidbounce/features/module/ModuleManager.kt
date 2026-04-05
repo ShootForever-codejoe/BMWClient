@@ -84,6 +84,7 @@ import net.ccbluex.liquidbounce.features.module.modules.render.esp.ModuleESP
 import net.ccbluex.liquidbounce.features.module.modules.render.murdermystery.ModuleMurderMystery
 import net.ccbluex.liquidbounce.features.module.modules.render.nametags.ModuleNametags
 import net.ccbluex.liquidbounce.features.module.modules.render.trajectories.ModuleTrajectories
+import net.ccbluex.liquidbounce.features.module.modules.shit.*
 import net.ccbluex.liquidbounce.features.module.modules.world.*
 import net.ccbluex.liquidbounce.features.module.modules.world.autobuild.ModuleAutoBuild
 import net.ccbluex.liquidbounce.features.module.modules.world.autofarm.ModuleAutoFarm
@@ -446,7 +447,7 @@ object ModuleManager : EventListener, Collection<ClientModule> by modules {
 
             // BMW
             ModuleAutoL,
-            ModuleAutoSave,
+            ModuleOldAutoSave,
             ModuleDelayBlink,
             ModuleIRC,
             ModuleGrimVelocity,
@@ -454,9 +455,12 @@ object ModuleManager : EventListener, Collection<ClientModule> by modules {
             ModuleFireballFly,
             ModuleAutoBreakOut,
             ModuleGrimNoSlow,
-            ModuleNewAutoSave,
             ModuleAttackCrystal,
-            ModuleAutoMLG
+            ModuleAutoMLG,
+            ModuleClutch,
+
+            // Shit
+            ModuleAutoInvite
         )
 
         builtin.forEach { module ->

@@ -171,4 +171,5 @@ object CriticalsStuck : Choice("Stuck") {
             skipTicks--
         }
     }
+
 }

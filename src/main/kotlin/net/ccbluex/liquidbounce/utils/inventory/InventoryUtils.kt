@@ -31,12 +31,12 @@ import net.ccbluex.liquidbounce.config.types.nesting.ToggleableConfigurable
 import net.ccbluex.liquidbounce.event.EventListener
 import net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.food.GrimNoSlowFood
 import net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.food.GrimNoSlowFoodNoC0F
+import net.ccbluex.liquidbounce.features.module.modules.world.scaffold.ModuleScaffold
 import net.ccbluex.liquidbounce.utils.aiming.RotationManager
 import net.ccbluex.liquidbounce.utils.block.SwingMode
 import net.ccbluex.liquidbounce.utils.client.*
 import net.ccbluex.liquidbounce.utils.collection.Filter
 import net.ccbluex.liquidbounce.utils.input.shouldSwingHand
-import net.ccbluex.liquidbounce.utils.kotlin.emptyEnumSet
 import net.ccbluex.liquidbounce.utils.network.OpenInventorySilentlyPacket
 import net.ccbluex.liquidbounce.utils.network.sendPacket
 import net.minecraft.block.Block
@@ -69,7 +69,11 @@ open class InventoryConstraints : Configurable("Constraints") {
     internal val missChance by intRange("MissChance", 0..0, 0..100, "%")
 
     internal val requirements by multiEnumChoice<InventoryRequirements>("Requires",
-        default = emptyEnumSet(),
+        default = EnumSet.of(
+            InventoryRequirements.NO_SHIFT_CLICKING,
+            InventoryRequirements.NO_USING_ITEM,
+            InventoryRequirements.NO_SCAFFOLD
+        ),
         choices = requirementChoices(),
     )
 
@@ -78,7 +82,8 @@ open class InventoryConstraints : Configurable("Constraints") {
         InventoryRequirements.NO_ROTATION,
         InventoryRequirements.NO_SPRINTING,
         InventoryRequirements.NO_SHIFT_CLICKING,
-        InventoryRequirements.NO_USING_ITEM
+        InventoryRequirements.NO_USING_ITEM,
+        InventoryRequirements.NO_SCAFFOLD
     )
 
     /**
@@ -114,6 +119,8 @@ enum class InventoryRequirements(
 
     NO_USING_ITEM("NoUsingItem"),
 
+    NO_SCAFFOLD("NoScaffold"),
+
     /**
      * When this option is not enabled, the inventory will be opened silently
      * depending on the Minecraft version chosen using ViaFabricPlus.
@@ -139,6 +146,7 @@ enum class InventoryRequirements(
             && !(GrimNoSlowFood.running
             && GrimNoSlowFood.modes.activeChoice is GrimNoSlowFoodNoC0F
             && (GrimNoSlowFood.modes.activeChoice as GrimNoSlowFoodNoC0F).step != GrimNoSlowFoodNoC0F.Step.NONE)
+        NO_SCAFFOLD -> !ModuleScaffold.running
         OPEN_INVENTORY -> !action.requiresPlayerInventoryOpen() || InventoryManager.isInventoryOpen
     }
 }

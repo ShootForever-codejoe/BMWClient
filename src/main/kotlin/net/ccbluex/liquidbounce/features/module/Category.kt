@@ -31,6 +31,7 @@ enum class Category(override val choiceName: String) : NamedChoice {
     EXPLOIT("Exploit"),
     FUN("Fun"),
     BMW("BMW"),
+    SHIT("Shit"),
 
     /**
      * A temporary category for client-related modules, since we don't have a client settings UI yet.

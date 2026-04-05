@@ -771,8 +771,8 @@
   "liquidbounce.module.yggdrasilSignatureFix.description": "取消Authlib Yggdrasil验证，可能解决部分服务器无法显示玩家皮肤的问题。",
   "liquidbounce.module.autoL.description": "击杀敌人后自动发送嘲讽消息。",
   "liquidbounce.module.autoReport.description": "在Heypixel服务器上被击杀后自动举报对方。",
-  "liquidbounce.module.newAutoSave.description": "检测到虚空时自动开启Scaffold搭路自救。",
-  "liquidbounce.module.autoSave.description": "受到攻击或掉落时自动开启Freeze卡空或Scaffold搭路自救。",
+  "liquidbounce.module.clutch.description": "在落入虚空前自动卡住并开启Scaffold搭路自救。",
+  "liquidbounce.module.oldAutoSave.description": "受到攻击或掉落时自动开启Freeze卡空或Scaffold搭路自救。",
   "liquidbounce.module.delayBlink.description": "延迟发送数据包，使你的动作在其他玩家眼中延迟显示。",
   "liquidbounce.module.iRC.description": "连接到BMW聊天服务器，与其他BMWClient用户交流，并防止KillAura攻击其他用户。",
   "liquidbounce.module.grimVelocity.description": "绕过GrimAC反作弊的击退检测。",
@@ -781,5 +781,6 @@
   "liquidbounce.module.grimNoSlow.description": "绕过GrimAC反作弊的使用物品减速检测（食物、弓箭等）。",
   "liquidbounce.module.autoMLG.description": "高空坠落时自动使用水桶落地水。",
   "liquidbounce.module.attackCrystal.description": "自动攻击附近的末影水晶。",
-  "liquidbounce.module.enderChest.description": "保持末影箱开启但不显示界面，可远程储存资源进末影箱，无法绕过布吉岛"
+  "liquidbounce.module.enderChest.description": "保持末影箱开启但不显示界面，可远程储存资源进末影箱，无法绕过布吉岛。",
+  "liquidbounce.module.autoInvite.description": "在布吉岛自动邀请你的敌人进入队伍，并在队伍嘲讽、唱歌、自动跨服传送。"
 }

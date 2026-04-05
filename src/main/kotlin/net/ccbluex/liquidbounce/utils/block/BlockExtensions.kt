@@ -44,14 +44,19 @@ import net.minecraft.util.ActionResult
 import net.minecraft.util.Hand
 import net.minecraft.util.function.BooleanBiFunction
 import net.minecraft.util.hit.BlockHitResult
+import net.minecraft.util.hit.HitResult
 import net.minecraft.util.math.*
 import net.minecraft.util.shape.VoxelShape
 import net.minecraft.util.shape.VoxelShapes
 import net.minecraft.world.BlockView
 import net.minecraft.world.RaycastContext
 import java.util.function.Consumer
+import kotlin.collections.subtract
+import kotlin.io.normalize
 import kotlin.math.ceil
 import kotlin.math.floor
+import kotlin.text.compareTo
+import kotlin.times
 
 @JvmField
 val DEFAULT_BLOCK_STATE: BlockState = Blocks.AIR.defaultState
@@ -723,4 +728,30 @@ fun BlockPos.isBlockedByEntitiesReturnCrystal(
     }
 
     return BooleanObjectPair.of(blocked, null)
+}
+
+fun canPlayerReachBlock(pos: BlockPos): Boolean {
+    val playerEyePos = player.eyePos
+    val blockCenter = pos.toCenterPos()
+
+    val distanceSquared = playerEyePos.squaredDistanceTo(blockCenter)
+    val maxReachSquared = player.blockInteractionRange * player.blockInteractionRange
+
+    if (distanceSquared > maxReachSquared) {
+        return false
+    }
+
+    val direction = blockCenter.subtract(playerEyePos).normalize()
+
+    val raycastResult = world.raycast(
+        RaycastContext(
+            playerEyePos,
+            playerEyePos.add(direction.multiply(player.blockInteractionRange)),
+            RaycastContext.ShapeType.OUTLINE,
+            RaycastContext.FluidHandling.NONE,
+            player
+        )
+    )
+
+    return raycastResult.type == HitResult.Type.BLOCK && raycastResult.blockPos == pos
 }

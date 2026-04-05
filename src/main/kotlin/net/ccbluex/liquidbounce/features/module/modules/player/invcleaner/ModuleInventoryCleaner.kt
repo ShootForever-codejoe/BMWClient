@@ -233,9 +233,15 @@ object ModuleInventoryCleaner : ClientModule("InventoryCleaner", Category.PLAYER
                 val defaultDesiredAmount = if (facet.category.type.oneIsSufficient) 1 else Integer.MAX_VALUE
                 val desiredAmount = this.desiredItemsPerCategory.getOrDefault(facet.category, defaultDesiredAmount)
 
+                val acceptableRange = if (facet.category.type == ItemType.ARMOR) {
+                    desiredAmount..desiredAmount
+                } else {
+                    desiredAmount..Integer.MAX_VALUE
+                }
+
                 val info = ItemConstraintInfo(
                     group = ItemCategoryConstraintGroup(
-                        desiredAmount..Integer.MAX_VALUE,
+                        acceptableRange,
                         10,
                         facet.category
                     ),
