@@ -29,7 +29,6 @@ import net.ccbluex.liquidbounce.config.types.ValueType
 import net.ccbluex.liquidbounce.config.types.nesting.Configurable
 import net.ccbluex.liquidbounce.config.types.nesting.ToggleableConfigurable
 import net.ccbluex.liquidbounce.event.EventListener
-import net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.food.GrimNoSlowFood
 import net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.food.GrimNoSlowFoodNoC0F
 import net.ccbluex.liquidbounce.features.module.modules.world.scaffold.ModuleScaffold
 import net.ccbluex.liquidbounce.utils.aiming.RotationManager
@@ -142,10 +141,7 @@ enum class InventoryRequirements(
         NO_ROTATION -> RotationManager.rotationMatchesPreviousRotation()
         NO_SPRINTING -> !player.input.playerInput.sprint
         NO_SHIFT_CLICKING -> !player.input.playerInput.sneak
-        NO_USING_ITEM -> !player.usingItem
-            && !(GrimNoSlowFood.running
-            && GrimNoSlowFood.modes.activeChoice is GrimNoSlowFoodNoC0F
-            && (GrimNoSlowFood.modes.activeChoice as GrimNoSlowFoodNoC0F).step != GrimNoSlowFoodNoC0F.Step.NONE)
+        NO_USING_ITEM -> !player.usingItem && !GrimNoSlowFoodNoC0F.working
         NO_SCAFFOLD -> !ModuleScaffold.running
         OPEN_INVENTORY -> !action.requiresPlayerInventoryOpen() || InventoryManager.isInventoryOpen
     }

@@ -28,6 +28,7 @@ import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.event.tickHandler
 import net.ccbluex.liquidbounce.features.module.modules.combat.criticals.ModuleCriticals
 import net.ccbluex.liquidbounce.features.module.modules.combat.killaura.ModuleKillAura
+import net.ccbluex.liquidbounce.features.module.modules.movement.ModuleFreeze
 import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket
 import net.minecraft.network.packet.s2c.play.ExplosionS2CPacket
 
@@ -77,10 +78,12 @@ object CriticalsStuck : Choice("Stuck") {
                 if (packet.entityId == player.id) {
                     storedSkipTicks = skipTicks
                     skipTicks = 0
+                    ModuleFreeze.interact()
                 }
             } else if (packet is ExplosionS2CPacket) {
                 storedSkipTicks = skipTicks
                 skipTicks = 0
+                ModuleFreeze.interact()
             }
         }
     }
@@ -90,13 +93,14 @@ object CriticalsStuck : Choice("Stuck") {
         if (bypassPost && skipTicks > 0) {
             resumeSkipTicks = skipTicks
             skipTicks = 0
+            ModuleFreeze.interact()
             pausedForAttack = true
         }
     }
 
     @Suppress("unused")
     private val tickHandler = tickHandler {
-        // ReleaseOnHurt逻辑
+        // ReleaseOnHurt
         if (storedSkipTicks > 0) {
             skipTicks = storedSkipTicks
             storedSkipTicks = 0
@@ -107,7 +111,6 @@ object CriticalsStuck : Choice("Stuck") {
             pausedForAttack = false
         }
 
-        // 获取KillAura模块和目标
         val hasTarget = ModuleKillAura.running && ModuleKillAura.targetTracker.target != null
         val inAir = !player.isOnGround
         val falling = player.velocity.y < 0
@@ -151,13 +154,11 @@ object CriticalsStuck : Choice("Stuck") {
             }
         }
 
-        // skipTicks
         if (newModeSkipTicks > 0) {
             newModeSkipTicks--
             if (newModeSkipTicks <= 0) {
                 newModeActive = false
                 if (newModeCycling) {
-                    // 冷却
                     newModeCooldown = cooldownTicks
                 }
             }
@@ -169,6 +170,9 @@ object CriticalsStuck : Choice("Stuck") {
         if (skipTicks > 0) {
             event.cancelEvent()
             skipTicks--
+            if (skipTicks == 0) {
+                ModuleFreeze.interact()
+            }
         }
     }
 

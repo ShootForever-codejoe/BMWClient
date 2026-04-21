@@ -19,60 +19,61 @@
 
 package net.ccbluex.liquidbounce.features.module.modules.bmw
 
-import net.ccbluex.liquidbounce.bmw.normalizePitch
-import net.ccbluex.liquidbounce.bmw.normalizeYaw
 import net.ccbluex.liquidbounce.bmw.notifyAsMessage
-import net.ccbluex.liquidbounce.event.EventState
-import net.ccbluex.liquidbounce.event.events.PlayerNetworkMovementTickEvent
-import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.event.tickHandler
 import net.ccbluex.liquidbounce.event.waitTicks
 import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
+import net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.food.GrimNoSlowFood
+import net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.food.GrimNoSlowFoodNoC0F
 import net.ccbluex.liquidbounce.features.module.modules.combat.killaura.ModuleKillAura
 import net.ccbluex.liquidbounce.features.module.modules.world.scaffold.ModuleScaffold
 import net.ccbluex.liquidbounce.utils.aiming.RotationManager
+import net.ccbluex.liquidbounce.utils.aiming.RotationTarget
 import net.ccbluex.liquidbounce.utils.aiming.data.Rotation
-import net.ccbluex.liquidbounce.utils.entity.rotation
+import net.ccbluex.liquidbounce.utils.aiming.features.MovementCorrection
+import net.ccbluex.liquidbounce.utils.entity.getBoundingBoxAt
+import net.ccbluex.liquidbounce.utils.kotlin.Priority
 import net.ccbluex.liquidbounce.utils.kotlin.random
+import net.minecraft.entity.Entity
 import net.minecraft.item.Items
+import net.minecraft.network.packet.c2s.play.PlayerInteractItemC2SPacket
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
+import net.minecraft.util.math.Vec3d
 
 object ModuleAutoMLG : ClientModule("AutoMLG", Category.BMW) {
 
-    private val fallDistance by float("FallDistance", 4f, 3f..15f)
+    private val fallDistance by float("FallDistance", 3f, 0f..15f)
     private val notDuringKillAura by boolean("NotDuringKillAura", false)
+    private val simulationTicks by int("SimulationTicks", 100, 1..500, "ticks")
 
+    private const val GRAVITY = 0.08
+    private const val DRAG = 0.98
+
+    private var rotated = false
     private var placeWater = false
     private var timeout = -1
-    private var oldRotation: Rotation? = null
     private var oldSlot = -1
     private var scaffold = false
     private var killAura = false
-    private var rotateAtGround = false
 
     override fun onEnabled() {
         clear()
     }
 
     private fun clear() {
+        rotated = false
         placeWater = false
         timeout = -1
-        oldRotation = null
         oldSlot = -1
         scaffold = false
         killAura = false
-        rotateAtGround = false
     }
 
     private fun reset() {
-        if (oldRotation != null) {
-            player.yaw = oldRotation!!.yaw
-            player.pitch = oldRotation!!.pitch
-        }
         if (oldSlot != -1) {
             player.inventory.selectedSlot = oldSlot
         }
@@ -85,11 +86,35 @@ object ModuleAutoMLG : ClientModule("AutoMLG", Category.BMW) {
         clear()
     }
 
-    private fun willBeOnGround(velocityY: Double): Boolean {
-        return world.getBlockCollisions(
-            player,
-            player.boundingBox.offset(0.0, velocityY, 0.0)
-        ).iterator().hasNext()
+    private fun predictLandingTicks(): Int {
+        var position = player.pos
+        var velocity = player.velocity
+
+        val movementForward = player.input.movementForward.toDouble()
+        val movementSideways = player.input.movementSideways.toDouble()
+
+        repeat(simulationTicks) { tick ->
+            val inputVelocity = Entity.movementInputToVelocity(
+                Vec3d(movementSideways * DRAG, 0.0, movementForward * DRAG),
+                0.02f,
+                player.yaw
+            )
+
+            velocity = velocity.add(inputVelocity)
+            position = position.add(velocity)
+
+            if (world.getBlockCollisions(
+                    player,
+                    player.getBoundingBoxAt(position)
+                ).iterator().hasNext()
+            ) {
+                return tick
+            }
+
+            velocity = velocity.multiply(DRAG, DRAG, DRAG).subtract(0.0, GRAVITY, 0.0)
+        }
+
+        return -1
     }
 
     private fun getWaterBucketSlot(): Int {
@@ -103,47 +128,11 @@ object ModuleAutoMLG : ClientModule("AutoMLG", Category.BMW) {
     }
 
     @Suppress("unused")
-    private val preTickHandler = handler<PlayerNetworkMovementTickEvent> { event ->
-        if (event.state != EventState.PRE) return@handler
-
-        if (player.fallDistance >= fallDistance) {
-            if (oldRotation != null
-                && willBeOnGround(player.velocity.y)
-                && getWaterBucketSlot() != -1
-            ) {
-                placeWater = true
-
-            } else if (oldRotation == null
-                && willBeOnGround(player.velocity.y * 3.0)
-                && getWaterBucketSlot() != -1
-                && (!notDuringKillAura || !ModuleKillAura.running || ModuleKillAura.targetTracker.target == null)
-            ) {
-                scaffold = ModuleScaffold.enabled
-                if (scaffold) ModuleScaffold.enabled = false
-
-                killAura = ModuleKillAura.enabled
-                if (killAura) ModuleKillAura.enabled = false
-
-                oldRotation = RotationManager.currentRotation ?: player.rotation
-                rotateAtGround = true
-                oldSlot = player.inventory.selectedSlot
-                player.inventory.selectedSlot = getWaterBucketSlot()
-
-                timeout = 5
-            }
-        }
-
+    private val tickHandler = tickHandler {
         if (--timeout == 0) {
             reset()
             notifyAsMessage(ModuleAutoMLG, "Failed to place water (timeout)")
-        }
-    }
-
-    @Suppress("unused")
-    private val tickHandler = tickHandler {
-        if (rotateAtGround) {
-            player.pitch = 90f - (0.002f..0.004f).random()
-            rotateAtGround = false
+            return@tickHandler
         }
 
         if (placeWater) {
@@ -152,11 +141,34 @@ object ModuleAutoMLG : ClientModule("AutoMLG", Category.BMW) {
             var blockPos: BlockPos? = null
             if ((mc.crosshairTarget as? BlockHitResult)?.side == Direction.UP) {
                 blockPos = (mc.crosshairTarget as BlockHitResult).blockPos
-                interaction.interactItem(player, Hand.MAIN_HAND)
+                interaction.sendSequencedPacket(world) { sequence ->
+                    PlayerInteractItemC2SPacket(
+                        Hand.MAIN_HAND,
+                        sequence,
+                        RotationManager.currentRotation?.yaw ?: player.yaw,
+                        RotationManager.currentRotation?.pitch ?: player.pitch
+                    )
+                }
 
-                val rotation = Rotation.lookingAt(blockPos.up().toCenterPos(), player.eyePos)
-                player.yaw = normalizeYaw(rotation.yaw + (-0.002f..0.002f).random())
-                player.pitch = normalizePitch(rotation.pitch + (-0.002f..0.002f).random())
+                var rotation = Rotation.lookingAt(
+                    blockPos.up().toCenterPos(),
+                    player.eyePos
+                )
+                rotation = Rotation(
+                    rotation.yaw + (-0.002f..0.002f).random(),
+                    rotation.pitch + (-0.002f..0.002f).random()
+                ).normalize()
+                RotationManager.setRotationTarget(
+                    plan = RotationTarget(
+                        rotation = rotation,
+                        ticksUntilReset = 2,
+                        resetThreshold = 2f,
+                        considerInventory = false,
+                        movementCorrection = MovementCorrection.SILENT
+                    ),
+                    priority = Priority.IMPORTANT_FOR_USER_SAFETY,
+                    provider = ModuleAutoMLG
+                )
             } else {
                 reset()
                 notifyAsMessage(ModuleAutoMLG, "Failed to place water (bad rotation)")
@@ -165,9 +177,57 @@ object ModuleAutoMLG : ClientModule("AutoMLG", Category.BMW) {
 
             waitTicks(1)
 
-            interaction.interactItem(player, Hand.MAIN_HAND)
+            interaction.sendSequencedPacket(world) { sequence ->
+                PlayerInteractItemC2SPacket(
+                    Hand.MAIN_HAND,
+                    sequence,
+                    RotationManager.currentRotation?.yaw ?: player.yaw,
+                    RotationManager.currentRotation?.pitch ?: player.pitch
+                )
+            }
 
             reset()
+            return@tickHandler
+        }
+
+        if (player.fallDistance < fallDistance || player.velocity.y >= -0.08) return@tickHandler
+
+        val landingTicks = predictLandingTicks()
+
+        if (landingTicks == 1 && rotated && getWaterBucketSlot() != -1) {
+            placeWater = true
+
+        } else if (!rotated
+            && landingTicks == 2
+            && getWaterBucketSlot() != -1
+            && (!notDuringKillAura || !ModuleKillAura.running || ModuleKillAura.targetTracker.target == null)
+        ) {
+            scaffold = ModuleScaffold.enabled
+            if (scaffold) ModuleScaffold.enabled = false
+
+            killAura = ModuleKillAura.enabled
+            if (killAura) ModuleKillAura.enabled = false
+
+            if (GrimNoSlowFoodNoC0F.working) {
+                (GrimNoSlowFood.modes.activeChoice as GrimNoSlowFoodNoC0F).release()
+            }
+
+            RotationManager.setRotationTarget(
+                plan = RotationTarget(
+                    rotation = Rotation(player.yaw, 90f - (0.002f..0.004f).random()),
+                    ticksUntilReset = 2,
+                    resetThreshold = 2f,
+                    considerInventory = false,
+                    movementCorrection = MovementCorrection.SILENT
+                ),
+                priority = Priority.IMPORTANT_FOR_USER_SAFETY,
+                provider = ModuleAutoMLG
+            )
+            rotated = true
+            oldSlot = player.inventory.selectedSlot
+            player.inventory.selectedSlot = getWaterBucketSlot()
+
+            timeout = 5
         }
     }
 

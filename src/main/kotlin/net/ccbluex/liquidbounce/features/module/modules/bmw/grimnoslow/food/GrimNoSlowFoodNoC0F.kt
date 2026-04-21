@@ -26,13 +26,13 @@ import net.ccbluex.liquidbounce.event.events.PacketEvent
 import net.ccbluex.liquidbounce.event.events.PlayerUseMultiplier
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.event.tickHandler
-import net.ccbluex.liquidbounce.utils.client.sendPacketSilently
+import net.ccbluex.liquidbounce.utils.client.handlePacket
 import net.ccbluex.liquidbounce.utils.inventory.InventoryManager
 import net.minecraft.item.consume.UseAction
 import net.minecraft.network.packet.Packet
-import net.minecraft.network.packet.c2s.common.CommonPongC2SPacket
 import net.minecraft.network.packet.c2s.play.CloseHandledScreenC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
+import net.minecraft.network.packet.s2c.common.CommonPingS2CPacket
 import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket
 import net.minecraft.network.packet.s2c.play.ScreenHandlerSlotUpdateS2CPacket
 import net.minecraft.util.Hand
@@ -44,14 +44,21 @@ internal class GrimNoSlowFoodNoC0F(
     val useActions: Array<UseAction>
 ) : Choice("NoC0F") {
 
-    var step = Step.NONE
+    private var step = Step.NONE
     private var noUsingItemTicks = 0
-    private var pongPackets = Queues.newConcurrentLinkedQueue<Packet<*>>()
+    private var packets = Queues.newConcurrentLinkedQueue<Packet<*>>()
+
+    companion object {
+        val working: Boolean
+            get() = GrimNoSlowFood.running
+                && GrimNoSlowFood.modes.activeChoice is GrimNoSlowFoodNoC0F
+                && (GrimNoSlowFood.modes.activeChoice as GrimNoSlowFoodNoC0F).step != Step.NONE
+    }
 
     override fun disable() {
         step = Step.NONE
         noUsingItemTicks = 0
-        pongPackets.clear()
+        packets.clear()
     }
 
     enum class Step {
@@ -61,10 +68,10 @@ internal class GrimNoSlowFoodNoC0F(
         EATING
     }
 
-    private fun release() {
+    fun release() {
         step = Step.NONE
-        pongPackets.removeIf {
-            sendPacketSilently(it)
+        packets.removeIf {
+            handlePacket(it)
             true
         }
         network.sendPacket(PlayerActionC2SPacket(
@@ -136,9 +143,9 @@ internal class GrimNoSlowFoodNoC0F(
     private val packetHandler = handler<PacketEvent> { event ->
         val packet = event.packet
 
-        if (packet is CommonPongC2SPacket && step != Step.NONE) {
+        if (packet is CommonPingS2CPacket && step != Step.NONE) {
             event.cancelEvent()
-            pongPackets.add(packet)
+            packets.add(packet)
             if (step == Step.CANCEL_C0F) {
                 step = Step.SWAP_HANDS
                 mc.send {
@@ -165,9 +172,10 @@ internal class GrimNoSlowFoodNoC0F(
 
         if (packet is EntityVelocityUpdateS2CPacket
             && packet.entityId == player.id
-            && step == Step.EATING
+            && step != Step.NONE
         ) {
-            mc.options.useKey.isPressed = false
+            packets.add(packet)
+            event.cancelEvent()
         }
     }
 

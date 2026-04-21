@@ -44,15 +44,14 @@ import net.minecraft.client.gui.screen.ingame.GenericContainerScreen
 import net.minecraft.entity.Entity
 import net.minecraft.entity.TrackedPosition
 import net.minecraft.network.packet.Packet
+import net.minecraft.network.packet.s2c.common.CommonPingS2CPacket
 import net.minecraft.network.packet.s2c.common.DisconnectS2CPacket
-import net.minecraft.network.packet.s2c.play.ChatMessageS2CPacket
 import net.minecraft.network.packet.s2c.play.EntityDamageS2CPacket
 import net.minecraft.network.packet.s2c.play.EntityPositionS2CPacket
 import net.minecraft.network.packet.s2c.play.EntityPositionSyncS2CPacket
 import net.minecraft.network.packet.s2c.play.EntityS2CPacket
 import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket
 import net.minecraft.network.packet.s2c.play.GameJoinS2CPacket
-import net.minecraft.network.packet.s2c.play.GameMessageS2CPacket
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 import net.minecraft.network.packet.s2c.play.PlayerRespawnS2CPacket
 import net.minecraft.util.math.BlockPos
@@ -128,17 +127,11 @@ object GrimVelocityDelay : GrimVelocityMode("Delay") {
 
         if (delaying) {
             when (packet) {
-                is ChatMessageS2CPacket,
-                is GameMessageS2CPacket -> {
-                    return@handler
-                }
-
                 is DisconnectS2CPacket,
                 is PlayerRespawnS2CPacket,
                 is GameJoinS2CPacket,
                 is PlayerPositionLookS2CPacket -> {
                     handle()
-                    return@handler
                 }
 
                 is EntityS2CPacket if (targetPos != null && packet.getEntity(world) == target) -> {
@@ -147,19 +140,29 @@ object GrimVelocityDelay : GrimVelocityMode("Delay") {
                         packet.deltaY.toLong(),
                         packet.deltaZ.toLong()
                     )
+                    event.cancelEvent()
+                    packets.add(packet)
                 }
 
                 is EntityPositionS2CPacket if (targetPos != null && packet.entityId == target?.id) -> {
                     targetPos!!.pos = packet.change.position.copy()
+                    event.cancelEvent()
+                    packets.add(packet)
                 }
 
                 is EntityPositionSyncS2CPacket if (targetPos != null && packet.id == target?.id) -> {
                     targetPos!!.pos = packet.values.position()
+                    event.cancelEvent()
+                    packets.add(packet)
+                }
+
+                is EntityVelocityUpdateS2CPacket,
+                is CommonPingS2CPacket -> {
+                    event.cancelEvent()
+                    packets.add(packet)
                 }
             }
 
-            event.cancelEvent()
-            packets.add(packet)
             return@handler
         }
 

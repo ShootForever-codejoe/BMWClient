@@ -30,6 +30,7 @@ import net.ccbluex.liquidbounce.event.waitTicks
 import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
 import net.ccbluex.liquidbounce.features.module.modules.bmw.ModuleEnderChest
+import net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.food.GrimNoSlowFoodNoC0F
 import net.ccbluex.liquidbounce.features.module.modules.combat.ModuleAutoWeapon
 import net.ccbluex.liquidbounce.features.module.modules.combat.criticals.ModuleCriticals.CriticalsSelectionMode
 import net.ccbluex.liquidbounce.features.module.modules.combat.elytratarget.ModuleElytraTarget
@@ -201,7 +202,7 @@ object ModuleKillAura : ClientModule("KillAura", Category.COMBAT) {
         }
 
         // Check if the module should (not) continue after the blocking state is updated
-        if (!requirementsMet) {
+        if (!requirementsMet || GrimNoSlowFoodNoC0F.working) {
             return@tickHandler
         }
 

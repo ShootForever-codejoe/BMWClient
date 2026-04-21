@@ -24,15 +24,20 @@ import net.ccbluex.liquidbounce.event.events.PacketEvent
 import net.ccbluex.liquidbounce.event.events.PlayerTickEvent
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.event.tickHandler
+import net.ccbluex.liquidbounce.event.waitTicks
 import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
+import net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.food.GrimNoSlowFood
+import net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.food.GrimNoSlowFoodNoC0F
 import net.ccbluex.liquidbounce.features.module.modules.combat.killaura.ModuleKillAura
+import net.ccbluex.liquidbounce.features.module.modules.movement.ModuleFreeze
 import net.ccbluex.liquidbounce.features.module.modules.world.scaffold.ModuleScaffold
 import net.ccbluex.liquidbounce.features.module.modules.world.scaffold.ScaffoldBlockItemSelection
 import net.ccbluex.liquidbounce.utils.aiming.RotationManager
 import net.ccbluex.liquidbounce.utils.block.canPlayerReachBlock
 import net.ccbluex.liquidbounce.utils.client.sendPacketSilently
 import net.ccbluex.liquidbounce.utils.inventory.Slots
+import net.minecraft.entity.Entity
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerInteractItemC2SPacket
@@ -51,6 +56,7 @@ object ModuleClutch : ClientModule("Clutch", Category.BMW) {
     private val maxTryCount by int("MaxTryCount", 3, 1..10)
     private val notDuringCombat by boolean("NotDuringCombat", true)
     private val simulationTicks by int("SimulationTicks", 100, 1..500, "ticks")
+    private val onlyFalling by boolean("OnlyFalling", false)
     private val debug by boolean("Debug", true)
 
     private const val GRAVITY = 0.08
@@ -58,6 +64,7 @@ object ModuleClutch : ClientModule("Clutch", Category.BMW) {
     private const val REST_TICKS = 3
 
     private var isRescuing = false
+    private var interacted = false
     private var rescueTriesLast = 0
     private var rescueStartTime = 0L
     private var restTicks = 0
@@ -88,8 +95,12 @@ object ModuleClutch : ClientModule("Clutch", Category.BMW) {
             if (ModuleScaffold.enabled) {
                 ModuleScaffold.enabled = false
             }
+            if (!interacted) {
+                ModuleFreeze.interact()
+            }
         }
         isRescuing = false
+        interacted = false
         rescueStartTime = 0L
         restTicks = 0
         if (clear) {
@@ -100,10 +111,24 @@ object ModuleClutch : ClientModule("Clutch", Category.BMW) {
     private fun willLandInVoid(): Boolean {
         var position = player.pos
         var velocity = player.velocity
+
+        val movementForward = player.input.movementForward.toDouble()
+        val movementSideways = player.input.movementSideways.toDouble()
+
         repeat(simulationTicks) {
+            val inputVelocity = Entity.movementInputToVelocity(
+                Vec3d(movementSideways * DRAG, 0.0, movementForward * DRAG),
+                0.02f,
+                player.yaw
+            )
+
+            velocity = velocity.add(inputVelocity)
             position = position.add(velocity)
+
             if (!world.isAir(BlockPos.ofFloored(position).down())) return false
+
             velocity = velocity.multiply(DRAG, DRAG, DRAG).subtract(0.0, GRAVITY, 0.0)
+
             if (position.y < world.bottomY) return true
         }
         return true
@@ -204,6 +229,8 @@ object ModuleClutch : ClientModule("Clutch", Category.BMW) {
             if (
                 (notDuringCombat && ModuleKillAura.running && ModuleKillAura.targetTracker.target != null)
                 || ModuleScaffold.enabled
+                || player.isInFluid
+                || (onlyFalling && player.velocity.y >= -0.08)
                 || !(reachable() && haveBlock())
             ) {
                 if (rescueTriesLast > 0) {
@@ -213,12 +240,17 @@ object ModuleClutch : ClientModule("Clutch", Category.BMW) {
                 return@tickHandler
             }
 
+            if (GrimNoSlowFoodNoC0F.working) {
+                (GrimNoSlowFood.modes.activeChoice as GrimNoSlowFoodNoC0F).release()
+            }
+
             isRescuing = true
             rescueStartTime = System.currentTimeMillis()
             if (rescueTriesLast == 0) {
                 if (debug) notifyAsMessage(ModuleClutch, "Rescuing...")
                 rescueTriesLast = maxTryCount
             }
+            waitTicks(1)
             ModuleScaffold.enabled = true
         }
     }
@@ -264,6 +296,7 @@ object ModuleClutch : ClientModule("Clutch", Category.BMW) {
                         pitch + pitchOffset,
                     )
                 )
+                interacted = true
             }
 
             is PlayerInteractEntityC2SPacket -> {
@@ -290,6 +323,7 @@ object ModuleClutch : ClientModule("Clutch", Category.BMW) {
                     )
                 )
                 sendPacketSilently(packet)
+                interacted = true
             }
         }
     }

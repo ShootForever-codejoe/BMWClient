@@ -29,7 +29,6 @@ import net.ccbluex.liquidbounce.event.EventManager
 import net.ccbluex.liquidbounce.event.events.*
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.event.tickHandler
-import net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.food.GrimNoSlowFood
 import net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.food.GrimNoSlowFoodNoC0F
 import net.ccbluex.liquidbounce.features.module.modules.bmw.grimvelocity.GrimVelocityMode
 import net.ccbluex.liquidbounce.features.module.modules.bmw.grimvelocity.ModuleGrimVelocity
@@ -63,6 +62,7 @@ import net.minecraft.entity.TrackedPosition
 import net.minecraft.network.packet.Packet
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket
+import net.minecraft.network.packet.s2c.common.CommonPingS2CPacket
 import net.minecraft.network.packet.s2c.common.DisconnectS2CPacket
 import net.minecraft.network.packet.s2c.play.*
 import net.minecraft.util.Hand
@@ -135,6 +135,7 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
     private var renderTargetPos: TrackedPosition? = null
     var attackQueue = 0
         private set
+    private var totalAttackCount = 0
     private var receiveDamage = false
     private var alinkTicks = -1
     private var releaseReason: String? = null
@@ -149,6 +150,7 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
         renderTarget = null
         renderTargetPos = null
         attackQueue = 0
+        totalAttackCount = 0
         receiveDamage = false
         alinkTicks = -1
         releaseReason = null
@@ -314,21 +316,14 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
 
         if (alinkTicks >= 0) {
             when (packet) {
-                is ChatMessageS2CPacket,
-                is GameMessageS2CPacket -> {
-                    return@handler
-                }
-
                 is DisconnectS2CPacket,
                 is PlayerRespawnS2CPacket,
                 is GameJoinS2CPacket -> {
                     handle()
-                    return@handler
                 }
 
                 is PlayerPositionLookS2CPacket -> {
                     releaseReason = "flag"
-                    return@handler
                 }
 
                 is EntityS2CPacket if (renderTargetPos != null && packet.getEntity(world) == renderTarget) -> {
@@ -337,19 +332,29 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
                         packet.deltaY.toLong(),
                         packet.deltaZ.toLong()
                     )
+                    event.cancelEvent()
+                    packets.add(packet)
                 }
 
                 is EntityPositionS2CPacket if (renderTargetPos != null && packet.entityId == renderTarget?.id) -> {
                     renderTargetPos!!.pos = packet.change.position.copy()
+                    event.cancelEvent()
+                    packets.add(packet)
                 }
 
                 is EntityPositionSyncS2CPacket if (renderTargetPos != null && packet.id == renderTarget?.id) -> {
                     renderTargetPos!!.pos = packet.values.position()
+                    event.cancelEvent()
+                    packets.add(packet)
+                }
+
+                is EntityVelocityUpdateS2CPacket,
+                is CommonPingS2CPacket -> {
+                    event.cancelEvent()
+                    packets.add(packet)
                 }
             }
 
-            event.cancelEvent()
-            packets.add(packet)
             return@handler
         }
 
@@ -364,10 +369,7 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
             if (player.isUsingItem
                 || ModuleFreeze.running
                 || !(!requireKillAura || ModuleKillAura.running)
-                || (GrimNoSlowFood.running
-                    && GrimNoSlowFood.modes.activeChoice is GrimNoSlowFoodNoC0F
-                    && (GrimNoSlowFood.modes.activeChoice as GrimNoSlowFoodNoC0F).step !=
-                    GrimNoSlowFoodNoC0F.Step.NONE)
+                || GrimNoSlowFoodNoC0F.working
             ) return@handler
 
             findTarget()
@@ -392,6 +394,7 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
                 packets.add(packet)
             } else if (target != null) {
                 attackQueue = currentAttackCount
+                totalAttackCount = attackQueue
                 if (debug) notifyAsMessage(ModuleGrimVelocity, "Attack count: $attackQueue")
             }
         }
@@ -420,15 +423,6 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
 
             when (attackMode) {
                 AttackMode.ONE_TIME -> {
-                    if (attackCheck) {
-                        if (target!!.boxedDistanceTo(player) > 3) {
-                            if (debug) notifyAsMessage(ModuleGrimVelocity, "Target is too far to attack")
-                            attackQueue = 0
-                            target = null
-                            return@tickHandler
-                        }
-                    }
-
                     for (i in 1..attackQueue) {
                         if (target !in world.entities) break
 
@@ -447,7 +441,7 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
 
                 AttackMode.PER_TICK -> {
                     if (attackCheck) {
-                        if (target!!.boxedDistanceTo(player) > 3) {
+                        if (attackQueue != totalAttackCount && target!!.boxedDistanceTo(player) > 3) {
                             if (debug) notifyAsMessage(ModuleGrimVelocity, "Target is too far to attack")
                             attackQueue--
                             if (attackQueue == 0) {
@@ -481,12 +475,12 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
     @Suppress("unused")
     private val tickPacketProcessEventHandler = handler<TickPacketProcessEvent> {
         if (releaseReason != null) {
-            if (releaseReason == "back") {
+            if (releaseReason == "back1" || releaseReason == "back2") {
                 return@handler
             }
 
             if (releaseReason!!.isEmpty() && !player.isSprinting) {
-                releaseReason = "back"
+                releaseReason = "back1"
                 return@handler
             }
 
@@ -497,6 +491,7 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
             if (releaseReason!!.isEmpty()) {
                 if (debug) notifyAsMessage(ModuleGrimVelocity, "Finish alink")
                 attackQueue = getCurrentAttackCount()
+                totalAttackCount = attackQueue
                 if (debug) notifyAsMessage(ModuleGrimVelocity, "Attack count: $attackQueue")
             } else {
                 if (debug) notifyAsMessage(ModuleGrimVelocity, "Finish alink ($releaseReason)")
@@ -537,14 +532,18 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
             }
         }
 
-        if (releaseReason == "back") {
+        if (releaseReason?.startsWith("back") == true) {
             event.directionalInput = DirectionalInput(
                 forwards = false,
                 backwards = true,
                 left = false,
                 right = false
             )
-            releaseReason = null
+            releaseReason = if (releaseReason == "back1") {
+                "back2"
+            } else {
+                null
+            }
         }
     }
 

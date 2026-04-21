@@ -26,14 +26,16 @@ import net.minecraft.network.packet.Packet
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket
+import net.minecraft.network.packet.s2c.common.CommonPingS2CPacket
 import net.minecraft.network.packet.s2c.common.DisconnectS2CPacket
 import net.minecraft.network.packet.s2c.play.BlockUpdateS2CPacket
-import net.minecraft.network.packet.s2c.play.ChatMessageS2CPacket
 import net.minecraft.network.packet.s2c.play.EntityDamageS2CPacket
+import net.minecraft.network.packet.s2c.play.EntityPositionS2CPacket
+import net.minecraft.network.packet.s2c.play.EntityPositionSyncS2CPacket
+import net.minecraft.network.packet.s2c.play.EntityS2CPacket
 import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket
 import net.minecraft.network.packet.s2c.play.ExplosionS2CPacket
 import net.minecraft.network.packet.s2c.play.GameJoinS2CPacket
-import net.minecraft.network.packet.s2c.play.GameMessageS2CPacket
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 import net.minecraft.network.packet.s2c.play.PlayerRespawnS2CPacket
 import net.minecraft.util.ActionResult
@@ -102,11 +104,6 @@ object GrimVelocityFull : GrimVelocityMode("Full") {
 
         if (delay) {
             when (packet) {
-                is ChatMessageS2CPacket,
-                is GameMessageS2CPacket -> {
-                    return@sequenceHandler
-                }
-
                 is PlayerPositionLookS2CPacket,
                 is DisconnectS2CPacket,
                 is PlayerRespawnS2CPacket,
@@ -118,12 +115,18 @@ object GrimVelocityFull : GrimVelocityMode("Full") {
                         true
                     }
                     delay = false
-                    return@sequenceHandler
+                }
+
+                is EntityVelocityUpdateS2CPacket,
+                is CommonPingS2CPacket,
+                is EntityS2CPacket,
+                is EntityPositionS2CPacket,
+                is EntityPositionSyncS2CPacket -> {
+                    event.cancelEvent()
+                    delayedPacketQueue.add(packet)
                 }
             }
 
-            event.cancelEvent()
-            delayedPacketQueue.add(packet)
             return@sequenceHandler
         }
 

@@ -39,9 +39,11 @@ import net.ccbluex.liquidbounce.utils.input.InputTracker.isPressedOnAny
 import net.ccbluex.liquidbounce.utils.kotlin.EventPriorityConvention
 import net.ccbluex.liquidbounce.utils.math.toVec3
 import net.ccbluex.liquidbounce.utils.movement.DirectionalInput
+import net.minecraft.item.Items
 import net.minecraft.network.packet.c2s.common.CommonPongC2SPacket
-import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
 import net.minecraft.network.packet.c2s.play.*
+import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
+import net.minecraft.util.Hand
 import kotlin.math.abs
 import kotlin.random.Random
 
@@ -57,6 +59,7 @@ object ModuleFreeze : ClientModule("Freeze", Category.MOVEMENT, disableOnQuit = 
     private val disableOnFlag by boolean("DisableOnFlag", true)
     private val notification by boolean("Notification", false)
     private val balance by boolean("BalanceWarp", false)
+    private val bypassNegativeTimer by boolean("BypassNegativeTimer", true)
 
     // todo: use global balance system
     private var missedOutTick = 0
@@ -80,6 +83,50 @@ object ModuleFreeze : ClientModule("Freeze", Category.MOVEMENT, disableOnQuit = 
 
         missedOutTick = 0
         super.onDisabled()
+
+        if (bypassNegativeTimer) {
+            interact()
+        }
+    }
+
+    fun interact() {
+        var hand = Hand.OFF_HAND
+        var slot = -1
+        val blackList = arrayOf(
+            Items.ENDER_PEARL,
+            Items.TNT,
+            Items.FIRE_CHARGE,
+            Items.WIND_CHARGE
+        )
+
+        if (player.getStackInHand(Hand.OFF_HAND).item in blackList) {
+            for (i in 0..8) {
+                val stack = player.inventory.getStack(i)
+                if (stack.item !in blackList) {
+                    hand = Hand.MAIN_HAND
+                    if (i != player.inventory.selectedSlot) {
+                        slot = player.inventory.selectedSlot
+                        player.inventory.selectedSlot = i
+                        interaction.syncSelectedSlot()
+                    }
+                    break
+                }
+            }
+        }
+
+        interaction.sendSequencedPacket(world) { sequence ->
+            PlayerInteractItemC2SPacket(
+                hand,
+                sequence,
+                RotationManager.serverRotation.yaw,
+                RotationManager.serverRotation.pitch
+            )
+        }
+
+        if (slot != -1) {
+            player.inventory.selectedSlot = slot
+            interaction.syncSelectedSlot()
+        }
     }
 
     /**
@@ -198,7 +245,7 @@ object ModuleFreeze : ClientModule("Freeze", Category.MOVEMENT, disableOnQuit = 
         /**
          * Bypasses Grim's BadPacketsR and Matrix7 Timer Check
          */
-        private val cancelC0B by boolean("CancelC0B",false)
+        private val cancelC0B by boolean("CancelC0B", false)
         private val yawOffset = FloatOffsetGenerator()
         private val pitchOffset = FloatOffsetGenerator()
 
@@ -233,6 +280,10 @@ object ModuleFreeze : ClientModule("Freeze", Category.MOVEMENT, disableOnQuit = 
                     if (cancelC0B) {
                         event.cancelEvent()
                     }
+                }
+
+                is PlayerMoveC2SPacket -> {
+                    event.cancelEvent()
                 }
 
                 is PlayerInteractItemC2SPacket -> {
