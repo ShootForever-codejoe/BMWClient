@@ -45,7 +45,7 @@ import kotlin.math.atan2
 import kotlin.math.hypot
 import kotlin.math.sqrt
 
-object ModuleColorBlindHelper : ClientModule("ColorBlinkHelper", Category.BMW) {
+object ModuleColorBlindHelper : ClientModule("ColorBlindHelper", Category.BMW) {
 
     private val debugEnabled by boolean("Debug", false)
     private val heypixelEnabled by boolean("HeyPixel", false)

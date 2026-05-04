@@ -782,5 +782,8 @@
   "liquidbounce.module.autoMLG.description": "高空坠落时自动使用水桶落地水。",
   "liquidbounce.module.attackCrystal.description": "自动攻击附近的末影水晶。",
   "liquidbounce.module.enderChest.description": "保持末影箱开启但不显示界面，可远程储存资源进末影箱，无法绕过布吉岛。",
-  "liquidbounce.module.autoInvite.description": "在布吉岛自动邀请你的敌人进入队伍，并在队伍嘲讽、唱歌、自动跨服传送。"
+  "liquidbounce.module.autoInvite.description": "在布吉岛自动邀请你的敌人进入队伍，并在队伍嘲讽、唱歌、自动跨服传送。",
+  "liquidbounce.module.colorBlindHelper.description": "在布吉岛全自动游玩色盲派对。",
+  "liquidbounce.module.helper.description": "辅助游玩，有自动灭火、自动堵岩浆、自动堵水等功能。",
+  "liquidbounce.module.bMWTest.description": "仅供测试使用"
 }

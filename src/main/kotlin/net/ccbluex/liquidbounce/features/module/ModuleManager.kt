@@ -94,10 +94,12 @@ import net.ccbluex.liquidbounce.features.module.modules.world.packetmine.ModuleP
 import net.ccbluex.liquidbounce.features.module.modules.render.ModuleProtectionZones
 import net.ccbluex.liquidbounce.features.module.modules.world.scaffold.ModuleScaffold
 import net.ccbluex.liquidbounce.features.module.modules.bmw.*
+import net.ccbluex.liquidbounce.features.module.modules.bmw.ModuleAutoMLG
 import net.ccbluex.liquidbounce.features.module.modules.bmw.delayblink.ModuleDelayBlink
 import net.ccbluex.liquidbounce.features.module.modules.bmw.fireballfly.ModuleFireballFly
 import net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.ModuleGrimNoSlow
 import net.ccbluex.liquidbounce.features.module.modules.bmw.grimvelocity.ModuleGrimVelocity
+import net.ccbluex.liquidbounce.features.module.modules.bmw.helper.ModuleHelper
 import net.ccbluex.liquidbounce.features.module.modules.world.traps.ModuleAutoTrap
 import net.ccbluex.liquidbounce.script.ScriptApiRequired
 import net.ccbluex.liquidbounce.utils.client.inGame
@@ -459,6 +461,8 @@ object ModuleManager : EventListener, Collection<ClientModule> by modules {
             ModuleAutoMLG,
             ModuleClutch,
             ModuleColorBlindHelper,
+            ModuleBMWTest,
+            ModuleHelper,
 
             // Shit
             ModuleAutoInvite

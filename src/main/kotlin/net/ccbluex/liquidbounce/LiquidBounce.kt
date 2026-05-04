@@ -49,6 +49,7 @@ import net.ccbluex.liquidbounce.features.misc.AccountManager
 import net.ccbluex.liquidbounce.features.misc.FriendManager
 import net.ccbluex.liquidbounce.features.misc.proxy.ProxyManager
 import net.ccbluex.liquidbounce.features.module.ModuleManager
+import net.ccbluex.liquidbounce.bmw.PlacementManager
 import net.ccbluex.liquidbounce.features.module.modules.bmw.delayblink.DelayBlinkPacketManager
 import net.ccbluex.liquidbounce.features.module.modules.bmw.fireballfly.FireballFlyPacketManager
 import net.ccbluex.liquidbounce.features.module.modules.combat.backtrack.BacktrackPacketManager
@@ -239,6 +240,7 @@ object LiquidBounce : EventListener {
         DelayBlinkPacketManager
         FireballFlyPacketManager
         HeypixelSWKillEventListener
+        PlacementManager
     }
 
     /**

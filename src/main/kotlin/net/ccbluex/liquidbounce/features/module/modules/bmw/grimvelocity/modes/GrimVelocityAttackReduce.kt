@@ -29,6 +29,7 @@ import net.ccbluex.liquidbounce.event.EventManager
 import net.ccbluex.liquidbounce.event.events.*
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.event.tickHandler
+import net.ccbluex.liquidbounce.bmw.PlacementManager
 import net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.food.GrimNoSlowFoodNoC0F
 import net.ccbluex.liquidbounce.features.module.modules.bmw.grimvelocity.GrimVelocityMode
 import net.ccbluex.liquidbounce.features.module.modules.bmw.grimvelocity.ModuleGrimVelocity
@@ -60,7 +61,6 @@ import net.minecraft.entity.Entity
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.TrackedPosition
 import net.minecraft.network.packet.Packet
-import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerMoveC2SPacket
 import net.minecraft.network.packet.s2c.common.CommonPingS2CPacket
 import net.minecraft.network.packet.s2c.common.DisconnectS2CPacket
@@ -209,12 +209,7 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
             )
         }
 
-        network.sendPacket(
-            PlayerInteractEntityC2SPacket.attack(
-                target,
-                player.isSneaking
-            )
-        )
+        interaction.attackEntity(player, target)
         player.swingHand(Hand.MAIN_HAND)
 
         if (autoRotate.canRotate && autoRotate.rotationTiming == RotationTiming.ON_TICK) {
@@ -292,7 +287,7 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
         if (!autoAttackCount) return attackCount.random()
 
         if (attackMode == AttackMode.PER_TICK) {
-            return 5
+            return if (velocity < 1000.0) 0 else 5
         }
 
         return if (velocity < 1000.0) {
@@ -370,6 +365,7 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
                 || ModuleFreeze.running
                 || !(!requireKillAura || ModuleKillAura.running)
                 || GrimNoSlowFoodNoC0F.working
+                || PlacementManager.working
             ) return@handler
 
             findTarget()
@@ -441,7 +437,7 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
 
                 AttackMode.PER_TICK -> {
                     if (attackCheck) {
-                        if (attackQueue != totalAttackCount && target!!.boxedDistanceTo(player) > 3) {
+                        if (attackQueue != totalAttackCount && target!!.boxedDistanceTo(player) > player.entityInteractionRange) {
                             if (debug) notifyAsMessage(ModuleGrimVelocity, "Target is too far to attack")
                             attackQueue--
                             if (attackQueue == 0) {
@@ -545,21 +541,6 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
                 null
             }
         }
-    }
-
-    @Suppress("unused")
-    private val renderHandler = handler<WorldRenderEvent> {
-        if (alinkTicks == -1 || renderTarget == null || renderTargetPos == null) return@handler
-
-        WireframePlayer(
-            renderTargetPos!!.pos,
-            renderTarget!!.yaw,
-            renderTarget!!.pitch
-        ).render(
-            it,
-            Color4b(255, 255, 255, 100),
-            Color4b(255, 255, 255, 255)
-        )
     }
 
     private sealed class RenderChoice(name: String) : Choice(name) {

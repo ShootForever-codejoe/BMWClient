@@ -17,27 +17,36 @@
  * along with LiquidBounce. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.food
+package net.ccbluex.liquidbounce.features.module.modules.bmw.helper
 
-import net.ccbluex.liquidbounce.config.types.nesting.ToggleableConfigurable
-import net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.ModuleGrimNoSlow
-import net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.share.GrimNoSlowShareHalf
-import net.minecraft.item.consume.UseAction
+import net.ccbluex.liquidbounce.event.tickHandler
+import net.ccbluex.liquidbounce.features.module.Category
+import net.ccbluex.liquidbounce.features.module.ClientModule
 
-object GrimNoSlowFood : ToggleableConfigurable(ModuleGrimNoSlow, "Food", true) {
+object ModuleHelper : ClientModule("Helper", Category.BMW) {
 
-    private val useActions = arrayOf(
-        UseAction.EAT,
-        UseAction.DRINK
-    )
+    init {
+        treeAll(
+            HelperPutOutFire,
+            HelperBlockLava,
+            HelperBlockWater,
+            HelperBlockTNT
+        )
+    }
 
     @Suppress("unused")
-    val modes = choices("Mode") {
-        arrayOf(
-            GrimNoSlowFoodNoC0F(it, useActions),
-            GrimNoSlowShareHalf(it, useActions),
-            GrimNoSlowFoodDrop(it)
-        )
+    private val tickHandler = tickHandler {
+        if (HelperPutOutFire.enabled) {
+            HelperPutOutFire.handle()
+        }
+
+        if (HelperBlockLava.enabled) {
+            HelperBlockLava.handle()
+        }
+
+        if (HelperBlockWater.enabled) {
+            HelperBlockWater.handle()
+        }
     }
 
 }

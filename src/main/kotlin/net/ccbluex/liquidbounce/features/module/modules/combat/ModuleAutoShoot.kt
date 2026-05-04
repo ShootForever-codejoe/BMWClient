@@ -73,7 +73,7 @@ object ModuleAutoShoot : ClientModule("AutoShoot", Category.COMBAT) {
     /**
      * The target tracker to find the best enemy to attack.
      */
-    internal val targetTracker = tree(TargetTracker(TargetPriority.DISTANCE, floatRange("Range", 3.0f..6f, 1f..256f)))
+    internal val targetTracker = tree(TargetTracker(TargetPriority.DISTANCE, floatRange("Range", 3.0f..6f, 0f..256f)))
     private val pointTracker = tree(
         PointTracker(
             this
@@ -95,7 +95,7 @@ object ModuleAutoShoot : ClientModule("AutoShoot", Category.COMBAT) {
     private val targetRenderer = tree(WorldTargetRenderer(this))
 
     private val selectSlotAutomatically by boolean("SelectSlotAutomatically", true)
-    private val tickUntilReset by int("TicksUntillSlotReset", 1, 0..20)
+    private val tickUntilReset by int("TicksUntilSlotReset", 1, 0..20)
     private val considerInventory by boolean("ConsiderInventory", true)
 
     private val requiresKillAura by boolean("RequiresKillAura", false)
@@ -126,10 +126,7 @@ object ModuleAutoShoot : ClientModule("AutoShoot", Category.COMBAT) {
     @Suppress("unused")
     private val simulatedTickHandler = handler<RotationUpdateEvent> {
         // Find the recommended target
-        val target = targetTracker.selectFirst {
-            // Check if we can see the enemy
-            player.canSee(it)
-        } ?: return@handler
+        val target = targetTracker.selectFirst() ?: return@handler
 
         if (notDuringCombat && CombatManager.isInCombat) {
             return@handler
@@ -148,7 +145,10 @@ object ModuleAutoShoot : ClientModule("AutoShoot", Category.COMBAT) {
 
         // Check if we have a throwable, if not we can't shoot.
         val slot = throwableType() ?: return@handler
-        if (slot.useHand == Hand.MAIN_HAND && CombatManager.isInCombat) return@handler
+        if (slot.useHand == Hand.MAIN_HAND
+            && ModuleKillAura.running
+            && ModuleKillAura.targetTracker.target != null
+        ) return@handler
 
         if (!slot.trySelect(ModuleAutoShoot, selectSlotAutomatically, tickUntilReset)) {
             return@handler

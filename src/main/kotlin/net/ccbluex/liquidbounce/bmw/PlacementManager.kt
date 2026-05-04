@@ -1,0 +1,242 @@
+/*
+ * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
+ *
+ * Copyright (c) 2015 - 2026 CCBlueX
+ *
+ * LiquidBounce is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * LiquidBounce is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with LiquidBounce. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+package net.ccbluex.liquidbounce.bmw
+
+import net.ccbluex.liquidbounce.event.EventListener
+import net.ccbluex.liquidbounce.event.tickHandler
+import net.ccbluex.liquidbounce.event.waitTicks
+import net.ccbluex.liquidbounce.features.module.ClientModule
+import net.ccbluex.liquidbounce.features.module.MinecraftShortcuts
+import net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.food.GrimNoSlowFood
+import net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.food.GrimNoSlowFoodNoC0F
+import net.ccbluex.liquidbounce.features.module.modules.combat.killaura.ModuleKillAura
+import net.ccbluex.liquidbounce.features.module.modules.world.scaffold.ModuleScaffold
+import net.ccbluex.liquidbounce.utils.aiming.RotationManager
+import net.ccbluex.liquidbounce.utils.aiming.RotationTarget
+import net.ccbluex.liquidbounce.utils.aiming.data.Rotation
+import net.ccbluex.liquidbounce.utils.aiming.features.MovementCorrection
+import net.ccbluex.liquidbounce.utils.client.SilentHotbar
+import net.ccbluex.liquidbounce.utils.client.interactItem
+import net.ccbluex.liquidbounce.utils.kotlin.EventPriorityConvention
+import net.ccbluex.liquidbounce.utils.kotlin.Priority
+import net.ccbluex.liquidbounce.utils.kotlin.random
+import net.ccbluex.liquidbounce.utils.math.minus
+import net.minecraft.util.Hand
+import net.minecraft.util.hit.BlockHitResult
+import net.minecraft.util.math.Vec3d
+
+object PlacementManager : EventListener, MinecraftShortcuts {
+
+    var working = false
+        private set
+    var requester: ClientModule? = null
+        private set
+    private var request: PlacementRequest? = null
+    private var scaffold = false
+    private var killAura = false
+
+    private fun reset() {
+        if (scaffold) {
+            ModuleScaffold.enabled = true
+            scaffold = false
+        }
+        if (killAura) {
+            ModuleKillAura.enabled = true
+            killAura = false
+        }
+        requester = null
+        request = null
+        working = false
+    }
+
+    abstract class PlacementRequest(
+        val pos: Vec3d? = null /* pitch = 90 when null */
+    )
+
+    class PlaceWaterRequest(
+        pos: Vec3d? = null,
+        val debug: PlaceWaterDebug = PlaceWaterDebug.NONE
+    ) : PlacementRequest(pos)
+
+    data class PlaceWaterDebug(
+        val noBucket: String? = null,
+        val failToPlace: String? = null,
+        val failToRecycle: String? = null
+    ) {
+        companion object {
+            val NONE = PlaceWaterDebug()
+            val DEFAULT = PlaceWaterDebug(
+                noBucket = "No water bucket found",
+                failToPlace = "Failed to place water",
+                failToRecycle = "Failed to recycle water"
+            )
+        }
+    }
+
+    class PlaceBlockRequest(
+        pos: Vec3d? = null,
+        val slot: Int, /* 9: Offhand */
+        val debug: String? = null
+    ) : PlacementRequest(pos)
+
+    fun place(requester: ClientModule, content: PlacementRequest): Boolean {
+        if (this.requester != null || working) {
+            return false
+        }
+
+        this.requester = requester
+        this.request = content
+        return true
+    }
+
+    @Suppress("unused")
+    private val tickHandler = tickHandler(priority = EventPriorityConvention.MODEL_STATE) {
+        if (requester == null || working) return@tickHandler
+
+        if (request == null) {
+            reset()
+            return@tickHandler
+        }
+
+        working = true
+
+        scaffold = ModuleScaffold.enabled
+        if (scaffold) ModuleScaffold.enabled = false
+
+        killAura = ModuleKillAura.enabled
+        if (killAura) ModuleKillAura.enabled = false
+
+        if (GrimNoSlowFoodNoC0F.Companion.working) {
+            (GrimNoSlowFood.modes.activeChoice as GrimNoSlowFoodNoC0F).release()
+        }
+
+        val position = simulatePlayerMovement(2).position
+        var rotation: Rotation
+        if (request!!.pos == null) {
+            rotation = Rotation(
+                RotationManager.currentRotation?.yaw ?: player.yaw,
+                90f - (0.002f..0.004f).random()
+            )
+        } else {
+            rotation = Rotation.Companion.lookingAt(
+                request!!.pos!!,
+                player.eyePos.add(position.minus(player.pos)),
+            )
+            rotation = Rotation(
+                rotation.yaw + (-0.002f..0.002f).random(),
+                rotation.pitch + (-0.002f..0.002f).random()
+            ).normalize()
+        }
+
+        when (request) {
+            is PlaceWaterRequest -> {
+                val request = request as PlaceWaterRequest
+
+                val waterBucketSlot = getWaterBucketSlot()
+                if (waterBucketSlot == -1) {
+                    if (request.debug.noBucket != null) {
+                        notifyAsMessage(requester!!, request.debug.noBucket)
+                    }
+                    reset()
+                    return@tickHandler
+                }
+                val hand = if (waterBucketSlot == 9) Hand.OFF_HAND else Hand.MAIN_HAND
+
+                if (waterBucketSlot != 9) {
+                    SilentHotbar.selectSlotSilently(requester, waterBucketSlot, 4)
+                }
+
+                RotationManager.setRotationTarget(
+                    plan = RotationTarget(
+                        rotation = rotation,
+                        ticksUntilReset = 3,
+                        resetThreshold = 1f,
+                        considerInventory = false,
+                        movementCorrection = MovementCorrection.SILENT
+                    ),
+                    priority = Priority.IMPORTANT_FOR_USER_SAFETY,
+                    provider = requester!!
+                )
+
+                waitTicks(2)
+
+                if (mc.crosshairTarget is BlockHitResult) {
+                    val blockHitResult = mc.crosshairTarget as BlockHitResult
+                    interaction.interactBlock(player, hand, blockHitResult)
+                    interaction.interactItem(player, hand, rotation.yaw, rotation.pitch)
+                } else {
+                    if (request.debug.failToPlace != null) {
+                        notifyAsMessage(requester!!, request.debug.failToPlace)
+                    }
+                    reset()
+                    return@tickHandler
+                }
+
+                waitTicks(1)
+
+                if (mc.crosshairTarget is BlockHitResult) {
+                    val blockHitResult = mc.crosshairTarget as BlockHitResult
+                    interaction.interactBlock(player, hand, blockHitResult)
+                    interaction.interactItem(player, hand, rotation.yaw, rotation.pitch)
+                } else {
+                    if (request.debug.failToRecycle != null) {
+                        notifyAsMessage(requester!!, request.debug.failToRecycle)
+                    }
+                }
+            }
+
+            is PlaceBlockRequest -> {
+                val request = request as PlaceBlockRequest
+
+                val hand = if (request.slot == 9) Hand.OFF_HAND else Hand.MAIN_HAND
+
+                if (request.slot in 0..8) {
+                    SilentHotbar.selectSlotSilently(requester, request.slot, 3)
+                }
+
+                RotationManager.setRotationTarget(
+                    plan = RotationTarget(
+                        rotation = rotation,
+                        ticksUntilReset = 2,
+                        resetThreshold = 1f,
+                        considerInventory = false,
+                        movementCorrection = MovementCorrection.SILENT
+                    ),
+                    priority = Priority.IMPORTANT_FOR_USER_SAFETY,
+                    provider = requester!!
+                )
+
+                waitTicks(2)
+
+                if (mc.crosshairTarget is BlockHitResult) {
+                    val blockHitResult = mc.crosshairTarget as BlockHitResult
+                    interaction.interactBlock(player, hand, blockHitResult)
+                } else {
+                    if (request.debug != null) {
+                        notifyAsMessage(requester!!, request.debug)
+                    }
+                }
+            }
+        }
+
+        reset()
+    }
+
+}

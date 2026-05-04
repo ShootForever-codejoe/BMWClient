@@ -19,7 +19,9 @@
 
 package net.ccbluex.liquidbounce.features.module.modules.bmw
 
+import net.ccbluex.liquidbounce.bmw.isOnGround
 import net.ccbluex.liquidbounce.bmw.notifyAsMessage
+import net.ccbluex.liquidbounce.bmw.simulatePlayerMovement
 import net.ccbluex.liquidbounce.event.events.PacketEvent
 import net.ccbluex.liquidbounce.event.events.PlayerTickEvent
 import net.ccbluex.liquidbounce.event.handler
@@ -37,7 +39,6 @@ import net.ccbluex.liquidbounce.utils.aiming.RotationManager
 import net.ccbluex.liquidbounce.utils.block.canPlayerReachBlock
 import net.ccbluex.liquidbounce.utils.client.sendPacketSilently
 import net.ccbluex.liquidbounce.utils.inventory.Slots
-import net.minecraft.entity.Entity
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerInteractItemC2SPacket
@@ -53,17 +54,16 @@ object ModuleClutch : ClientModule("Clutch", Category.BMW) {
 
     private val stuckWhenRescue by boolean("StuckWhenRescue", true)
     private val maxRescueTime by float("MaxRescueTime", 0.5f, 0f..5f, "seconds")
-    private val maxTryCount by int("MaxTryCount", 3, 1..10)
-    private val notDuringCombat by boolean("NotDuringCombat", true)
+    private val maxTryCount by int("MaxTryCount", 5, 1..10)
+    private val notDuringCombat by boolean("NotDuringCombat", false)
     private val simulationTicks by int("SimulationTicks", 100, 1..500, "ticks")
-    private val onlyFalling by boolean("OnlyFalling", false)
-    private val debug by boolean("Debug", true)
+    private val onlyFalling by boolean("OnlyFalling", true)
+    private val debug by boolean("Debug", false)
 
-    private const val GRAVITY = 0.08
-    private const val DRAG = 0.98
     private const val REST_TICKS = 3
 
     private var isRescuing = false
+    private var scaffold = false
     private var interacted = false
     private var rescueTriesLast = 0
     private var rescueStartTime = 0L
@@ -91,15 +91,14 @@ object ModuleClutch : ClientModule("Clutch", Category.BMW) {
     }
 
     private fun reset(clear: Boolean = true) {
-        if (isRescuing) {
-            if (ModuleScaffold.enabled) {
-                ModuleScaffold.enabled = false
-            }
-            if (!interacted) {
-                ModuleFreeze.interact()
-            }
+        if (scaffold && ModuleScaffold.enabled) {
+            ModuleScaffold.enabled = false
+        }
+        if (isRescuing && !interacted) {
+            ModuleFreeze.interact()
         }
         isRescuing = false
+        scaffold = false
         interacted = false
         rescueStartTime = 0L
         restTicks = 0
@@ -109,29 +108,10 @@ object ModuleClutch : ClientModule("Clutch", Category.BMW) {
     }
 
     private fun willLandInVoid(): Boolean {
-        var position = player.pos
-        var velocity = player.velocity
-
-        val movementForward = player.input.movementForward.toDouble()
-        val movementSideways = player.input.movementSideways.toDouble()
-
-        repeat(simulationTicks) {
-            val inputVelocity = Entity.movementInputToVelocity(
-                Vec3d(movementSideways * DRAG, 0.0, movementForward * DRAG),
-                0.02f,
-                player.yaw
-            )
-
-            velocity = velocity.add(inputVelocity)
-            position = position.add(velocity)
-
-            if (!world.isAir(BlockPos.ofFloored(position).down())) return false
-
-            velocity = velocity.multiply(DRAG, DRAG, DRAG).subtract(0.0, GRAVITY, 0.0)
-
-            if (position.y < world.bottomY) return true
+        val result = simulatePlayerMovement(simulationTicks) { position, velocity, tick ->
+            isOnGround(position)
         }
-        return true
+        return !result.stop
     }
 
     private fun isOverVoid(): Boolean {
@@ -185,6 +165,12 @@ object ModuleClutch : ClientModule("Clutch", Category.BMW) {
 
     @Suppress("unused")
     private val tickHandler = tickHandler {
+        if (scaffold && !ModuleScaffold.enabled) {
+            reset()
+            ModuleScaffold.enabled = true
+            return@tickHandler
+        }
+
         if (hasGivenUp) {
             if (player.isOnGround) hasGivenUp = false
             return@tickHandler
@@ -251,6 +237,7 @@ object ModuleClutch : ClientModule("Clutch", Category.BMW) {
                 rescueTriesLast = maxTryCount
             }
             waitTicks(1)
+            scaffold = true
             ModuleScaffold.enabled = true
         }
     }

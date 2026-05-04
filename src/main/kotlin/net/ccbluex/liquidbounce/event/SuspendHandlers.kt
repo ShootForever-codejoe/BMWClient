@@ -47,10 +47,12 @@ inline fun <reified T : Event> EventListener.sequenceHandler(
 inline fun EventListener.tickHandler(
     dispatcher: CoroutineDispatcher? = null,
     onCancellation: Runnable? = null,
+    priority: Short = 0,
     crossinline eventHandler: suspend CoroutineScope.() -> Unit,
 ) = suspendHandler<GameTickEvent>(
     context = wrapContinuationInterceptor(dispatcher),
-    behavior = SuspendHandlerBehavior.DiscardLatest(onCancellation)
+    behavior = SuspendHandlerBehavior.DiscardLatest(onCancellation),
+    priority = priority
 ) {
     eventHandler()
 }
