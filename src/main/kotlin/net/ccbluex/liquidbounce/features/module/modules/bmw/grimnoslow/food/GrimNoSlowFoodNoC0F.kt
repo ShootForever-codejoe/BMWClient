@@ -20,22 +20,25 @@
 package net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.food
 
 import com.google.common.collect.Queues
+import net.ccbluex.liquidbounce.bmw.getOppositeHand
 import net.ccbluex.liquidbounce.config.types.nesting.Choice
 import net.ccbluex.liquidbounce.config.types.nesting.ChoiceConfigurable
 import net.ccbluex.liquidbounce.event.events.PacketEvent
 import net.ccbluex.liquidbounce.event.events.PlayerUseMultiplier
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.event.tickHandler
+import net.ccbluex.liquidbounce.features.module.modules.world.scaffold.ModuleScaffold
 import net.ccbluex.liquidbounce.utils.client.handlePacket
 import net.ccbluex.liquidbounce.utils.inventory.InventoryManager
 import net.minecraft.item.consume.UseAction
 import net.minecraft.network.packet.Packet
 import net.minecraft.network.packet.c2s.play.CloseHandledScreenC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
+import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket
+import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
 import net.minecraft.network.packet.s2c.common.CommonPingS2CPacket
 import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket
 import net.minecraft.network.packet.s2c.play.ScreenHandlerSlotUpdateS2CPacket
-import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 
@@ -69,6 +72,7 @@ internal class GrimNoSlowFoodNoC0F(
     }
 
     fun release() {
+        mc.options.useKey.isPressed = false
         step = Step.NONE
         packets.removeIf {
             handlePacket(it)
@@ -91,6 +95,13 @@ internal class GrimNoSlowFoodNoC0F(
 
     @Suppress("unused")
     private val tickHandler = tickHandler {
+        if (step != Step.NONE && ModuleScaffold.enabled) {
+            ModuleScaffold.enabled = false
+            release()
+            ModuleScaffold.enabled = true
+            return@tickHandler
+        }
+
         if (step != Step.EATING) {
             noUsingItemTicks = 0
             return@tickHandler
@@ -100,7 +111,7 @@ internal class GrimNoSlowFoodNoC0F(
             noUsingItemTicks = 0
         } else {
             noUsingItemTicks++
-            if (noUsingItemTicks >= 5) {
+            if (noUsingItemTicks >= 3) {
                 release()
                 return@tickHandler
             }
@@ -113,11 +124,7 @@ internal class GrimNoSlowFoodNoC0F(
             return@handler
         }
 
-        val oppositeHand = if (player.activeHand == Hand.MAIN_HAND) {
-            Hand.OFF_HAND
-        } else {
-            Hand.MAIN_HAND
-        }
+        val oppositeHand = getOppositeHand(player.activeHand!!)
 
         if (isUsable(player.getStackInHand(oppositeHand).useAction)) {
             return@handler
@@ -143,39 +150,49 @@ internal class GrimNoSlowFoodNoC0F(
     private val packetHandler = handler<PacketEvent> { event ->
         val packet = event.packet
 
-        if (packet is CommonPingS2CPacket && step != Step.NONE) {
-            event.cancelEvent()
-            packets.add(packet)
-            if (step == Step.CANCEL_C0F) {
-                step = Step.SWAP_HANDS
-                mc.send {
-                    network.sendPacket(PlayerActionC2SPacket(
-                        PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND,
-                        BlockPos.ORIGIN,
-                        Direction.DOWN
-                    ))
+        if (step != Step.NONE) {
+            if (packet is CommonPingS2CPacket) {
+                event.cancelEvent()
+                packets.add(packet)
+                if (step == Step.CANCEL_C0F) {
+                    step = Step.SWAP_HANDS
+                    mc.send {
+                        network.sendPacket(PlayerActionC2SPacket(
+                            PlayerActionC2SPacket.Action.SWAP_ITEM_WITH_OFFHAND,
+                            BlockPos.ORIGIN,
+                            Direction.DOWN
+                        ))
+                    }
                 }
+            }
+
+            if (packet is EntityVelocityUpdateS2CPacket && packet.entityId == player.id) {
+                packets.add(packet)
+                event.cancelEvent()
             }
         }
 
-        if (packet is ScreenHandlerSlotUpdateS2CPacket && step == Step.SWAP_HANDS) {
-            mc.options.useKey.isPressed = true
-            step = Step.EATING
+        if (step == Step.SWAP_HANDS) {
+            if (packet is ScreenHandlerSlotUpdateS2CPacket) {
+                mc.options.useKey.isPressed = true
+                step = Step.EATING
+            }
         }
 
-        if (packet is PlayerActionC2SPacket
-            && packet.action == PlayerActionC2SPacket.Action.RELEASE_USE_ITEM
-            && step == Step.EATING
-        ) {
-            release()
-        }
+        if (step == Step.EATING) {
+            if (packet is PlayerActionC2SPacket
+                && packet.action == PlayerActionC2SPacket.Action.RELEASE_USE_ITEM
+            ) {
+                release()
+            }
 
-        if (packet is EntityVelocityUpdateS2CPacket
-            && packet.entityId == player.id
-            && step != Step.NONE
-        ) {
-            packets.add(packet)
-            event.cancelEvent()
+            if (packet is PlayerInteractBlockC2SPacket) {
+                event.cancelEvent()
+            }
+
+            if (packet is PlayerInteractEntityC2SPacket) {
+                event.cancelEvent()
+            }
         }
     }
 

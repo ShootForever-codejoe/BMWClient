@@ -24,6 +24,7 @@ import net.ccbluex.liquidbounce.bmw.getStandingBlock
 import net.ccbluex.liquidbounce.bmw.getWaterBucketSlot
 import net.ccbluex.liquidbounce.bmw.topCenter
 import net.ccbluex.liquidbounce.config.types.nesting.ToggleableConfigurable
+import net.ccbluex.liquidbounce.features.module.modules.world.scaffold.ModuleScaffold
 
 object HelperPutOutFire : ToggleableConfigurable(ModuleHelper, "PutOutFire", true) {
 
@@ -32,12 +33,13 @@ object HelperPutOutFire : ToggleableConfigurable(ModuleHelper, "PutOutFire", tru
             && player.isOnGround
             && PlacementManager.requester != ModuleHelper
             && getWaterBucketSlot() != -1
+            && !ModuleScaffold.running
         ) {
             PlacementManager.place(
                 ModuleHelper,
                 PlacementManager.PlaceWaterRequest(
                     getStandingBlock()?.topCenter,
-                    PlacementManager.PlaceWaterDebug(
+                    debug = PlacementManager.PlaceWaterDebug(
                         "No water bucket to put out fire",
                         "Failed to put out fire",
                         "Failed to recycle water"

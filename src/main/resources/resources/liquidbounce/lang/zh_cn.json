@@ -785,5 +785,6 @@
   "liquidbounce.module.autoInvite.description": "在布吉岛自动邀请你的敌人进入队伍，并在队伍嘲讽、唱歌、自动跨服传送。",
   "liquidbounce.module.colorBlindHelper.description": "在布吉岛全自动游玩色盲派对。",
   "liquidbounce.module.helper.description": "辅助游玩，有自动灭火、自动堵岩浆、自动堵水等功能。",
-  "liquidbounce.module.bMWTest.description": "仅供测试使用"
+  "liquidbounce.module.bMWTest.description": "仅供测试使用。",
+  "liquidbounce.module.autoScreenShot.description": "自动在游戏获胜时截图。"
 }

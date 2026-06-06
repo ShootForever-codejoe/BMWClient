@@ -20,6 +20,7 @@ package net.ccbluex.liquidbounce.features.module.modules.combat.killaura
 
 import kotlinx.coroutines.CoroutineScope
 import net.ccbluex.liquidbounce.event.waitTicks
+import net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.food.GrimNoSlowFoodNoC0F
 import net.ccbluex.liquidbounce.features.module.modules.bmw.grimvelocity.modes.GrimVelocityAttackReduce
 import net.ccbluex.liquidbounce.features.module.modules.combat.ModuleAutoWeapon
 import net.ccbluex.liquidbounce.features.module.modules.combat.killaura.KillAuraRotationsConfigurable.rotationTiming
@@ -57,6 +58,7 @@ object KillAuraClicker : Clicker<ModuleKillAura>(
     override val isClickTick: Boolean
         get() = super.isClickTick
             && (!GrimVelocityAttackReduce.running || GrimVelocityAttackReduce.attackQueue == 0)
+            && !GrimNoSlowFoodNoC0F.working
 
     class KillAuraClickerItemCooldown : ItemCooldown() {
 

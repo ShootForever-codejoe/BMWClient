@@ -90,6 +90,12 @@ data class Color4b @JvmOverloads constructor(val r: Int, val g: Int, val b: Int,
             }
         }
 
+        /**
+         * Creates a color with full alpha (255).
+         */
+        @JvmStatic
+        fun fullAlpha(rgb: Int): Color4b = Color4b(rgb or 0xFF000000.toInt())
+
     }
 
     constructor(color: Color) : this(color.red, color.green, color.blue, color.alpha)

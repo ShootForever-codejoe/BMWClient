@@ -20,12 +20,12 @@
 package net.ccbluex.liquidbounce.features.module.modules.bmw.helper
 
 import net.ccbluex.liquidbounce.config.types.nesting.ToggleableConfigurable
-import net.ccbluex.liquidbounce.event.events.NotificationEvent
 import net.ccbluex.liquidbounce.event.tickHandler
+import net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.food.GrimNoSlowFoodNoC0F
+import net.ccbluex.liquidbounce.features.module.modules.world.scaffold.ModuleScaffold
 import net.ccbluex.liquidbounce.features.module.modules.world.scaffold.ScaffoldBlockItemSelection.isValidBlock
 import net.ccbluex.liquidbounce.utils.block.placer.BlockPlacer
 import net.ccbluex.liquidbounce.utils.client.Chronometer
-import net.ccbluex.liquidbounce.utils.client.notification
 import net.ccbluex.liquidbounce.utils.combat.CombatManager
 import net.ccbluex.liquidbounce.utils.inventory.HotbarItemSlot
 import net.ccbluex.liquidbounce.utils.inventory.Slots
@@ -103,11 +103,6 @@ object HelperBlockTNT : ToggleableConfigurable(ModuleHelper, "BlockTNT", true) {
 
         if (blockPlacer.isDone() && wallPositions.isNotEmpty()) {
             if (lastExplosiveId != null) {
-                notification(
-                    "AntiExplosion",
-                    "Protective wall completed.",
-                    NotificationEvent.Severity.SUCCESS
-                )
                 cooldownTimer.reset()
                 lastExplosiveId = null
                 lastWallCenter = null
@@ -132,19 +127,16 @@ object HelperBlockTNT : ToggleableConfigurable(ModuleHelper, "BlockTNT", true) {
         lastExplosivePos = nearbyExplosive.pos
         lastExplosiveId = nearbyExplosive.id
         knownExplosiveIds.add(nearbyExplosive.id)
-
-        notification(
-            "AntiExplosion",
-            "Building protective wall against ${getExplosiveName(nearbyExplosive)}.",
-            NotificationEvent.Severity.INFO
-        )
     }
 
     private fun canProceedWithBuilding(): Boolean {
         if (player.mainHandStack.item == Items.TNT) {
             return false
         }
-        return !player.isUsingItem && (!notDuringCombat || !CombatManager.isInCombat)
+        return !player.isUsingItem
+            && (!notDuringCombat || !CombatManager.isInCombat)
+            && !ModuleScaffold.running
+            && !GrimNoSlowFoodNoC0F.working
     }
 
     private fun needsRebuildForExplosive(explosive: Entity, player: ClientPlayerEntity): Boolean {
@@ -233,14 +225,6 @@ object HelperBlockTNT : ToggleableConfigurable(ModuleHelper, "BlockTNT", true) {
             else -> {
                 if (normalizedDirection.z > 0) Vec3d(0.0, 0.0, 1.0) else Vec3d(0.0, 0.0, -1.0)
             }
-        }
-    }
-
-    private fun getExplosiveName(entity: Entity): String {
-        return when (entity) {
-            is TntEntity -> "TNT"
-            is CreeperEntity -> if (entity.isCharged) "Charged Creeper" else "Creeper"
-            else -> "Explosive"
         }
     }
 

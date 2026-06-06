@@ -28,6 +28,7 @@ import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.event.tickHandler
 import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
+import net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.food.GrimNoSlowFoodNoC0F
 import net.ccbluex.liquidbounce.features.module.modules.combat.killaura.ModuleKillAura
 import net.ccbluex.liquidbounce.features.module.modules.movement.ModuleFreeze
 import net.ccbluex.liquidbounce.features.module.modules.world.scaffold.ModuleScaffold
@@ -136,7 +137,7 @@ object ModuleAutoShoot : ClientModule("AutoShoot", Category.COMBAT) {
             return@handler
         }
 
-        if (notDuringUsingItem && player.usingItem) {
+        if (notDuringUsingItem && (player.isUsingItem || GrimNoSlowFoodNoC0F.working)) {
             return@handler
         }
 
@@ -182,7 +183,7 @@ object ModuleAutoShoot : ClientModule("AutoShoot", Category.COMBAT) {
             return@tickHandler
         }
 
-        if (notDuringUsingItem && player.usingItem) {
+        if (notDuringUsingItem && (player.isUsingItem || GrimNoSlowFoodNoC0F.working)) {
             return@tickHandler
         }
 

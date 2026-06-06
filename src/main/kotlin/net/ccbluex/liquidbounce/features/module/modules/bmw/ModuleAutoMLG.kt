@@ -29,6 +29,7 @@ import net.ccbluex.liquidbounce.event.tickHandler
 import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
 import net.ccbluex.liquidbounce.features.module.modules.combat.killaura.ModuleKillAura
+import net.ccbluex.liquidbounce.utils.kotlin.Priority
 
 object ModuleAutoMLG : ClientModule("AutoMLG", Category.BMW) {
 
@@ -61,6 +62,7 @@ object ModuleAutoMLG : ClientModule("AutoMLG", Category.BMW) {
                 ModuleAutoMLG,
                 PlacementManager.PlaceWaterRequest(
                     standingBlock?.topCenter,
+                    Priority.IMPORTANT_FOR_USER_SAFETY,
                     PlacementManager.PlaceWaterDebug.DEFAULT
                 )
             )

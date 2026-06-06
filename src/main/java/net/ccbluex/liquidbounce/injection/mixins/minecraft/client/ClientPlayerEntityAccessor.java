@@ -17,27 +17,14 @@
  * along with LiquidBounce. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.food
+package net.ccbluex.liquidbounce.injection.mixins.minecraft.client;
 
-import net.ccbluex.liquidbounce.config.types.nesting.ToggleableConfigurable
-import net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.ModuleGrimNoSlow
-import net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.share.*
-import net.minecraft.item.consume.UseAction
+import net.minecraft.client.network.ClientPlayerEntity;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.gen.Invoker;
 
-object GrimNoSlowFood : ToggleableConfigurable(ModuleGrimNoSlow, "Food", true) {
-
-    private val useActions = arrayOf(
-        UseAction.EAT,
-        UseAction.DRINK
-    )
-
-    @Suppress("unused")
-    val modes = choices("Mode") {
-        arrayOf(
-            GrimNoSlowFoodNoC0F(it, useActions),
-            GrimNoSlowShareHalf(it, useActions),
-            GrimNoSlowFoodDrop(it)
-        )
-    }
-
+@Mixin(ClientPlayerEntity.class)
+public interface ClientPlayerEntityAccessor {
+    @Invoker
+    void callSendMovementPackets();
 }

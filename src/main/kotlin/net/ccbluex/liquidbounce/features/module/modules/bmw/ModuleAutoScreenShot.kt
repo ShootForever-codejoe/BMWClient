@@ -17,35 +17,31 @@
  * along with LiquidBounce. If not, see <https://www.gnu.org/licenses/>.
  */
 
-package net.ccbluex.liquidbounce.features.module.modules.bmw.helper
+package net.ccbluex.liquidbounce.features.module.modules.bmw
 
-import net.ccbluex.liquidbounce.event.tickHandler
+import net.ccbluex.liquidbounce.event.events.ChatReceiveEvent
+import net.ccbluex.liquidbounce.event.sequenceHandler
+import net.ccbluex.liquidbounce.event.waitTicks
 import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
-import net.minecraft.fluid.Fluids
+import net.minecraft.client.util.ScreenshotRecorder
 
-object ModuleHelper : ClientModule("Helper", Category.BMW) {
+@Suppress("unused")
+object ModuleAutoScreenShot : ClientModule("AutoScreenShot", Category.BMW) {
 
-    init {
-        tree(HelperPutOutFire)
-        tree(HelperBlockTNT)
+    private val delay by int("Delay", 10, 0..100, "ticks")
+
+    override fun onEnabled() {
+        ScreenshotRecorder.takeScreenshot(mc.framebuffer)
     }
 
-    private val helperBlockLava = tree(HelperBlockFluid(Fluids.LAVA))
-    private val helperBlockWater = tree(HelperBlockFluid(Fluids.WATER))
-
     @Suppress("unused")
-    private val tickHandler = tickHandler {
-        if (HelperPutOutFire.enabled) {
-            HelperPutOutFire.handle()
-        }
+    private val chatReceiveEventHandler = sequenceHandler<ChatReceiveEvent> { event ->
+        if (event.type != ChatReceiveEvent.ChatType.GAME_MESSAGE) return@sequenceHandler
 
-        if (helperBlockLava.enabled) {
-            helperBlockLava.handle()
-        }
-
-        if (helperBlockWater.enabled) {
-            helperBlockWater.handle()
+        if (event.message.startsWith("恭喜! ${player.name.string} 在地图")) {
+            waitTicks(delay)
+            ScreenshotRecorder.takeScreenshot(mc.framebuffer)
         }
     }
 

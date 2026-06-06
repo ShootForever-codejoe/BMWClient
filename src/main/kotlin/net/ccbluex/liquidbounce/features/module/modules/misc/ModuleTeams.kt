@@ -25,9 +25,10 @@ import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
 import net.ccbluex.liquidbounce.render.engine.type.Color4b
 import net.ccbluex.liquidbounce.utils.client.stripMinecraftColorCodes
-import net.ccbluex.liquidbounce.utils.inventory.getArmorColor
 import net.ccbluex.liquidbounce.utils.kotlin.Priority
+import net.minecraft.component.DataComponentTypes
 import net.minecraft.entity.Entity
+import net.minecraft.entity.EquipmentSlot
 import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.player.PlayerEntity
 import java.awt.Color
@@ -45,20 +46,47 @@ object ModuleTeams : ClientModule("Teams", Category.MISC) {
     )
 
     private val armorColor by multiEnumChoice("ArmorColor",
-        ArmorColor.HELMET
+        EquipmentSlotChoice.HEAD
     )
 
+    private val colorSources by multiEnumChoice(
+        "ColorSources",
+        ColorSource.TEAM,
+        ColorSource.ARMOR
+    )
+
+    private enum class ColorSource(
+        override val choiceName: String,
+        val entityToColor: (Entity) -> Int?,
+    ) : NamedChoice {
+        TEAM("Team", { entity ->
+            entity.scoreboardTeam?.color?.colorValue
+        }),
+        ARMOR("Armor", { entity ->
+            val armorColorSlots = armorColor
+            if (entity is LivingEntity && armorColorSlots.isNotEmpty()) {
+                armorColorSlots.firstNotNullOfOrNull { it.getArmorColor(entity) }
+            } else {
+                null
+            }
+        }),
+    }
+
     @Suppress("unused")
-    val entityTagEvent = handler<TagEntityEvent> {
-        val entity = it.entity
+    val entityTagEvent = handler<TagEntityEvent> { event ->
+        val entity = event.entity
 
         if (entity is LivingEntity && isInClientPlayersTeam(entity)) {
-            it.dontTarget()
+            event.dontTarget()
         }
 
         getTeamColor(entity)?.let { color ->
-            it.color(color, Priority.IMPORTANT_FOR_USAGE_1)
+            event.color(color, Priority.IMPORTANT_FOR_USAGE_1)
         }
+
+        // Resolve tag color from sources (first found)
+        val color = colorSources.firstNotNullOfOrNull { it.entityToColor(entity) }
+        event.color(Color4b.fullAlpha(color ?: return@handler), Priority.IMPORTANT_FOR_USAGE_1)
     }
 
     /**
@@ -126,29 +154,33 @@ object ModuleTeams : ClientModule("Teams", Category.MISC) {
         })
     }
 
-    @Suppress("unused", "MagicNumber")
-    private enum class ArmorColor(
+    @Suppress("unused")
+    enum class EquipmentSlotChoice(
         override val choiceName: String,
-        val slot: Int
+        @JvmField val slot: EquipmentSlot,
     ) : NamedChoice {
-        HELMET("Helmet", 3),
-        CHESTPLATE("Chestplate", 2),
-        PANTS("Pants", 1),
-        BOOTS("Boots", 0);
+        MAINHAND("Mainhand", EquipmentSlot.MAINHAND),
+        OFFHAND("Offhand", EquipmentSlot.OFFHAND),
+        FEET("Feet", EquipmentSlot.FEET),
+        LEGS("Legs", EquipmentSlot.LEGS),
+        CHEST("Chest", EquipmentSlot.CHEST),
+        HEAD("Head", EquipmentSlot.HEAD),
+        BODY("Body", EquipmentSlot.BODY);
+
+        fun getArmorColor(entity: LivingEntity): Int? {
+            val itemStack = entity.getEquippedStack(this.slot)
+            return itemStack[DataComponentTypes.DYED_COLOR]?.rgb?.let { it or -16777216 }
+        }
 
         /**
-         * Checks if the color of the item in the [slot] of
+         * Checks if the color of the item in the [EquipmentSlotChoice.slot] of
          * the [player] matches the user's armor color in the same slot.
          */
-        @Suppress("ReturnCount")
         fun matchesArmorColor(suspected: PlayerEntity): Boolean {
-            val ownStack = player.inventory.getArmorStack(slot)
-            val otherStack = suspected.inventory.getArmorStack(slot)
-
             // returns false if the armor is not dyeable (e.g., iron armor)
             // to avoid a false positive from `null == null`
-            val ownColor = ownStack.getArmorColor() ?: return false
-            val otherColor = otherStack.getArmorColor() ?: return false
+            val ownColor = getArmorColor(player) ?: return false
+            val otherColor = getArmorColor(suspected) ?: return false
 
             return ownColor == otherColor
         }

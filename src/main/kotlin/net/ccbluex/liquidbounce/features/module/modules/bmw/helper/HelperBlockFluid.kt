@@ -27,35 +27,52 @@ import net.ccbluex.liquidbounce.config.types.nesting.ToggleableConfigurable
 import net.ccbluex.liquidbounce.event.events.PacketEvent
 import net.ccbluex.liquidbounce.event.events.WorldChangeEvent
 import net.ccbluex.liquidbounce.event.handler
+import net.ccbluex.liquidbounce.features.module.modules.world.scaffold.ModuleScaffold
+import net.ccbluex.liquidbounce.features.module.modules.world.scaffold.ScaffoldBlockItemSelection.isValidBlock
 import net.ccbluex.liquidbounce.utils.block.getState
 import net.ccbluex.liquidbounce.utils.block.searchBlocksInCuboid
 import net.ccbluex.liquidbounce.utils.inventory.Slots
 import net.ccbluex.liquidbounce.utils.math.iterator
-import net.minecraft.fluid.Fluids
+import net.minecraft.fluid.Fluid
 import net.minecraft.item.BlockItem
 import net.minecraft.item.Items
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerInteractItemC2SPacket
 import net.minecraft.network.packet.s2c.play.BlockUpdateS2CPacket
+import net.minecraft.registry.Registries
 import net.minecraft.util.Hand
 import net.minecraft.util.math.BlockPos
+import net.minecraft.util.math.Box
 
-object HelperBlockLava : ToggleableConfigurable(ModuleHelper, "BlockLava", true) {
+class HelperBlockFluid(
+    val fluid: Fluid,
+) : ToggleableConfigurable(
+    ModuleHelper,
+    "Block${getFluidName(fluid).replaceFirstChar { it.uppercase() }}",
+    true
+) {
 
-    val lavaRange by float("LavaRange", 3f, 0f..5f)
+    companion object {
+        fun getFluidName(fluid: Fluid): String {
+            return Registries.FLUID.getId(fluid).path
+        }
+    }
 
-    enum class ItemToBlockLava(override val choiceName: String) : NamedChoice {
+    private val range by float("Range", 3f, 0f..5f)
+
+    enum class ItemToBlock(override val choiceName: String) : NamedChoice {
         BLOCK("Block"),
         WATER("Water")
     }
+    private val itemToBlock by enumChoice("ItemToBlock", ItemToBlock.BLOCK)
 
-    val itemToBlockLava by enumChoice("ItemToBlockLava", ItemToBlockLava.BLOCK)
+    private val onlyOnGround by boolean("OnlyOnGround", false)
 
-    private val lavaBlacklist = mutableSetOf<BlockPos>()
+    private val shouldBlock = mutableSetOf<BlockPos>()
     private var lastInteractTime: Long = 0
 
     override fun onEnabled() {
-        lavaBlacklist.clear()
+        shouldBlock.clear()
         lastInteractTime = 0
     }
 
@@ -65,34 +82,27 @@ object HelperBlockLava : ToggleableConfigurable(ModuleHelper, "BlockLava", true)
 
         when (packet) {
             is PlayerInteractBlockC2SPacket -> {
-                val stack = player.getStackInHand(packet.hand)
-                if (stack.item == Items.LAVA_BUCKET) {
+                if (player.getStackInHand(packet.hand).item == fluid.bucketItem) {
                     lastInteractTime = System.currentTimeMillis()
                 }
             }
 
             is PlayerInteractItemC2SPacket -> {
-                val stack = player.getStackInHand(packet.hand)
-                if (stack.item == Items.LAVA_BUCKET) {
+                if (player.getStackInHand(packet.hand).item == fluid.bucketItem) {
                     lastInteractTime = System.currentTimeMillis()
                 }
             }
 
             is BlockUpdateS2CPacket -> {
-                val newState = packet.state
-                val newFluidState = newState.fluidState
-                val isNewLava = newFluidState.isOf(Fluids.LAVA)
+                val newIsCorrectFluid = packet.state.fluidState.isOf(fluid)
+                val oldWasCorrectFluid = world.getBlockState(packet.pos).fluidState.isOf(fluid)
 
-                val oldState = world.getBlockState(packet.pos)
-                val oldFluidState = oldState.fluidState
-                val wasLava = oldFluidState.isOf(Fluids.LAVA)
-
-                if (isNewLava && !wasLava) {
+                if (newIsCorrectFluid && !oldWasCorrectFluid) {
                     if (System.currentTimeMillis() - lastInteractTime > 500) {
-                        lavaBlacklist.add(packet.pos.toImmutable())
+                        shouldBlock.add(packet.pos.toImmutable())
                     }
-                } else if (!isNewLava && wasLava) {
-                    lavaBlacklist.remove(packet.pos)
+                } else if (!newIsCorrectFluid && oldWasCorrectFluid) {
+                    shouldBlock.remove(packet.pos)
                 }
             }
         }
@@ -100,32 +110,31 @@ object HelperBlockLava : ToggleableConfigurable(ModuleHelper, "BlockLava", true)
 
     @Suppress("unused")
     private val worldChangeHandler = handler<WorldChangeEvent> {
-        lavaBlacklist.clear()
+        shouldBlock.clear()
         lastInteractTime = 0
     }
 
     fun handle() {
-        if (PlacementManager.requester == ModuleHelper) {
+        if (PlacementManager.requester == ModuleHelper
+            || ModuleScaffold.running
+            || (onlyOnGround && !player.isOnGround)
+        ) {
             return
         }
 
-        val lavaRange = lavaRange
-
-        for (pos in player.eyePos.searchBlocksInCuboid(lavaRange)) {
-            val state = pos.getState() ?: continue
-            val fluidState = state.fluidState
-
-            if (!fluidState.isOf(Fluids.LAVA)) {
+        for (pos in player.eyePos.searchBlocksInCuboid(range)) {
+            if (pos !in shouldBlock || pos.y != player.y.toInt()) {
                 continue
             }
 
-            if (pos !in lavaBlacklist) {
+            val state = pos.getState() ?: continue
+            val fluidState = state.fluidState
+            if (!fluidState.isOf(fluid)) {
                 continue
             }
 
             val blockBelow = pos.down()
             val stateBelow = blockBelow.getState() ?: continue
-
             if (stateBelow.isAir) {
                 continue
             }
@@ -135,8 +144,8 @@ object HelperBlockLava : ToggleableConfigurable(ModuleHelper, "BlockLava", true)
                 continue
             }
 
-            when (itemToBlockLava) {
-                ItemToBlockLava.WATER -> {
+            when (itemToBlock) {
+                ItemToBlock.WATER -> {
                     if (getWaterBucketSlot() == -1) {
                         continue
                     }
@@ -145,17 +154,27 @@ object HelperBlockLava : ToggleableConfigurable(ModuleHelper, "BlockLava", true)
                         ModuleHelper,
                         PlacementManager.PlaceWaterRequest(
                             blockBelow.topCenter,
-                            PlacementManager.PlaceWaterDebug(
-                                "No water bucket to block lava",
-                                "Failed to block lava",
+                            debug = PlacementManager.PlaceWaterDebug(
+                                "No water bucket to block ${getFluidName(fluid)}",
+                                "Failed to block ${getFluidName(fluid)}",
                                 "Failed to recycle water"
                             )
                         )
                     )
                 }
 
-                ItemToBlockLava.BLOCK -> {
-                    val blockSlot = Slots.OffhandWithHotbar.findSlot { it.item is BlockItem }
+                ItemToBlock.BLOCK -> {
+                    val targetBox = Box(blockBelow)
+                    val hasPlayer = world.players.any { playerEntity ->
+                        playerEntity.boundingBox.intersects(targetBox)
+                    }
+                    if (hasPlayer) {
+                        continue
+                    }
+
+                    val blockSlot = Slots.OffhandWithHotbar.findSlot { stack ->
+                        stack.item is BlockItem && stack.item != Items.TNT && isValidBlock(stack)
+                    }
                     if (blockSlot == null) {
                         continue
                     }
@@ -164,12 +183,12 @@ object HelperBlockLava : ToggleableConfigurable(ModuleHelper, "BlockLava", true)
                         ModuleHelper,
                         PlacementManager.PlaceBlockRequest(
                             blockBelow.topCenter,
-                            if (blockSlot.useHand == Hand.MAIN_HAND) {
+                            slot = if (blockSlot.useHand == Hand.MAIN_HAND) {
                                 blockSlot.hotbarSlotForServer
                             } else {
                                 9
                             },
-                            "Failed to block lava"
+                            debug = "Failed to block ${getFluidName(fluid)}"
                         )
                     )
                 }

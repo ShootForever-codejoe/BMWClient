@@ -32,7 +32,6 @@ import net.ccbluex.liquidbounce.utils.aiming.RotationManager
 import net.ccbluex.liquidbounce.utils.aiming.RotationTarget
 import net.ccbluex.liquidbounce.utils.aiming.data.Rotation
 import net.ccbluex.liquidbounce.utils.aiming.features.MovementCorrection
-import net.ccbluex.liquidbounce.utils.client.SilentHotbar
 import net.ccbluex.liquidbounce.utils.client.interactItem
 import net.ccbluex.liquidbounce.utils.kotlin.EventPriorityConvention
 import net.ccbluex.liquidbounce.utils.kotlin.Priority
@@ -40,6 +39,7 @@ import net.ccbluex.liquidbounce.utils.kotlin.random
 import net.ccbluex.liquidbounce.utils.math.minus
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
+import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 
 object PlacementManager : EventListener, MinecraftShortcuts {
@@ -49,10 +49,15 @@ object PlacementManager : EventListener, MinecraftShortcuts {
     var requester: ClientModule? = null
         private set
     private var request: PlacementRequest? = null
+    private var oldSlot = -1
     private var scaffold = false
     private var killAura = false
 
     private fun reset() {
+        if (oldSlot != -1) {
+            player.inventory.selectedSlot = oldSlot
+            oldSlot = -1
+        }
         if (scaffold) {
             ModuleScaffold.enabled = true
             scaffold = false
@@ -63,17 +68,20 @@ object PlacementManager : EventListener, MinecraftShortcuts {
         }
         requester = null
         request = null
+        oldSlot = -1
         working = false
     }
 
     abstract class PlacementRequest(
-        val pos: Vec3d? = null /* pitch = 90 when null */
+        val pos: Vec3d? = null, /* pitch = 90 when null */
+        val priority: Priority = Priority.IMPORTANT_FOR_PLAYER_LIFE
     )
 
     class PlaceWaterRequest(
         pos: Vec3d? = null,
+        priority: Priority = Priority.IMPORTANT_FOR_PLAYER_LIFE,
         val debug: PlaceWaterDebug = PlaceWaterDebug.NONE
-    ) : PlacementRequest(pos)
+    ) : PlacementRequest(pos, priority)
 
     data class PlaceWaterDebug(
         val noBucket: String? = null,
@@ -92,9 +100,10 @@ object PlacementManager : EventListener, MinecraftShortcuts {
 
     class PlaceBlockRequest(
         pos: Vec3d? = null,
+        priority: Priority = Priority.IMPORTANT_FOR_PLAYER_LIFE,
         val slot: Int, /* 9: Offhand */
         val debug: String? = null
-    ) : PlacementRequest(pos)
+    ) : PlacementRequest(pos, priority)
 
     fun place(requester: ClientModule, content: PlacementRequest): Boolean {
         if (this.requester != null || working) {
@@ -135,7 +144,7 @@ object PlacementManager : EventListener, MinecraftShortcuts {
                 90f - (0.002f..0.004f).random()
             )
         } else {
-            rotation = Rotation.Companion.lookingAt(
+            rotation = Rotation.lookingAt(
                 request!!.pos!!,
                 player.eyePos.add(position.minus(player.pos)),
             )
@@ -160,7 +169,8 @@ object PlacementManager : EventListener, MinecraftShortcuts {
                 val hand = if (waterBucketSlot == 9) Hand.OFF_HAND else Hand.MAIN_HAND
 
                 if (waterBucketSlot != 9) {
-                    SilentHotbar.selectSlotSilently(requester, waterBucketSlot, 4)
+                    oldSlot = player.inventory.selectedSlot
+                    player.inventory.selectedSlot = waterBucketSlot
                 }
 
                 RotationManager.setRotationTarget(
@@ -171,16 +181,21 @@ object PlacementManager : EventListener, MinecraftShortcuts {
                         considerInventory = false,
                         movementCorrection = MovementCorrection.SILENT
                     ),
-                    priority = Priority.IMPORTANT_FOR_USER_SAFETY,
+                    priority = request.priority,
                     provider = requester!!
                 )
 
                 waitTicks(2)
 
-                if (mc.crosshairTarget is BlockHitResult) {
+                if ((mc.crosshairTarget as? BlockHitResult)?.side == Direction.UP) {
                     val blockHitResult = mc.crosshairTarget as BlockHitResult
                     interaction.interactBlock(player, hand, blockHitResult)
-                    interaction.interactItem(player, hand, rotation.yaw, rotation.pitch)
+                    interaction.interactItem(
+                        player,
+                        hand,
+                        RotationManager.serverRotation.yaw,
+                        RotationManager.serverRotation.pitch
+                    )
                 } else {
                     if (request.debug.failToPlace != null) {
                         notifyAsMessage(requester!!, request.debug.failToPlace)
@@ -191,14 +206,21 @@ object PlacementManager : EventListener, MinecraftShortcuts {
 
                 waitTicks(1)
 
-                if (mc.crosshairTarget is BlockHitResult) {
+                if ((mc.crosshairTarget as? BlockHitResult)?.side == Direction.UP) {
                     val blockHitResult = mc.crosshairTarget as BlockHitResult
                     interaction.interactBlock(player, hand, blockHitResult)
-                    interaction.interactItem(player, hand, rotation.yaw, rotation.pitch)
+                    interaction.interactItem(
+                        player,
+                        hand,
+                        RotationManager.serverRotation.yaw,
+                        RotationManager.serverRotation.pitch
+                    )
                 } else {
                     if (request.debug.failToRecycle != null) {
                         notifyAsMessage(requester!!, request.debug.failToRecycle)
                     }
+                    reset()
+                    return@tickHandler
                 }
             }
 
@@ -208,7 +230,8 @@ object PlacementManager : EventListener, MinecraftShortcuts {
                 val hand = if (request.slot == 9) Hand.OFF_HAND else Hand.MAIN_HAND
 
                 if (request.slot in 0..8) {
-                    SilentHotbar.selectSlotSilently(requester, request.slot, 3)
+                    oldSlot = player.inventory.selectedSlot
+                    player.inventory.selectedSlot = request.slot
                 }
 
                 RotationManager.setRotationTarget(
@@ -219,23 +242,26 @@ object PlacementManager : EventListener, MinecraftShortcuts {
                         considerInventory = false,
                         movementCorrection = MovementCorrection.SILENT
                     ),
-                    priority = Priority.IMPORTANT_FOR_USER_SAFETY,
+                    priority = request.priority,
                     provider = requester!!
                 )
 
                 waitTicks(2)
 
-                if (mc.crosshairTarget is BlockHitResult) {
+                if ((mc.crosshairTarget as? BlockHitResult)?.side == Direction.UP) {
                     val blockHitResult = mc.crosshairTarget as BlockHitResult
                     interaction.interactBlock(player, hand, blockHitResult)
                 } else {
                     if (request.debug != null) {
                         notifyAsMessage(requester!!, request.debug)
                     }
+                    reset()
+                    return@tickHandler
                 }
             }
         }
 
+        waitTicks(1)
         reset()
     }
 

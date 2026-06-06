@@ -21,7 +21,7 @@ package net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.bow
 
 import net.ccbluex.liquidbounce.config.types.nesting.ToggleableConfigurable
 import net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.ModuleGrimNoSlow
-import net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.share.GrimNoSlowShareHalf
+import net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.share.*
 import net.minecraft.item.consume.UseAction
 
 object GrimNoSlowBow : ToggleableConfigurable(ModuleGrimNoSlow, "Bow", true) {

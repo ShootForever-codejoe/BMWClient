@@ -201,3 +201,7 @@ fun getWaterBucketSlot(): Int {
 
     return -1
 }
+
+fun getOppositeHand(hand: Hand): Hand {
+    return if (hand == Hand.MAIN_HAND) Hand.OFF_HAND else Hand.MAIN_HAND
+}
