@@ -164,7 +164,7 @@ class HelperBlockFluid(
                 }
 
                 ItemToBlock.BLOCK -> {
-                    val targetBox = Box(blockBelow)
+                    val targetBox = Box(pos)
                     val hasPlayer = world.players.any { playerEntity ->
                         playerEntity.boundingBox.intersects(targetBox)
                     }

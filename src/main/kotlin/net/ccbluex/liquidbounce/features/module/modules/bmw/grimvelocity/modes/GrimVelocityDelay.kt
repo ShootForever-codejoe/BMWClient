@@ -134,26 +134,32 @@ object GrimVelocityDelay : GrimVelocityMode("Delay") {
                     handle()
                 }
 
-                is EntityS2CPacket if (targetPos != null && packet.getEntity(world) == target) -> {
-                    targetPos!!.pos = targetPos!!.withDelta(
-                        packet.deltaX.toLong(),
-                        packet.deltaY.toLong(),
-                        packet.deltaZ.toLong()
-                    )
+                is EntityS2CPacket -> {
                     event.cancelEvent()
                     packets.add(packet)
+                    if (targetPos != null && packet.getEntity(world) == target) {
+                        targetPos!!.pos = targetPos!!.withDelta(
+                            packet.deltaX.toLong(),
+                            packet.deltaY.toLong(),
+                            packet.deltaZ.toLong()
+                        )
+                    }
                 }
 
-                is EntityPositionS2CPacket if (targetPos != null && packet.entityId == target?.id) -> {
-                    targetPos!!.pos = packet.change.position.copy()
+                is EntityPositionS2CPacket -> {
                     event.cancelEvent()
                     packets.add(packet)
+                    if (targetPos != null && packet.entityId == target?.id) {
+                        targetPos!!.pos = packet.change.position.copy()
+                    }
                 }
 
-                is EntityPositionSyncS2CPacket if (targetPos != null && packet.id == target?.id) -> {
-                    targetPos!!.pos = packet.values.position()
+                is EntityPositionSyncS2CPacket -> {
                     event.cancelEvent()
                     packets.add(packet)
+                    if (targetPos != null && packet.id == target?.id) {
+                        targetPos!!.pos = packet.values.position()
+                    }
                 }
 
                 is EntityVelocityUpdateS2CPacket,

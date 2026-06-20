@@ -111,7 +111,7 @@ internal class GrimNoSlowFoodNoC0F(
             noUsingItemTicks = 0
         } else {
             noUsingItemTicks++
-            if (noUsingItemTicks >= 3) {
+            if (noUsingItemTicks >= 5) {
                 release()
                 return@tickHandler
             }

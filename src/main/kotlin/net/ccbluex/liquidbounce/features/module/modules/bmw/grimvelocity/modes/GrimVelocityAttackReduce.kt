@@ -84,7 +84,7 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
     private val attackMode by enumChoice("AttackMode", AttackMode.PER_TICK)
 
     private val attackTargetRange by float("AttackTargetRange", 2f, 0f..6f)
-    private val alinkUntilGround by boolean("AlinkUntilGround", true)
+    private val alinkUntilGround by boolean("AlinkUntilGround", false)
     private val alinkTargetRange by float("AlinkTargetRange", 8f, 0f..20f)
     private val alinkMaxDelay by int("AlinkMaxDelay", 40, 0..200, "ticks")
 
@@ -323,26 +323,32 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
                     releaseReason = "flag"
                 }
 
-                is EntityS2CPacket if (renderTargetPos != null && packet.getEntity(world) == renderTarget) -> {
-                    renderTargetPos!!.pos = renderTargetPos!!.withDelta(
-                        packet.deltaX.toLong(),
-                        packet.deltaY.toLong(),
-                        packet.deltaZ.toLong()
-                    )
+                is EntityS2CPacket -> {
                     event.cancelEvent()
                     packets.add(packet)
+                    if (renderTargetPos != null && packet.getEntity(world) == renderTarget) {
+                        renderTargetPos!!.pos = renderTargetPos!!.withDelta(
+                            packet.deltaX.toLong(),
+                            packet.deltaY.toLong(),
+                            packet.deltaZ.toLong()
+                        )
+                    }
                 }
 
-                is EntityPositionS2CPacket if (renderTargetPos != null && packet.entityId == renderTarget?.id) -> {
-                    renderTargetPos!!.pos = packet.change.position.copy()
+                is EntityPositionS2CPacket -> {
                     event.cancelEvent()
                     packets.add(packet)
+                    if (renderTargetPos != null && packet.entityId == renderTarget?.id) {
+                        renderTargetPos!!.pos = packet.change.position.copy()
+                    }
                 }
 
-                is EntityPositionSyncS2CPacket if (renderTargetPos != null && packet.id == renderTarget?.id) -> {
-                    renderTargetPos!!.pos = packet.values.position()
+                is EntityPositionSyncS2CPacket -> {
                     event.cancelEvent()
                     packets.add(packet)
+                    if (renderTargetPos != null && packet.id == renderTarget?.id) {
+                        renderTargetPos!!.pos = packet.values.position()
+                    }
                 }
 
                 is EntityVelocityUpdateS2CPacket,
