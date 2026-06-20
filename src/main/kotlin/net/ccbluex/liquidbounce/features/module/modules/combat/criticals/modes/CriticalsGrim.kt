@@ -27,8 +27,6 @@ import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.event.tickHandler
 import net.ccbluex.liquidbounce.features.module.modules.combat.criticals.ModuleCriticals
 import net.ccbluex.liquidbounce.features.module.modules.movement.ModuleFreeze
-import net.ccbluex.liquidbounce.utils.client.Timer
-import net.ccbluex.liquidbounce.utils.kotlin.Priority
 import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket
 
 object CriticalsGrim : Choice("Grim") {
@@ -41,7 +39,6 @@ object CriticalsGrim : Choice("Grim") {
     private var freezeCloseTick = 0
     private var sprintRestoreTick = 0
     private var sprintShouldRestore = false
-    private var timerCloseTick = 0
     private var hasTriggered = false
 
     override fun enable() {
@@ -50,7 +47,6 @@ object CriticalsGrim : Choice("Grim") {
         freezeCloseTick = 0
         sprintRestoreTick = 0
         sprintShouldRestore = false
-        timerCloseTick = 0
         hasTriggered = false
     }
 
@@ -83,14 +79,6 @@ object CriticalsGrim : Choice("Grim") {
                 sprintShouldRestore = false
             }
         }
-
-        if (timerCloseTick > 0) {
-            Timer.requestTimerSpeed(0.8f, Priority.IMPORTANT_FOR_USAGE_2, ModuleCriticals)
-            timerCloseTick--
-            if (timerCloseTick == 0) {
-                Timer.requestTimerSpeed(1f, Priority.IMPORTANT_FOR_USAGE_2, ModuleCriticals)
-            }
-        }
     }
 
     @Suppress("unused")
@@ -101,7 +89,6 @@ object CriticalsGrim : Choice("Grim") {
             sprintShouldRestore = true
             sprintRestoreTick = 1
             freezeCloseTick = 2
-            timerCloseTick = 9
         }
     }
 

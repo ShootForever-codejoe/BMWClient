@@ -55,7 +55,6 @@ object ModuleCriticals : ClientModule("Criticals", Category.COMBAT) {
         arrayOf(
             NoneChoice(it),
             CriticalsGrim,
-            CriticalsStuck,
             CriticalsPacket,
             CriticalsNoGround,
             CriticalsJump,
