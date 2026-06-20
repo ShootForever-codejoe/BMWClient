@@ -27,6 +27,7 @@ import net.ccbluex.liquidbounce.event.events.PacketEvent
 import net.ccbluex.liquidbounce.event.events.PlayerUseMultiplier
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.event.tickHandler
+import net.ccbluex.liquidbounce.features.module.modules.bmw.grimvelocity.modes.GrimVelocityAttackReduce
 import net.ccbluex.liquidbounce.features.module.modules.world.scaffold.ModuleScaffold
 import net.ccbluex.liquidbounce.utils.client.handlePacket
 import net.ccbluex.liquidbounce.utils.inventory.InventoryManager
@@ -109,7 +110,9 @@ internal class GrimNoSlowFoodNoC0F(
 
     @Suppress("unused")
     private val playerUseMultiplierHandler = handler<PlayerUseMultiplier> { event ->
-        if (player.activeItem.useAction !in useActions || player.itemUseTimeLeft <= 0) {
+        if (player.activeItem.useAction !in useActions
+            || player.itemUseTimeLeft <= 0
+            || GrimVelocityAttackReduce.alinkTicks > 0) {
             return@handler
         }
 

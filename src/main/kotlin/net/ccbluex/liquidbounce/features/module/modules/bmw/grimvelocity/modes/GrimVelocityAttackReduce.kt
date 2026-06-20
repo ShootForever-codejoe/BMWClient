@@ -136,7 +136,8 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
         private set
     private var totalAttackCount = -1
     private var receiveDamage = false
-    private var alinkTicks = -1
+    var alinkTicks = -1
+        private set
     private var releaseReason: String? = null
     private var velocity = 0.0
     private val packets = Queues.newConcurrentLinkedQueue<Packet<*>>()
@@ -144,7 +145,7 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
     override val shouldStopBacktrack: Boolean
         get() = alinkTicks >= 0 || attackQueue > 0
 
-    val isInAir: Boolean
+    private val isInAir: Boolean
         get() = !player.isOnGround && !player.isInFluid && !player.isInsideWall
 
     override fun disable() {

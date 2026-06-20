@@ -113,7 +113,6 @@ object ModuleFreeze : ClientModule("Freeze", Category.MOVEMENT, disableOnQuit = 
         var hand = Hand.OFF_HAND
         var slot = -1
 
-
         if (!isInteractable(player.getStackInHand(Hand.OFF_HAND))) {
             for (i in 0..8) {
                 val stack = player.inventory.getStack(i)
