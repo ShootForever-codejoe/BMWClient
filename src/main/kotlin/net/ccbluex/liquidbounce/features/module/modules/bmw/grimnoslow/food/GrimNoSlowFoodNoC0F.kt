@@ -48,7 +48,6 @@ internal class GrimNoSlowFoodNoC0F(
 ) : Choice("NoC0F") {
 
     private var step = Step.NONE
-    private var noUsingItemTicks = 0
     private var packets = Queues.newConcurrentLinkedQueue<Packet<*>>()
 
     companion object {
@@ -60,7 +59,6 @@ internal class GrimNoSlowFoodNoC0F(
 
     override fun disable() {
         step = Step.NONE
-        noUsingItemTicks = 0
         packets.clear()
     }
 
@@ -102,18 +100,9 @@ internal class GrimNoSlowFoodNoC0F(
             return@tickHandler
         }
 
-        if (step != Step.EATING) {
-            noUsingItemTicks = 0
-            return@tickHandler
-        }
-
-        if (player.isUsingItem) {
-            noUsingItemTicks = 0
-        } else {
-            noUsingItemTicks++
-            if (noUsingItemTicks >= 5) {
+        if (step == Step.EATING) {
+            if (!mc.options.useKey.isPressed) {
                 release()
-                return@tickHandler
             }
         }
     }
