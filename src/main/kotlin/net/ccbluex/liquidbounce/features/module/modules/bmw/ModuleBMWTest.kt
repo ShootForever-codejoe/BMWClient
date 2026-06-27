@@ -28,6 +28,7 @@ import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
 import net.ccbluex.liquidbounce.render.engine.type.Color4b
 import net.ccbluex.liquidbounce.utils.render.WireframePlayer
+import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerInteractBlockC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerInteractItemC2SPacket
 
@@ -36,6 +37,7 @@ object ModuleBMWTest : ClientModule("BMWTest", Category.BMW) {
     private val simulate by boolean("Simulate", false)
     private val simulationTime by int("SimulationTime", 20, 1..500, "ticks")
     private val interactPacket by boolean("InteractPacket", false)
+    private val sprintPacket by boolean("SprintPacket", false)
 
     @Suppress("unused")
     private val renderHandler = handler<WorldRenderEvent> {
@@ -63,6 +65,14 @@ object ModuleBMWTest : ClientModule("BMWTest", Category.BMW) {
 
         if (interactPacket && packet is PlayerInteractBlockC2SPacket) {
             notifyAsMessage("interact block")
+        }
+
+        if (sprintPacket && packet is ClientCommandC2SPacket) {
+            if (packet.mode == ClientCommandC2SPacket.Mode.START_SPRINTING) {
+                notifyAsMessage("start sprint")
+            } else if (packet.mode == ClientCommandC2SPacket.Mode.STOP_SPRINTING) {
+                notifyAsMessage("stop sprint")
+            }
         }
     }
 
