@@ -53,6 +53,7 @@ object ModuleBMWTest : ClientModule("BMWTest", Category.BMW) {
             Color4b(255, 255, 255, 100),
             Color4b(255, 255, 255, 255)
         )
+        notifyAsMessage("x: ${result.position.x}, y: ${result.position.y}, z: ${result.position.z}")
     }
 
     @Suppress("unused")

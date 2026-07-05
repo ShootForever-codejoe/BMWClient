@@ -81,9 +81,10 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
         ONE_TIME("OneTime"),
         PER_TICK("PerTick")
     }
+
     private val attackMode by enumChoice("AttackMode", AttackMode.PER_TICK)
 
-    private val attackTargetRange by float("AttackTargetRange", 2f, 0f..6f)
+    private val attackTargetRange by floatRange("AttackTargetRange", 2f..3.5f, 0f..6f)
     private val alinkUntilGround by boolean("AlinkUntilGround", false)
     private val alinkTargetRange by float("AlinkTargetRange", 8f, 0f..20f)
     private val alinkMaxDelay by int("AlinkMaxDelay", 40, 0..200, "ticks")
@@ -235,7 +236,7 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
             ?.takeIf {
                 !it.isRemoved
                     && it.shouldBeAttacked()
-                    && it.boxedDistanceTo(player) <= attackTargetRange
+                    && it.boxedDistanceTo(player) <= attackTargetRange.start
             }
 
         if (alinkTicks == -1) renderTarget = target
@@ -265,7 +266,8 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
 
         if (targetAround == null || targetPos == null) return
 
-        if (targetAround.getBoundingBoxAt(targetPos).squaredBoxedDistanceTo(player.eyePos) <= attackTargetRange.sq()
+        if (targetAround.getBoundingBoxAt(targetPos)
+                .squaredBoxedDistanceTo(player.eyePos) <= attackTargetRange.start.sq()
             && autoRotate.canRotate
         ) {
             if (autoRotate.rotationTiming == RotationTiming.NORMAL) {
@@ -419,6 +421,10 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
             )
         )
 
+        if (target != null && alinkTicks == -1 && attackQueue == 0) {
+            target = null
+        }
+
         if (attackQueue > 0) {
             if (target == null || target !in world.entities) {
                 attackQueue = 0
@@ -447,7 +453,9 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
                 }
 
                 AttackMode.PER_TICK -> {
-                    if (attackQueue != totalAttackCount && target!!.boxedDistanceTo(player) > player.entityInteractionRange) {
+                    if (attackQueue != totalAttackCount
+                        && target!!.boxedDistanceTo(player) > attackTargetRange.endInclusive
+                    ) {
                         if (debug) notifyAsMessage(ModuleGrimVelocity, "Target is too far to attack")
                         attackQueue--
                         if (attackQueue == 0) {

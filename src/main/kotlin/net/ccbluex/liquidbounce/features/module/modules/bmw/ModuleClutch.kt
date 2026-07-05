@@ -26,7 +26,6 @@ import net.ccbluex.liquidbounce.event.events.PacketEvent
 import net.ccbluex.liquidbounce.event.events.PlayerTickEvent
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.event.tickHandler
-import net.ccbluex.liquidbounce.event.waitTicks
 import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
 import net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.food.GrimNoSlowFood
@@ -55,9 +54,9 @@ object ModuleClutch : ClientModule("Clutch", Category.BMW) {
     private val stuckWhenRescue by boolean("StuckWhenRescue", true)
     private val maxRescueTime by float("MaxRescueTime", 0.5f, 0f..5f, "seconds")
     private val maxTryCount by int("MaxTryCount", 5, 1..10)
-    private val notDuringCombat by boolean("NotDuringCombat", false)
     private val simulationTicks by int("SimulationTicks", 100, 1..500, "ticks")
-    private val onlyFalling by boolean("OnlyFalling", true)
+    private val notDuringCombat by boolean("NotDuringCombat", false)
+    private val onlyFalling by boolean("OnlyFalling", false)
     private val debug by boolean("Debug", false)
 
     private const val REST_TICKS = 3
@@ -236,7 +235,6 @@ object ModuleClutch : ClientModule("Clutch", Category.BMW) {
                 if (debug) notifyAsMessage(ModuleClutch, "Rescuing...")
                 rescueTriesLast = maxTryCount
             }
-            waitTicks(1)
             scaffold = true
             ModuleScaffold.enabled = true
         }

@@ -463,6 +463,8 @@ object ModuleManager : EventListener, Collection<ClientModule> by modules {
             ModuleColorBlindHelper,
             ModuleBMWTest,
             ModuleHelper,
+            ModuleAutoScreenShot,
+            ModuleTNTWarning,
 
             // Shit
             ModuleAutoInvite

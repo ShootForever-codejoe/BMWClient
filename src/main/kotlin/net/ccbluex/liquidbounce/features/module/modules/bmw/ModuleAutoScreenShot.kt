@@ -19,29 +19,34 @@
 
 package net.ccbluex.liquidbounce.features.module.modules.bmw
 
-import net.ccbluex.liquidbounce.event.events.ChatReceiveEvent
+import net.ccbluex.liquidbounce.bmw.notifyAsMessage
+import net.ccbluex.liquidbounce.config.ConfigSystem
+import net.ccbluex.liquidbounce.event.events.PacketEvent
 import net.ccbluex.liquidbounce.event.sequenceHandler
 import net.ccbluex.liquidbounce.event.waitTicks
 import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
 import net.minecraft.client.util.ScreenshotRecorder
+import net.minecraft.network.packet.s2c.play.TitleS2CPacket
 
-@Suppress("unused")
 object ModuleAutoScreenShot : ClientModule("AutoScreenShot", Category.BMW) {
 
-    private val delay by int("Delay", 10, 0..100, "ticks")
-
-    override fun onEnabled() {
-        ScreenshotRecorder.takeScreenshot(mc.framebuffer)
-    }
+    private val delay by int("Delay", 20, 0..100, "ticks")
 
     @Suppress("unused")
-    private val chatReceiveEventHandler = sequenceHandler<ChatReceiveEvent> { event ->
-        if (event.type != ChatReceiveEvent.ChatType.GAME_MESSAGE) return@sequenceHandler
+    private val packetEventHandler = sequenceHandler<PacketEvent> { event ->
+        val packet = event.packet
 
-        if (event.message.startsWith("恭喜! ${player.name.string} 在地图")) {
+        if (packet !is TitleS2CPacket) return@sequenceHandler
+
+        if (packet.text.string.contains("胜利")) {
             waitTicks(delay)
-            ScreenshotRecorder.takeScreenshot(mc.framebuffer)
+            ScreenshotRecorder.saveScreenshot(
+                ConfigSystem.rootFolder.resolve("screenshot").apply { mkdirs() },
+                mc.framebuffer
+            ) { message ->
+                notifyAsMessage(this@ModuleAutoScreenShot, message.string)
+            }
         }
     }
 
