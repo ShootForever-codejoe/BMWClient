@@ -183,6 +183,7 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
                 considerInventory = false,
                 movementCorrection = MovementCorrection.STRICT
             ),
+            //joe你他妈别什么都用 IMPORTANT_FOR_USER_SAFETY  真的是我草你逼
             priority = Priority.IMPORTANT_FOR_USER_SAFETY,
             provider = ModuleGrimVelocity
         )
