@@ -1,84 +1,146 @@
+/*
+ * This file is part of LiquidBounce (https://github.com/CCBlueX/LiquidBounce)
+ *
+ * Copyright (c) 2015 - 2026 CCBlueX
+ *
+ * LiquidBounce is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * LiquidBounce is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with LiquidBounce. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package net.ccbluex.liquidbounce.features.module.modules.bmw
 
-import net.ccbluex.liquidbounce.event.tickHandler
+import net.ccbluex.liquidbounce.event.EventState
+import net.ccbluex.liquidbounce.event.events.PacketEvent
+import net.ccbluex.liquidbounce.event.events.PlayerNetworkMovementTickEvent
+import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
-import net.ccbluex.liquidbounce.features.module.modules.combat.killaura.ModuleKillAura
 import net.ccbluex.liquidbounce.utils.aiming.RotationManager
-import net.ccbluex.liquidbounce.utils.aiming.RotationTarget
+import net.ccbluex.liquidbounce.utils.aiming.RotationsConfigurable
 import net.ccbluex.liquidbounce.utils.aiming.data.Rotation
-import net.ccbluex.liquidbounce.utils.aiming.features.MovementCorrection
-import net.ccbluex.liquidbounce.utils.aiming.utils.facingEnemy
-import net.ccbluex.liquidbounce.utils.aiming.utils.raytraceBox
-import net.ccbluex.liquidbounce.utils.combat.attack
-import net.ccbluex.liquidbounce.utils.combat.getEntitiesBoxInRange
-import net.ccbluex.liquidbounce.utils.block.SwingMode
-import net.ccbluex.liquidbounce.utils.client.RestrictedSingleUseAction
+//import net.ccbluex.liquidbounce.features.module.modules.combat.killaura.ModuleKillAura
 import net.ccbluex.liquidbounce.utils.kotlin.Priority
+import net.minecraft.entity.EntityType
+import net.minecraft.entity.SpawnReason
 import net.minecraft.entity.decoration.EndCrystalEntity
+import net.minecraft.network.packet.c2s.play.HandSwingC2SPacket
+import net.minecraft.network.packet.s2c.play.EntitySpawnS2CPacket
+import net.minecraft.util.Hand
 
 object ModuleAttackCrystal : ClientModule("AttackCrystal", Category.BMW) {
 
-    private val range by float("Range", 3f, 0f..4.5f)
-    private val swingMode by enumChoice("SwingMode", SwingMode.DO_NOT_HIDE)
+    private val range by float("Range", 4.5f, 1f..6f)
+    private val maxAngle by float("MaxAngle", 4f, 0.1f..20f)
 
-    private var destroying = false
+    private var waitCrystal: EndCrystalEntity? = null
+    private var waitRotation: Rotation? = null
+    private var targetCrystal: EndCrystalEntity? = null
+    private var targetRotation: Rotation? = null
+
+    private val rotations = tree(RotationsConfigurable(this))
+//    private val clicker = tree(Clicker(this@ModuleAttackCrystal, mc.options.attackKey, null))
 
     @Suppress("unused")
-    private val tickHandler = tickHandler {
-        val rangeD = range.toDouble()
-
-        if (destroying) {
-            val stillHas = world.getEntitiesBoxInRange(player.getCameraPosVec(1f), rangeD) {
-                it is EndCrystalEntity
-            }.isNotEmpty()
-            if (!stillHas) {
-                destroying = false
-            }
-            return@tickHandler
+    private val entitySpawnHandler = handler<PacketEvent> { event ->
+        val packet = event.packet as? EntitySpawnS2CPacket ?: return@handler
+        if (packet.entityType != EntityType.END_CRYSTAL) {
+            return@handler
         }
 
-        val crystal = world.getEntitiesBoxInRange(player.getCameraPosVec(1f), rangeD) {
-            it is EndCrystalEntity
-        }.firstOrNull() as? EndCrystalEntity ?: return@tickHandler
+        val crystal = (EntityType.END_CRYSTAL.create(world, SpawnReason.SPAWN_ITEM_USE) as? EndCrystalEntity)
+            ?: return@handler
+        crystal.onSpawnPacket(packet)
 
-        destroying = true
-        ModuleKillAura.enabled = false
+        val rotation = Rotation.lookingAt(crystal.pos, player.eyePos)
+        val angleDifference = (RotationManager.currentRotation ?: rotation).angleTo(rotation)
+        val distance = crystal.distanceTo(player)
 
-        val (rotation: Rotation, _) = raytraceBox(
-            player.eyePos,
-            crystal.boundingBox,
-            range = rangeD,
-            wallsRange = 0.0,
-            futureTarget = crystal.boundingBox,
-            prioritizeVisible = true
-        ) ?: return@tickHandler
+        if (distance <= range.toDouble() && angleDifference <= maxAngle) {
+            waitCrystal = crystal
+            waitRotation = rotation
+        }
+    }
+
+    @Suppress("unused")
+    private val scanHandler = handler<PlayerNetworkMovementTickEvent> { event ->
+        if (event.state != EventState.PRE) {
+            return@handler
+        }
+
+        targetCrystal = null
+        targetRotation = null
+
+        for (crystal in world.entities.filterIsInstance<EndCrystalEntity>()) {
+            val rotation = Rotation.lookingAt(crystal.pos, player.eyePos)
+            val angleDifference = (RotationManager.currentRotation ?: rotation).angleTo(rotation)
+            val distance = crystal.distanceTo(player)
+
+            if (distance <= range.toDouble() && angleDifference <= maxAngle) {
+                targetCrystal = crystal
+                targetRotation = rotation
+                break
+            }
+        }
+
+        val crystalToAttack = waitCrystal ?: targetCrystal ?: return@handler
+        val rotationToUse = waitRotation ?: targetRotation ?: return@handler
+        waitCrystal = null
+        waitRotation = null
 
         RotationManager.setRotationTarget(
-            RotationTarget(
-                rotation,
-                ticksUntilReset = 1,
-                resetThreshold = 1f,
-                considerInventory = false,
-                movementCorrection = MovementCorrection.SILENT,
-                whenReached = RestrictedSingleUseAction({
-                    facingEnemy(
-                        toEntity = crystal,
-                        rotation = RotationManager.serverRotation,
-                        range = rangeD,
-                        wallsRange = 0.0
-                    )
-                }, {
-                    crystal.attack(swingMode)
-                })
-            ),
-            priority = Priority.IMPORTANT_FOR_USER_SAFETY,
-            provider = ModuleAttackCrystal,
+            rotationToUse,
+            considerInventory = false,
+            configurable = rotations,
+            Priority.CAO_JOE_13,
+            this@ModuleAttackCrystal
+
         )
+//        var attackPerformed = false
+//        clicker.click {
+//            if (attackPerformed) {
+//                return@clicker.click false
+//            }
+//
+//            val wasKillAuraEnabled = ModuleKillAura.enabled
+//            if (wasKillAuraEnabled) {
+//                ModuleKillAura.enabled = false
+//            }
+
+        performAttack(crystalToAttack, rotationToUse)
+
+//            if (wasKillAuraEnabled) {
+//                ModuleKillAura.enabled = true
+//            }
+//
+//            attackPerformed = true
+//            true
+//    }
     }
 
-    override fun onDisabled() {
-        destroying = false
-    }
+    private fun performAttack(crystal: EndCrystalEntity, rotation: Rotation) {
+        val originalYaw = player.yaw
+        val originalPitch = player.pitch
+        val attackRotation = RotationManager.currentRotation ?: rotation
 
+
+        player.yaw = attackRotation.yaw
+        player.pitch = attackRotation.pitch
+
+        player.swingHand(Hand.MAIN_HAND)
+        network.sendPacket(HandSwingC2SPacket(Hand.MAIN_HAND))
+
+
+        player.yaw = originalYaw
+        player.pitch = originalPitch
+    }
 }
