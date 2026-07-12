@@ -19,12 +19,15 @@
 package net.ccbluex.liquidbounce.features.module.modules.movement
 
 import net.ccbluex.fastutil.mapToArray
+import net.ccbluex.liquidbounce.bmw.isUsableItem
 import net.ccbluex.liquidbounce.config.types.nesting.Choice
 import net.ccbluex.liquidbounce.config.types.nesting.ChoiceConfigurable
 import net.ccbluex.liquidbounce.event.events.*
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
+import net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.bow.GrimNoSlowBow
+import net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.food.GrimNoSlowFood
 import net.ccbluex.liquidbounce.features.module.modules.misc.ModuleEasyPearl
 import net.ccbluex.liquidbounce.render.drawLineStrip
 import net.ccbluex.liquidbounce.render.engine.type.Color4b
@@ -41,7 +44,7 @@ import net.ccbluex.liquidbounce.utils.math.toVec3
 import net.ccbluex.liquidbounce.utils.movement.DirectionalInput
 import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
-import net.minecraft.item.consume.UseAction
+import net.minecraft.item.PotionItem
 import net.minecraft.network.packet.c2s.common.CommonPongC2SPacket
 import net.minecraft.network.packet.c2s.play.*
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
@@ -91,32 +94,14 @@ object ModuleFreeze : ClientModule("Freeze", Category.MOVEMENT, disableOnQuit = 
         }
     }
 
-    private fun isInteractable(itemStack: ItemStack): Boolean {
-        if (itemStack.item in arrayOf(
-                Items.ENDER_PEARL,
-                Items.TNT,
-                Items.FIRE_CHARGE,
-                Items.WIND_CHARGE,
-        )) return false
-
-        if (itemStack.useAction in arrayOf(
-                UseAction.EAT,
-                UseAction.DRINK,
-                UseAction.BOW,
-                UseAction.CROSSBOW
-        )) return false
-
-        return true
-    }
-
     fun interact() {
         var hand = Hand.OFF_HAND
         var slot = -1
 
-        if (!isInteractable(player.getStackInHand(Hand.OFF_HAND))) {
+        if (isUsableItem(player.getStackInHand(Hand.OFF_HAND))) {
             for (i in 0..8) {
                 val stack = player.inventory.getStack(i)
-                if (isInteractable(stack)) {
+                if (!isUsableItem(stack)) {
                     hand = Hand.MAIN_HAND
                     if (i != player.inventory.selectedSlot) {
                         slot = player.inventory.selectedSlot

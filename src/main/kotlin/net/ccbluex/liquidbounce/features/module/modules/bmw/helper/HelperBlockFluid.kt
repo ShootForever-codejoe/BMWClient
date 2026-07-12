@@ -67,13 +67,21 @@ class HelperBlockFluid(
     private val itemToBlock by enumChoice("ItemToBlock", ItemToBlock.BLOCK)
 
     private val onlyOnGround by boolean("OnlyOnGround", false)
+    private val interval by int("Interval", 10, 0..100, "ticks")
+    private val maxTryCount by int("MaxTryCount", 5, 1..20)
 
     private val shouldBlock = mutableSetOf<BlockPos>()
-    private var lastInteractTime: Long = 0
+    private var lastInteractTime = 0L
+    private val tries = mutableMapOf<BlockPos, Int>()
+    private val lastTryTime = mutableMapOf<BlockPos, Long>()
+    private val failedPositions = mutableSetOf<BlockPos>()
 
     override fun onEnabled() {
         shouldBlock.clear()
         lastInteractTime = 0
+        tries.clear()
+        lastTryTime.clear()
+        failedPositions.clear()
     }
 
     @Suppress("unused")
@@ -103,6 +111,9 @@ class HelperBlockFluid(
                     }
                 } else if (!newIsCorrectFluid && oldWasCorrectFluid) {
                     shouldBlock.remove(packet.pos)
+                    failedPositions.remove(packet.pos)
+                    tries.remove(packet.pos)
+                    lastTryTime.remove(packet.pos)
                 }
             }
         }
@@ -112,6 +123,9 @@ class HelperBlockFluid(
     private val worldChangeHandler = handler<WorldChangeEvent> {
         shouldBlock.clear()
         lastInteractTime = 0
+        tries.clear()
+        lastTryTime.clear()
+        failedPositions.clear()
     }
 
     fun handle() {
@@ -122,8 +136,18 @@ class HelperBlockFluid(
             return
         }
 
+        val now = System.currentTimeMillis()
+
         for (pos in player.eyePos.searchBlocksInCuboid(range)) {
-            if (pos !in shouldBlock || pos.y != player.y.toInt()) {
+            if (pos !in shouldBlock
+                || pos.y != player.y.toInt()
+                || pos in failedPositions
+            ) {
+                continue
+            }
+
+            val lastTry = lastTryTime[pos] ?: 0L
+            if (now - lastTry < interval * 50L) {
                 continue
             }
 
@@ -192,6 +216,13 @@ class HelperBlockFluid(
                         )
                     )
                 }
+            }
+
+            val newTries = (tries[pos] ?: 0) + 1
+            tries[pos] = newTries
+            lastTryTime[pos] = now
+            if (newTries >= maxTryCount) {
+                failedPositions.add(pos)
             }
 
             break

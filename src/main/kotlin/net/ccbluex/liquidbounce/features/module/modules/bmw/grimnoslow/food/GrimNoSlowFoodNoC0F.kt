@@ -30,11 +30,9 @@ import net.ccbluex.liquidbounce.event.tickHandler
 import net.ccbluex.liquidbounce.features.module.modules.bmw.grimvelocity.modes.GrimVelocityAttackReduce
 import net.ccbluex.liquidbounce.features.module.modules.world.scaffold.ModuleScaffold
 import net.ccbluex.liquidbounce.utils.client.handlePacket
-import net.ccbluex.liquidbounce.utils.inventory.InventoryManager
 import net.minecraft.item.ItemStack
 import net.minecraft.item.consume.UseAction
 import net.minecraft.network.packet.Packet
-import net.minecraft.network.packet.c2s.play.CloseHandledScreenC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerActionC2SPacket
 import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
 import net.minecraft.network.packet.s2c.common.CommonPingS2CPacket
@@ -53,9 +51,10 @@ internal class GrimNoSlowFoodNoC0F(
     private var step = Step.NONE
     private var packets = Queues.newConcurrentLinkedQueue<Packet<*>>()
     private var useHand: Hand? = null
-    private var stuckTicks = 0
+    private var waitTicks = 0
     private var pendingInteract = false
     private var eatingTicks = 0
+    private var itemUseTimeLeft = 0
 
     companion object {
         val working: Boolean
@@ -65,12 +64,8 @@ internal class GrimNoSlowFoodNoC0F(
     }
 
     override fun disable() {
-        step = Step.NONE
         packets.clear()
-        useHand = null
-        stuckTicks = 0
-        pendingInteract = false
-        eatingTicks = 0
+        clear()
     }
 
     enum class Step {
@@ -78,6 +73,15 @@ internal class GrimNoSlowFoodNoC0F(
         CANCEL_C0F,
         SWAP_HANDS,
         EATING
+    }
+
+    private fun clear() {
+        step = Step.NONE
+        useHand = null
+        waitTicks = 0
+        pendingInteract = false
+        eatingTicks = 0
+        itemUseTimeLeft = 0
     }
 
     private fun isUsable(stack: ItemStack) = stack.useAction in arrayOf(
@@ -90,11 +94,7 @@ internal class GrimNoSlowFoodNoC0F(
 
     fun release() {
         mc.options.useKey.isPressed = false
-        step = Step.NONE
-        useHand = null
-        stuckTicks = 0
-        pendingInteract = false
-        eatingTicks = 0
+        clear()
         packets.removeIf {
             handlePacket(it)
             true
@@ -111,15 +111,13 @@ internal class GrimNoSlowFoodNoC0F(
     @Suppress("unused")
     private val tickHandler = tickHandler {
         if (step != Step.NONE && ModuleScaffold.enabled) {
-            ModuleScaffold.enabled = false
             release()
-            ModuleScaffold.enabled = true
             return@tickHandler
         }
 
         if (step == Step.CANCEL_C0F || step == Step.SWAP_HANDS) {
-            stuckTicks++
-            if (stuckTicks > 5) {
+            waitTicks++
+            if (waitTicks > 5) {
                 release()
                 return@tickHandler
             }
@@ -133,6 +131,12 @@ internal class GrimNoSlowFoodNoC0F(
 
             if (player.isUsingItem) {
                 eatingTicks = 0
+                if (itemUseTimeLeft in 1..player.itemUseTimeLeft) {
+                    release()
+                    return@tickHandler
+                } else {
+                    itemUseTimeLeft = player.itemUseTimeLeft
+                }
             } else {
                 eatingTicks++
                 if (eatingTicks > 5) {
@@ -167,15 +171,12 @@ internal class GrimNoSlowFoodNoC0F(
             mc.options.useKey.isPressed = false
         }
 
-        if (step == Step.NONE) {
+        if (step == Step.NONE && mc.currentScreen == null) {
             step = Step.CANCEL_C0F
             useHand = player.activeHand
-            stuckTicks = 0
+            waitTicks = 0
             pendingInteract = false
             eatingTicks = 0
-            if (InventoryManager.isInventoryOpenServerSide) {
-                network.sendPacket(CloseHandledScreenC2SPacket(player.currentScreenHandler.syncId))
-            }
         } else if (step == Step.EATING) {
             player.isSprinting = true
             event.forward = 1f
@@ -193,7 +194,7 @@ internal class GrimNoSlowFoodNoC0F(
                 packets.add(packet)
                 if (step == Step.CANCEL_C0F) {
                     step = Step.SWAP_HANDS
-                    stuckTicks = 0
+                    waitTicks = 0
                     mc.send {
                         network.sendPacket(
                             PlayerActionC2SPacket(
@@ -220,7 +221,7 @@ internal class GrimNoSlowFoodNoC0F(
             if (packet is ScreenHandlerSlotUpdateS2CPacket) {
                 mc.options.useKey.isPressed = true
                 step = Step.EATING
-                stuckTicks = 0
+                waitTicks = 0
                 pendingInteract = true
                 eatingTicks = 0
             }

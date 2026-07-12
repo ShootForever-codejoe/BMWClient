@@ -100,6 +100,7 @@ import net.ccbluex.liquidbounce.features.module.modules.bmw.fireballfly.ModuleFi
 import net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.ModuleGrimNoSlow
 import net.ccbluex.liquidbounce.features.module.modules.bmw.grimvelocity.ModuleGrimVelocity
 import net.ccbluex.liquidbounce.features.module.modules.bmw.helper.ModuleHelper
+import net.ccbluex.liquidbounce.features.module.modules.bmw.newscaffold.ModuleNewScaffold
 import net.ccbluex.liquidbounce.features.module.modules.world.traps.ModuleAutoTrap
 import net.ccbluex.liquidbounce.script.ScriptApiRequired
 import net.ccbluex.liquidbounce.utils.client.inGame
@@ -465,6 +466,7 @@ object ModuleManager : EventListener, Collection<ClientModule> by modules {
             ModuleHelper,
             ModuleAutoScreenShot,
             ModuleTNTWarning,
+            ModuleFuckOffhand,
 
             // Shit
             ModuleAutoInvite

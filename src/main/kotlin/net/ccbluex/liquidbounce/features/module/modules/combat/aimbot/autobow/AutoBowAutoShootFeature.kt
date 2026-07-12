@@ -25,14 +25,10 @@ import net.ccbluex.liquidbounce.event.events.KeybindIsPressedEvent
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.features.module.modules.combat.aimbot.ModuleAutoBow
 import net.ccbluex.liquidbounce.utils.aiming.RotationManager
-import net.ccbluex.liquidbounce.utils.client.fastCos
-import net.ccbluex.liquidbounce.utils.client.fastSin
-import net.ccbluex.liquidbounce.utils.client.toRadians
 import net.ccbluex.liquidbounce.utils.combat.shouldBeAttacked
 import net.ccbluex.liquidbounce.utils.entity.PlayerSimulationCache
 import net.ccbluex.liquidbounce.utils.entity.SimulatedArrow
 import net.ccbluex.liquidbounce.utils.entity.SimulatedPlayerCache
-import net.ccbluex.liquidbounce.utils.entity.rotation
 import net.ccbluex.liquidbounce.utils.math.geometry.Line
 import net.ccbluex.liquidbounce.utils.math.scale
 import net.ccbluex.liquidbounce.utils.render.trajectory.TrajectoryData
@@ -168,26 +164,21 @@ object AutoBowAutoShootFeature : ToggleableConfigurable(ModuleAutoBow, "AutoShoo
     private fun getHypotheticalHit(): Entity? {
         player.activeHand ?: return null
         val rotation = RotationManager.serverRotation
-        val yaw = rotation.yaw
-        val pitch = rotation.pitch
-
         val trajectoryInfo =
             TrajectoryData.getRenderedTrajectoryInfo(player, player.activeItem.item, false) ?: return null
 
-        val velocity = trajectoryInfo.initialVelocity
-
-        val vX = -yaw.toRadians().fastSin() * pitch.toRadians().fastCos() * velocity
-        val vY = -pitch.toRadians().fastSin() * velocity
-        val vZ = yaw.toRadians().fastCos() * pitch.toRadians().fastCos() * velocity
+        val initialVelocity = rotation.directionVector
+            .multiply(trajectoryInfo.initialVelocity)
+            .add(if (trajectoryInfo.copiesPlayerVelocity) player.velocity else Vec3d.ZERO)
 
         val arrow = SimulatedArrow(
             world,
             player.eyePos,
-            Vec3d(vX, vY, vZ),
+            initialVelocity,
             collideEntities = false
         )
 
-        val entities = findAndBuildSimulatedEntities()
+        val entities = findAndBuildSimulatedEntities(rotation.directionVector)
 
         for (i in 0 until 40) {
             val lastPos = arrow.pos
@@ -209,16 +200,20 @@ object AutoBowAutoShootFeature : ToggleableConfigurable(ModuleAutoBow, "AutoShoo
                     return entity
                 }
             }
+
+            if (arrow.inGround) {
+                return null
+            }
         }
 
         return null
     }
 
-    private fun findAndBuildSimulatedEntities(): List<Pair<Entity, SimulatedPlayerCache?>> {
+    private fun findAndBuildSimulatedEntities(direction: Vec3d): List<Pair<Entity, SimulatedPlayerCache?>> {
         return world.entities.filter { entity ->
             entity != player &&
                 entity.shouldBeAttacked() &&
-                Line(player.pos, player.rotation.directionVector)
+                Line(player.eyePos, direction)
                     .squaredDistanceTo(entity.pos) < 10.0 * 10.0
         }.map { entity ->
             val simulation = if (entity is AbstractClientPlayerEntity) {

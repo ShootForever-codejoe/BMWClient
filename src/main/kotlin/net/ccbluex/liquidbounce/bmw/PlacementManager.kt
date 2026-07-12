@@ -32,6 +32,7 @@ import net.ccbluex.liquidbounce.utils.aiming.RotationManager
 import net.ccbluex.liquidbounce.utils.aiming.RotationTarget
 import net.ccbluex.liquidbounce.utils.aiming.data.Rotation
 import net.ccbluex.liquidbounce.utils.aiming.features.MovementCorrection
+import net.ccbluex.liquidbounce.utils.aiming.utils.raycast
 import net.ccbluex.liquidbounce.utils.client.interactItem
 import net.ccbluex.liquidbounce.utils.kotlin.EventPriorityConvention
 import net.ccbluex.liquidbounce.utils.kotlin.Priority
@@ -39,6 +40,7 @@ import net.ccbluex.liquidbounce.utils.kotlin.random
 import net.ccbluex.liquidbounce.utils.math.minus
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
+import net.minecraft.util.hit.HitResult
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 
@@ -187,9 +189,9 @@ object PlacementManager : EventListener, MinecraftShortcuts {
 
                 waitTicks(2)
 
-                if ((mc.crosshairTarget as? BlockHitResult)?.side == Direction.UP) {
-                    val blockHitResult = mc.crosshairTarget as BlockHitResult
-                    interaction.interactBlock(player, hand, blockHitResult)
+                val hitResult1 = raycast(RotationManager.serverRotation, player.blockInteractionRange)
+                if (hitResult1.type == HitResult.Type.BLOCK && hitResult1.side == Direction.UP) {
+                    interaction.interactBlock(player, hand, hitResult1)
                     interaction.interactItem(
                         player,
                         hand,
@@ -206,7 +208,8 @@ object PlacementManager : EventListener, MinecraftShortcuts {
 
                 waitTicks(1)
 
-                if ((mc.crosshairTarget as? BlockHitResult)?.side == Direction.UP) {
+                val hitResult2 = raycast(RotationManager.serverRotation, player.blockInteractionRange)
+                if (hitResult2.type == HitResult.Type.BLOCK && hitResult2.side == Direction.UP) {
                     val blockHitResult = mc.crosshairTarget as BlockHitResult
                     interaction.interactBlock(player, hand, blockHitResult)
                     interaction.interactItem(
@@ -248,7 +251,8 @@ object PlacementManager : EventListener, MinecraftShortcuts {
 
                 waitTicks(2)
 
-                if ((mc.crosshairTarget as? BlockHitResult)?.side == Direction.UP) {
+                val hitResult = raycast(RotationManager.serverRotation, player.blockInteractionRange)
+                if (hitResult.type == HitResult.Type.BLOCK && hitResult.side == Direction.UP) {
                     val blockHitResult = mc.crosshairTarget as BlockHitResult
                     interaction.interactBlock(player, hand, blockHitResult)
                 } else {

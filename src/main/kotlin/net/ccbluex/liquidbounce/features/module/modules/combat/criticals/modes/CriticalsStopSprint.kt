@@ -31,15 +31,24 @@ object CriticalsStopSprint : Choice("StopSprint") {
     override val parent: ChoiceConfigurable<*>
         get() = ModuleCriticals.modes
 
+    private val controlSprintKey by boolean("ControlSprintKey", true)
+    private val hurtTime by intRange("HurtTime", 0..2, 0..10)
+
     @Suppress("unused")
     private val sprintEventHandler = handler<SprintEvent> { event ->
         if (player.velocity.y <= -0.08
+            && !player.isOnGround
+            && !player.isInFluid
+            && !player.isClimbing
             && event.sprint
+            && event.source == SprintEvent.Source.INPUT
             && ModuleKillAura.running
             && ModuleKillAura.targetTracker.target != null
-            && ModuleKillAura.targetTracker.target!!.hurtTime <= 2
+            && ModuleKillAura.targetTracker.target!!.hurtTime in hurtTime
         ) {
-            if (event.source == SprintEvent.Source.MOVEMENT_TICK || event.source == SprintEvent.Source.INPUT) {
+            if (controlSprintKey) {
+                mc.options.sprintKey.isPressed = false
+            } else {
                 event.sprint = false
             }
         }

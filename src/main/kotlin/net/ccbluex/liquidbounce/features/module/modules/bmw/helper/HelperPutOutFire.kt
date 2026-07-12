@@ -28,13 +28,42 @@ import net.ccbluex.liquidbounce.features.module.modules.world.scaffold.ModuleSca
 
 object HelperPutOutFire : ToggleableConfigurable(ModuleHelper, "PutOutFire", true) {
 
+    private val interval by int("Interval", 10, 0..100, "ticks")
+    private val maxTryCount by int("MaxTryCount", 5, 1..20)
+
+    private var lastTryTime = 0L
+    private var tryCount = 0
+    private var paused: Boolean = false
+
+    override fun onEnabled() {
+        lastTryTime = 0
+        tryCount = 0
+        paused = false
+    }
+
     fun handle() {
-        if (player.isOnFire
-            && player.isOnGround
+        if (!player.isOnFire) {
+            if (paused) {
+                paused = false
+                tryCount = 0
+                lastTryTime = 0
+            }
+            return
+        }
+
+        if (paused) {
+            return
+        }
+
+        if (player.isOnGround
             && PlacementManager.requester != ModuleHelper
             && getWaterBucketSlot() != -1
             && !ModuleScaffold.running
         ) {
+            if (System.currentTimeMillis() - lastTryTime < interval * 50L) {
+                return
+            }
+
             PlacementManager.place(
                 ModuleHelper,
                 PlacementManager.PlaceWaterRequest(
@@ -46,6 +75,12 @@ object HelperPutOutFire : ToggleableConfigurable(ModuleHelper, "PutOutFire", tru
                     )
                 )
             )
+
+            tryCount++
+            lastTryTime = System.currentTimeMillis()
+            if (tryCount >= maxTryCount) {
+                paused = true
+            }
         }
     }
 

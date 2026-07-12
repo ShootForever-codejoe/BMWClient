@@ -6,6 +6,7 @@ import net.ccbluex.liquidbounce.config.types.NamedChoice
 import net.ccbluex.liquidbounce.config.types.nesting.Choice
 import net.ccbluex.liquidbounce.config.types.nesting.ChoiceConfigurable
 import net.ccbluex.liquidbounce.event.events.ChatReceiveEvent
+import net.ccbluex.liquidbounce.event.events.PacketEvent
 import net.ccbluex.liquidbounce.event.sequenceHandler
 import net.ccbluex.liquidbounce.event.tickHandler
 import net.ccbluex.liquidbounce.event.waitTicks
@@ -13,6 +14,7 @@ import net.ccbluex.liquidbounce.features.module.modules.player.autoqueue.ModuleA
 import net.ccbluex.liquidbounce.utils.client.SilentHotbar
 import net.ccbluex.liquidbounce.utils.inventory.Slots
 import net.minecraft.item.Items
+import net.minecraft.network.packet.s2c.play.TitleS2CPacket
 
 object AutoQueueHeypixelSW : Choice("HeypixelSW") {
 
@@ -84,6 +86,16 @@ object AutoQueueHeypixelSW : Choice("HeypixelSW") {
         }
 
         queueTicks = 60
+    }
+
+    @Suppress("unused")
+    private val packetEventHandler = sequenceHandler<PacketEvent> { event ->
+        val packet = event.packet
+
+        if (packet is TitleS2CPacket && packet.text.string.contains("胜利")) {
+            player.inventory.selectedSlot = 0
+            interaction.syncSelectedSlot()
+        }
     }
 
     override fun enable() {

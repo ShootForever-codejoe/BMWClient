@@ -29,6 +29,7 @@ import net.ccbluex.liquidbounce.features.module.modules.combat.criticals.ModuleC
 import net.ccbluex.liquidbounce.features.module.modules.movement.ModuleFreeze
 import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket
 
+@Suppress("unused")
 object CriticalsGrim : Choice("Grim") {
 
     override val parent: ChoiceConfigurable<*>

@@ -26,7 +26,7 @@ import net.minecraft.item.consume.UseAction
 
 object GrimNoSlowBow : ToggleableConfigurable(ModuleGrimNoSlow, "Bow", true) {
 
-    private val useActions = arrayOf(
+    val useActions = arrayOf(
         UseAction.BOW,
         UseAction.CROSSBOW,
         UseAction.SPEAR

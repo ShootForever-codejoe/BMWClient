@@ -26,7 +26,7 @@ import net.minecraft.item.consume.UseAction
 
 object GrimNoSlowFood : ToggleableConfigurable(ModuleGrimNoSlow, "Food", true) {
 
-    private val useActions = arrayOf(
+    val useActions = arrayOf(
         UseAction.EAT,
         UseAction.DRINK
     )

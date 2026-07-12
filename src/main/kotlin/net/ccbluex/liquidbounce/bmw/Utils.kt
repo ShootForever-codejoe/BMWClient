@@ -25,13 +25,17 @@ import net.ccbluex.liquidbounce.event.events.NotificationEvent.Severity
 import net.ccbluex.liquidbounce.event.events.PacketEvent
 import net.ccbluex.liquidbounce.event.events.TransferOrigin
 import net.ccbluex.liquidbounce.features.module.ClientModule
+import net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.bow.GrimNoSlowBow
+import net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.food.GrimNoSlowFood
 import net.ccbluex.liquidbounce.features.module.modules.render.ModuleHud
 import net.ccbluex.liquidbounce.utils.block.getState
 import net.ccbluex.liquidbounce.utils.client.*
 import net.ccbluex.liquidbounce.utils.entity.getBoundingBoxAt
 import net.ccbluex.liquidbounce.utils.math.toVec3d
 import net.minecraft.entity.Entity
+import net.minecraft.item.ItemStack
 import net.minecraft.item.Items
+import net.minecraft.item.PotionItem
 import net.minecraft.network.packet.Packet
 import net.minecraft.text.Text
 import net.minecraft.util.Hand
@@ -204,4 +208,23 @@ fun getWaterBucketSlot(): Int {
 
 fun getOppositeHand(hand: Hand): Hand {
     return if (hand == Hand.MAIN_HAND) Hand.OFF_HAND else Hand.MAIN_HAND
+}
+
+fun isUsableItem(itemStack: ItemStack): Boolean {
+    if (itemStack.item in arrayOf(
+            Items.ENDER_PEARL,
+            Items.TNT,
+            Items.FIRE_CHARGE,
+            Items.WIND_CHARGE,
+        )) return true
+
+    if (itemStack.useAction in GrimNoSlowFood.useActions
+        || itemStack.useAction in GrimNoSlowBow.useActions
+    ) return true
+
+    if (itemStack.item is PotionItem) {
+        return true
+    }
+
+    return false
 }
