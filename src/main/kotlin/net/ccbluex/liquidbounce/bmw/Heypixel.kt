@@ -10,6 +10,12 @@ const val HEYPIXEL_SW_END_MESSAGE = "可以用 /hub 退出观察者模式并返�
 
 object HeypixelSWKillEventListener : EventListener {
 
+    private data class KillPattern(
+        val regex: Regex,
+        val victimGroup: Int,
+        val killerGroup: Int,
+    )
+
     @Suppress("unused")
     private val packetEventHandler = handler<ChatReceiveEvent> { event ->
         if (event.type != ChatReceiveEvent.ChatType.GAME_MESSAGE) return@handler
@@ -17,20 +23,38 @@ object HeypixelSWKillEventListener : EventListener {
         val message = event.message
 
         val patterns = listOf(
-            Regex("(.+?) 被 (.+?) 击败.*"),
-            Regex("(.+?) 被炸成了粉尘, 最终还是被 (.+?) 击败.*"),
-            Regex("(.+?) 消逝了, 最终还是被 (.+?) 击败.*"),
-            Regex("(.+?) 被架在了烧烤架上, 熟透了, 最终还是被 (.+?) 击败.*"),
-            Regex("(.+?) 跑得很快, 但是他还是摔了一跤, 最终被 (.+?) 击败.*"),
-            Regex("(.+?) 被 (.+?) 用弓箭射穿了.*"),
-            Regex("(.+?) 被重压地无法呼吸, 最终还是被 (.+?) 击败.*"),
-            Regex("(.+?) 与虚空娘在异世界相遇, 最终还是被 (.+?) 击败")
+            KillPattern(Regex("(.+?) 击败了 (.+?)[!！]?$"), victimGroup = 2, killerGroup = 1),
+            KillPattern(Regex("(.+?) 将 (.+?) 送进了虚空[!！]?$"), victimGroup = 2, killerGroup = 1),
+            KillPattern(Regex("(.+?) 被 (.+?) 击败.*"), victimGroup = 1, killerGroup = 2),
+            KillPattern(Regex("(.+?) 被炸成了粉尘, 最终还是被 (.+?) 击败.*"), victimGroup = 1, killerGroup = 2),
+            KillPattern(Regex("(.+?) 消逝了, 最终还是被 (.+?) 击败.*"), victimGroup = 1, killerGroup = 2),
+            KillPattern(
+                Regex("(.+?) 被架在了烧烤架上, 熟透了, 最终还是被 (.+?) 击败.*"),
+                victimGroup = 1,
+                killerGroup = 2,
+            ),
+            KillPattern(
+                Regex("(.+?) 跑得很快, 但是他还是摔了一跤, 最终被 (.+?) 击败.*"),
+                victimGroup = 1,
+                killerGroup = 2,
+            ),
+            KillPattern(Regex("(.+?) 被 (.+?) 用弓箭射穿了.*"), victimGroup = 1, killerGroup = 2),
+            KillPattern(
+                Regex("(.+?) 被重压地无法呼吸, 最终还是被 (.+?) 击败.*"),
+                victimGroup = 1,
+                killerGroup = 2,
+            ),
+            KillPattern(
+                Regex("(.+?) 与虚空娘在异世界相遇, 最终还是被 (.+?) 击败"),
+                victimGroup = 1,
+                killerGroup = 2,
+            ),
         )
 
         for (pattern in patterns) {
-            val match = pattern.find(message) ?: continue
-            var victim = match.groupValues[1].trim()
-            var killer = match.groupValues[2].trim()
+            val match = pattern.regex.find(message) ?: continue
+            var victim = match.groupValues[pattern.victimGroup].trim()
+            var killer = match.groupValues[pattern.killerGroup].trim()
 
             // 删去标签
             val regex = Regex("[\\u4e00-\\u9fffA-Za-z0-9_]+$")

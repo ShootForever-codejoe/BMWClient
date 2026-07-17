@@ -21,6 +21,7 @@
 
 package net.ccbluex.liquidbounce.integration.interop.protocol.rest.v1.game
 
+import net.ccbluex.liquidbounce.api.core.formatAvatarUrl
 import net.ccbluex.liquidbounce.config.gson.interopGson
 import net.ccbluex.liquidbounce.features.module.modules.combat.ModuleSwordBlock.hideShieldSlot
 import net.ccbluex.liquidbounce.features.module.modules.combat.ModuleSwordBlock.shouldHideOffhand
@@ -146,6 +147,7 @@ data class TargetData(
     val uuid: String,
     val entityType: Identifier,
     val isPlayer: Boolean,
+    val avatar: String?,
     val texture: Identifier?,
     val position: Vec3d,
     val health: Float,
@@ -166,6 +168,9 @@ data class TargetData(
             uuid = entity.uuidAsString,
             entityType = Registries.ENTITY_TYPE.getId(entity.type),
             isPlayer = entity is PlayerEntity,
+            avatar = (entity as? PlayerEntity)?.let {
+                formatAvatarUrl(it.uuid, it.nameForScoreboard)
+            },
             texture = if (entity is PlayerEntity) null else resolveEntityTexture(entity),
             position = entity.pos,
             health = entity.health.fixNaN(),

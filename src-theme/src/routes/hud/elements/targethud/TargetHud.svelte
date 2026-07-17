@@ -1,5 +1,4 @@
 <script lang="ts">
-    import ArmorStatus from "./ArmorStatus.svelte";
     import { listen } from "../../../../integration/ws.js";
     import type { PlayerData, TargetData, Vec3 } from "../../../../integration/types";
     import { REST_BASE } from "../../../../integration/host";
@@ -10,7 +9,6 @@
     let target: TargetData | null = null;
     let visible = true;
     let playerPosition: Vec3 = { x: 0, y: 0, z: 0 };
-    let lastX = 0, lastZ = 0;
     let hideTimeout: number;
     let playerData: PlayerData | null = null;
 
@@ -28,10 +26,9 @@
     });
 
     listen("clientPlayerData", (event: any) => {
-        playerData = event.playerData;
-        lastX = playerPosition.x;
-        lastZ = playerPosition.z;
-        playerPosition = playerData.position;
+        const currentPlayerData = event.playerData as PlayerData;
+        playerData = currentPlayerData;
+        playerPosition = currentPlayerData.position;
     });
 
     function calculateDistance(pos1: Vec3, pos2: Vec3): number {
@@ -49,9 +46,14 @@
 
     function getTargetTexture(): string {
         if (!target) return "/img/steve.png";
-        if (target.isPlayer) return `${REST_BASE}/api/v1/client/skin?uuid=${encodeURIComponent(target.uuid)}`;
+        if (target.isPlayer && target.avatar) return target.avatar;
         if (target.texture) return `${REST_BASE}/api/v1/client/resource?id=${encodeURIComponent(target.texture)}`;
         return "/img/steve.png";
+    }
+
+    function handleTextureError(event: Event) {
+        const image = event.currentTarget as HTMLImageElement;
+        if (!image.src.endsWith("/img/steve.png")) image.src = "/img/steve.png";
     }
 
     function getHealthStatus(): { letter: string, color: string } {
@@ -59,7 +61,7 @@
             const playerHealth = playerData.actualHealth + playerData.absorption;
             const targetHealth = target.actualHealth + target.absorption;
             const letter = playerHealth > targetHealth ? "W" : "L";
-            const color = letter === "W" ? "#00FF00" : "#FF0000"; // Яркие зеленый и красный
+            const color = letter === "W" ? "#00FF00" : "#FF0000";
             return { letter, color };
         }
         return { letter: "", color: "" };
@@ -70,7 +72,9 @@
 
 {#if visible && target != null}
     <div class="targethud" transition:fly={{ y: -10, duration: 200 }}>
-        <div class="avatar" style:background-image={`url("${getTargetTexture()}")`}></div>
+        <div class="avatar">
+            <img src={getTargetTexture()} alt={target.username} on:error={handleTextureError} />
+        </div>
         <div class="info">
             <div class="name-status">
                 <span class="name">{target.username}</span>
@@ -127,10 +131,16 @@
     border-radius: 5px;
     overflow: hidden;
     image-rendering: pixelated;
-    background-image: url("/img/steve.png");
-    background-repeat: no-repeat;
-    background-size: cover;
+    background: url("/img/steve.png") center / cover no-repeat;
     flex-shrink: 0;
+  }
+
+  .avatar img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    image-rendering: pixelated;
   }
 
   .info {

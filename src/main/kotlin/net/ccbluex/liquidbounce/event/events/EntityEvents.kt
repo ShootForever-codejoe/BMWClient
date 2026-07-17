@@ -41,6 +41,9 @@ class EntityMarginEvent(val entity: Entity, var margin: Float) : Event()
 @Nameable("entityHealthUpdate")
 class EntityHealthUpdateEvent(val entity: LivingEntity, val old: Float, val new: Float, val max: Float) : Event()
 
+@Nameable("entityDeath")
+class EntityDeathEvent(val entity: LivingEntity) : Event()
+
 @Nameable("tagEntityEvent")
 class TagEntityEvent(val entity: Entity, var targetingInfo: EntityTargetingInfo) : Event() {
     val color: PriorityField<Color4b?> = PriorityField(null, Priority.NOT_IMPORTANT)

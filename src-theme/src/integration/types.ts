@@ -229,6 +229,7 @@ export interface TargetData {
     uuid: string;
     entityType: string;
     isPlayer: boolean;
+    avatar: string | null;
     texture: string | null;
     position: Vec3;
     health: number;

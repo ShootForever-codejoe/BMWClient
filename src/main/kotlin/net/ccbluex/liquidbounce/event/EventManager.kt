@@ -69,6 +69,7 @@ internal val ALL_EVENT_CLASSES: Array<Class<out Event>> = arrayOf(
     BlockSlipperinessMultiplierEvent::class.java,
     EntityMarginEvent::class.java,
     EntityHealthUpdateEvent::class.java,
+    EntityDeathEvent::class.java,
     HealthUpdateEvent::class.java,
     DeathEvent::class.java,
     PlayerTickEvent::class.java,

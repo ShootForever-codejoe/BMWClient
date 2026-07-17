@@ -20,6 +20,7 @@ package net.ccbluex.liquidbounce.injection.mixins.minecraft.entity;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import net.ccbluex.liquidbounce.event.EventManager;
+import net.ccbluex.liquidbounce.event.events.EntityDeathEvent;
 import net.ccbluex.liquidbounce.event.events.EntityHealthUpdateEvent;
 import net.ccbluex.liquidbounce.event.events.PlayerAfterJumpEvent;
 import net.ccbluex.liquidbounce.event.events.PlayerJumpEvent;
@@ -342,6 +343,13 @@ public abstract class MixinLivingEntity extends MixinEntity {
 
         if (oldHealth != newHealth) {
             EventManager.INSTANCE.callEvent(new EntityHealthUpdateEvent((LivingEntity) (Object) this, oldHealth, newHealth, maxHealth));
+        }
+    }
+
+    @Inject(method = "handleStatus", at = @At("HEAD"))
+    private void hookHandleStatus(byte status, CallbackInfo callbackInfo) {
+        if (status == 3) {
+            EventManager.INSTANCE.callEvent(new EntityDeathEvent((LivingEntity) (Object) this));
         }
     }
 }

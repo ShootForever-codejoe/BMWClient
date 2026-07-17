@@ -21,14 +21,20 @@ package net.ccbluex.liquidbounce.features.module.modules.render
 
 import net.ccbluex.liquidbounce.config.types.NamedChoice
 import net.ccbluex.liquidbounce.event.events.AttackEntityEvent
+import net.ccbluex.liquidbounce.event.events.ChatReceiveEvent
+import net.ccbluex.liquidbounce.event.events.EntityDeathEvent
+import net.ccbluex.liquidbounce.event.events.EntityHealthUpdateEvent
 import net.ccbluex.liquidbounce.event.events.GameTickEvent
+import net.ccbluex.liquidbounce.event.events.HeypixelSWKillEvent
 import net.ccbluex.liquidbounce.event.events.WorldChangeEvent
+import net.ccbluex.liquidbounce.event.events.WorldEntityRemoveEvent
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
 import net.minecraft.entity.EntityType
 import net.minecraft.entity.LightningEntity
 import net.minecraft.entity.LivingEntity
+import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.particle.ParticleTypes
 import net.minecraft.util.math.Vec3d
 import java.util.IdentityHashMap
@@ -54,6 +60,23 @@ object ModuleKillEffects : ClientModule("KillEffects", Category.RENDER) {
 
     private val attackedTargets = IdentityHashMap<LivingEntity, Long>()
 
+    private const val REMOVAL_DEATH_WINDOW = 3000L
+
+    private val deathMessageMarkers = arrayOf(
+        "击败了",
+        "最终击杀",
+        "最终寄杀",
+        "送进了虚空",
+        "淘汰了",
+        "杀死了",
+        "killed",
+        "slain",
+        "eliminated",
+        "fell into the void",
+    )
+
+    private val nameTailRegex = Regex("[\\u4e00-\\u9fffA-Za-z0-9_]+$")
+
     override fun onDisabled() {
         attackedTargets.clear()
     }
@@ -61,8 +84,48 @@ object ModuleKillEffects : ClientModule("KillEffects", Category.RENDER) {
     @Suppress("unused")
     private val attackHandler = handler<AttackEntityEvent> { event ->
         val target = event.entity as? LivingEntity ?: return@handler
-        if (target !== player && target.isAlive) {
+        if (target !== player) {
             attackedTargets[target] = System.currentTimeMillis()
+        }
+    }
+
+    @Suppress("unused")
+    private val deathHandler = handler<EntityDeathEvent> { event ->
+        showEffectsIfTracked(event.entity)
+    }
+
+    @Suppress("unused")
+    private val healthHandler = handler<EntityHealthUpdateEvent> { event ->
+        if (event.new <= 0f) {
+            showEffectsIfTracked(event.entity)
+        }
+    }
+
+    @Suppress("unused")
+    private val heypixelKillHandler = handler<HeypixelSWKillEvent> { event ->
+        findTrackedTarget(event.victim)?.let(::showEffectsIfTracked)
+    }
+
+    @Suppress("unused")
+    private val chatHandler = handler<ChatReceiveEvent> { event ->
+        if (event.type != ChatReceiveEvent.ChatType.GAME_MESSAGE) return@handler
+        if (deathMessageMarkers.none { event.message.contains(it, ignoreCase = true) }) return@handler
+
+        attackedTargets.keys
+            .filter { target -> targetNames(target).any { event.message.contains(it, ignoreCase = true) } }
+            .maxByOrNull { attackedTargets[it] ?: Long.MIN_VALUE }
+            ?.let(::showEffectsIfTracked)
+    }
+
+    @Suppress("unused")
+    private val entityRemoveHandler = handler<WorldEntityRemoveEvent> { event ->
+        val target = event.entity as? LivingEntity ?: return@handler
+        val attackedAt = attackedTargets[target] ?: return@handler
+
+        if (System.currentTimeMillis() - attackedAt <= REMOVAL_DEATH_WINDOW) {
+            showEffectsIfTracked(target)
+        } else {
+            attackedTargets.remove(target)
         }
     }
 
@@ -76,7 +139,7 @@ object ModuleKillEffects : ClientModule("KillEffects", Category.RENDER) {
             val target = entry.key
 
             when {
-                target.isDead || target.health <= 0f -> {
+                target.deathTime > 0 || target.isDead || target.health <= 0f -> {
                     showEffects(target)
                     iterator.remove()
                 }
@@ -89,6 +152,28 @@ object ModuleKillEffects : ClientModule("KillEffects", Category.RENDER) {
     private val worldChangeHandler = handler<WorldChangeEvent> {
         attackedTargets.clear()
     }
+
+    private fun showEffectsIfTracked(target: LivingEntity) {
+        if (attackedTargets.remove(target) != null) {
+            showEffects(target)
+        }
+    }
+
+    private fun findTrackedTarget(name: String): LivingEntity? {
+        val comparableName = normalizeName(name)
+        return attackedTargets.keys
+            .filter { target -> targetNames(target).any { it.equals(comparableName, ignoreCase = true) } }
+            .maxByOrNull { attackedTargets[it] ?: Long.MIN_VALUE }
+    }
+
+    private fun targetNames(target: LivingEntity): Sequence<String> = sequenceOf(
+        target.name.string,
+        target.displayName?.string,
+        (target as? PlayerEntity)?.nameForScoreboard,
+        (target as? PlayerEntity)?.gameProfile?.name,
+    ).filterNotNull().map(::normalizeName).filter(String::isNotBlank).distinct()
+
+    private fun normalizeName(name: String) = nameTailRegex.find(name.trim())?.value ?: name.trim()
 
     private fun showEffects(target: LivingEntity) {
         effects.forEach { effect ->
