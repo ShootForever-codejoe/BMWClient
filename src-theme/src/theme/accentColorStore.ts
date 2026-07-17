@@ -1,21 +1,40 @@
 import { writable } from 'svelte/store';
 
+const DEFAULT_ACCENT_COLOR = '#a855f7';
+const LEGACY_ACCENT_COLOR = '#1e90ff';
+
 function isValidHex(hex: string | null): boolean {
   return typeof hex === 'string' && /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(hex);
 }
 
 function getAccentColor(): string {
   try {
-    const color = localStorage.getItem('lb_accentColor');
-    return isValidHex(color) ? color! : '#1e90ff';
+    // 优先读取持久化保存的主题色 旧版颜色用于兼容老配置
+    const colors = [
+      localStorage.getItem('clickgui.color'),
+      localStorage.getItem('lb_accentColor')
+    ];
+
+    for (const color of colors) {
+      if (isValidHex(color) && color!.toLowerCase() !== LEGACY_ACCENT_COLOR) {
+        return color!;
+      }
+    }
+
+    return DEFAULT_ACCENT_COLOR;
   } catch {
-    return '#1e90ff';
+    return DEFAULT_ACCENT_COLOR;
   }
 }
 
-const accentColorStore = writable('#1e90ff');
+const accentColorStore = writable(DEFAULT_ACCENT_COLOR);
 
 function initAccentColorStore() {
+  accentColorStore.set(getAccentColor());
+}
+
+/** 重新读取持久化主题色 */
+export function refreshAccentColor() {
   accentColorStore.set(getAccentColor());
 }
 
@@ -26,7 +45,7 @@ if (document.readyState === 'complete' || document.readyState === 'interactive')
 }
 
 window.addEventListener('storage', () => {
-  accentColorStore.set(getAccentColor());
+  refreshAccentColor();
 });
 
 export function setAccentColor(color: string) {

@@ -45,7 +45,7 @@
 
   .mask {
     position: absolute;
-    background: radial-gradient(circle, rgba(112, 48, 160, 0.8), rgba(255, 105, 180, 0) 100%);
+    background: radial-gradient(circle, rgba(var(--accent-color), 0.75), rgba(var(--accent-color), 0) 100%);
     mix-blend-mode: screen;
     scale: 105%;
     top: 0;

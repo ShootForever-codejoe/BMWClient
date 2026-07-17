@@ -44,7 +44,7 @@
 <div class="watermark">
     <div class="watermark-content">
         <div class="logo">
-            <img src="img/clickgui/icon-client.svg" alt="icon"/>
+            <span class="logo-icon" role="img" aria-label="BMWClient"></span>
         </div>
         {#if session }
             <div class="information">
@@ -70,9 +70,9 @@
 
   .watermark {
     padding: 6px 12px;
-    background: rgba(30, 30, 30, 0.25);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), 0 1px 4px rgba(0, 0, 0, 0.2);
+    background: linear-gradient(110deg, rgba(var(--accent-color), 0.18), rgba(10, 8, 12, 0.42));
+    border: 1px solid rgba(var(--accent-color), 0.28);
+    box-shadow: var(--theme-shadow);
     border-radius: 6px;
     color: white;
     font-size: 13px;
@@ -88,11 +88,14 @@
     gap: 8px;
   }
 
-  .logo img {
+  .logo-icon {
     display: block;
     width: 22px;
     height: 22px;
-    filter: drop-shadow(0 0 8px rgba(var(--accent-color), 0.4));
+    background: rgb(var(--accent-color));
+    -webkit-mask: url("/img/clickgui/icon-client.svg") center / contain no-repeat;
+    mask: url("/img/clickgui/icon-client.svg") center / contain no-repeat;
+    filter: drop-shadow(0 0 6px rgba(var(--accent-color), 0.22));
   }
 
   .information {
@@ -101,7 +104,7 @@
     gap: 4px;
     padding: 2px 5px;
     border-radius: 5px;
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(var(--accent-color), 0.1);
     transition: 0.25s ease;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
   }

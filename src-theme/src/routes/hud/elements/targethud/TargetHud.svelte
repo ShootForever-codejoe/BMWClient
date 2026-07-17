@@ -1,13 +1,13 @@
 <script lang="ts">
     import ArmorStatus from "./ArmorStatus.svelte";
     import { listen } from "../../../../integration/ws.js";
-    import type { PlayerData, Vec3 } from "../../../../integration/types";
+    import type { PlayerData, TargetData, Vec3 } from "../../../../integration/types";
     import { REST_BASE } from "../../../../integration/host";
     import { fly } from "svelte/transition";
     import HealthProgress from "./HealthProgress.svelte";
     import type { TargetChangeEvent } from "../../../../integration/events";
 
-    let target: PlayerData | null = null;
+    let target: TargetData | null = null;
     let visible = true;
     let playerPosition: Vec3 = { x: 0, y: 0, z: 0 };
     let lastX = 0, lastZ = 0;
@@ -47,6 +47,13 @@
         return 0;
     }
 
+    function getTargetTexture(): string {
+        if (!target) return "/img/steve.png";
+        if (target.isPlayer) return `${REST_BASE}/api/v1/client/skin?uuid=${encodeURIComponent(target.uuid)}`;
+        if (target.texture) return `${REST_BASE}/api/v1/client/resource?id=${encodeURIComponent(target.texture)}`;
+        return "/img/steve.png";
+    }
+
     function getHealthStatus(): { letter: string, color: string } {
         if (playerData && target) {
             const playerHealth = playerData.actualHealth + playerData.absorption;
@@ -63,7 +70,7 @@
 
 {#if visible && target != null}
     <div class="targethud" transition:fly={{ y: -10, duration: 200 }}>
-        <div class="avatar"></div>
+        <div class="avatar" style:background-image={`url("${getTargetTexture()}")`}></div>
         <div class="info">
             <div class="name-status">
                 <span class="name">{target.username}</span>
@@ -109,10 +116,8 @@
     width: 260px;
     padding: 6.5px;
     border-radius: 15px;
-    background: rgb($hotbar-base-color, 0.4);
-    // box-shadow: 20px 5px 40px rgba($accent-color-2, 0.5),
-    //             -20px -5px 40px rgba($accent-color, 0.5);
-    box-shadow:2px 2px 30px 0px rgba(0,0,0,0.75);
+    background: linear-gradient(145deg, rgba(var(--accent-color), 0.17), rgb($hotbar-base-color, 0.48));
+    box-shadow: var(--theme-shadow-raised);
     backdrop-filter: blur(10px);
   }
 
@@ -186,7 +191,7 @@
   .armor-slot {
     width: 20px;
     height: 20px;
-    background: rgba(15, 15, 15, 0.5);
+    background: linear-gradient(110deg, rgba(var(--accent-color), 0.1), rgba(15, 15, 15, 0.55));
     border-radius: 3px;
     display: flex;
     align-items: center;
@@ -214,7 +219,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: radial-gradient(circle, rgba(112, 48, 160, 0.8), rgba(255, 105, 180, 0) 70%);
+    background: radial-gradient(circle, rgba(var(--accent-color), 0.78), rgba(var(--accent-color), 0) 70%);
     mix-blend-mode: screen;
     pointer-events: none;
   }

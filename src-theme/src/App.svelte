@@ -4,7 +4,7 @@
     import Hud from "./routes/hud/Hud.svelte";
     import {getVirtualScreen} from "./integration/rest";
     import {cleanupListeners, listenAlways} from "./integration/ws";
-    import {onMount} from "svelte";
+    import {onDestroy, onMount} from "svelte";
     import {insertPersistentData} from "./integration/persistent_storage";
     import {isStatic} from "./integration/host";
     import Inventory from "./routes/inventory/Inventory.svelte";
@@ -16,6 +16,8 @@
     import None from "./routes/none/None.svelte";
     import Disconnected from "./routes/menu/disconnected/Disconnected.svelte";
     import Browser from "./routes/browser/Browser.svelte";
+    import {accentColorStore, refreshAccentColor} from "./theme/accentColorStore";
+    import {hexToRgbString} from "./integration/util";
 
 
     const routes = {
@@ -32,6 +34,13 @@
         "/browser": Browser
     };
 
+    const unsubscribeAccent = accentColorStore.subscribe((color: string) => {
+        document.documentElement.style.setProperty("--accent-color", hexToRgbString(color));
+        document.documentElement.style.setProperty("--accent-color-hex", color);
+    });
+
+    onDestroy(unsubscribeAccent);
+
     async function changeRoute(name: string) {
         cleanupListeners();
         console.log(`[Router] Redirecting to ${name}`);
@@ -40,6 +49,8 @@
 
     onMount(async () => {
         await insertPersistentData();
+        // 启动时先加载持久化设置 再刷新主题色 避免菜单使用默认颜色
+        refreshAccentColor();
 
         if (isStatic) {
             return;

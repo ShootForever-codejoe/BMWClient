@@ -2,32 +2,85 @@
 <SmellBaseline>
   <ManuallySuppressedIssues/>
   <CurrentIssues>
+    <ID>BracesOnIfStatements:DelayBlinkPacketManager.kt$DelayBlinkPacketManager$else</ID>
+    <ID>BracesOnIfStatements:GrimVelocityAttackReduce.kt$GrimVelocityAttackReduce$if</ID>
+    <ID>BracesOnIfStatements:ModuleAutoReport.kt$ModuleAutoReport$if</ID>
+    <ID>BracesOnIfStatements:ModuleFireballFly.kt$ModuleFireballFly$else</ID>
+    <ID>BracesOnIfStatements:ModuleIRC.kt$ModuleIRC.&lt;no name provided>$else</ID>
+    <ID>BracesOnIfStatements:ModuleIRC.kt$ModuleIRC.&lt;no name provided>$if</ID>
+    <ID>BracesOnIfStatements:ModuleNewScaffold.kt$ModuleNewScaffold$else</ID>
+    <ID>BracesOnIfStatements:ModuleNewScaffold.kt$ModuleNewScaffold$if</ID>
+    <ID>BracesOnIfStatements:Utils.kt$if</ID>
+    <ID>BracesOnIfStatements:extensions.kt$if</ID>
     <ID>CognitiveComplexMethod:AStarPathBuilder.kt$AStarPathBuilder$fun findPath(start: Vec3i, end: Vec3i, maxCost: Int): List&lt;Vec3i></ID>
     <ID>CognitiveComplexMethod:BlockExtensions.kt$fun Block?.isInteractable(blockState: BlockState?): Boolean</ID>
+    <ID>CognitiveComplexMethod:ClientRayTraceUtil.kt$ClientRayTraceUtil$fun getFacedBlock( yaw: Float, pitch: Float, ignorePredicate: Predicate&lt;BlockState> ): BlockHitResult?</ID>
     <ID>CognitiveComplexMethod:Command.kt$Command$fun autoComplete( builder: SuggestionsBuilder, tokenizationResult: Pair&lt;List&lt;String>, List&lt;Int>>, commandIdx: Int, isNewParameter: Boolean )</ID>
     <ID>CognitiveComplexMethod:CommandManager.kt$CommandManager$@ScriptApiRequired @JvmName("execute") fun execute(cmd: String)</ID>
-    <ID>CognitiveComplexMethod:CommandManager.kt$CommandManager$fun autoComplete(origCmd: String, start: Int): CompletableFuture&lt;Suggestions></ID>
-    <ID>CognitiveComplexMethod:CommandManager.kt$CommandManager$fun tokenizeCommand(line: String): Pair&lt;List&lt;String>, List&lt;Int>></ID>
-    <ID>CognitiveComplexMethod:ModuleKillAura.kt$ModuleKillAura$internal suspend fun Sequence.prepareAttackEnvironment(rotation: Rotation? = null, attack: () -> Unit)</ID>
-    <ID>CognitiveComplexMethod:ModuleKillAura.kt$ModuleKillAura$private suspend fun Sequence.mightAttack(chosenEntity: Entity, rotation: Rotation)</ID>
+    <ID>CognitiveComplexMethod:DisablerACAScaffold.kt$DisablerACAScaffold$private fun detectScaffoldActivity(): Boolean</ID>
+    <ID>CognitiveComplexMethod:HelperBlockFluid.kt$HelperBlockFluid$fun handle()</ID>
+    <ID>CognitiveComplexMethod:ModuleColorBlindHelper.kt$ModuleColorBlindHelper$private fun getPlayerGameMode(player: PlayerEntity): String</ID>
+    <ID>CognitiveComplexMethod:ModuleColorBlindHelper.kt$ModuleColorBlindHelper$private fun updateFreeTarget(player: PlayerEntity)</ID>
+    <ID>CognitiveComplexMethod:ModuleColorBlindHelper.kt$ModuleColorBlindHelper$private fun updateTarget(player: PlayerEntity, targetBlock: Block)</ID>
+    <ID>CognitiveComplexMethod:ModuleIRC.kt$ModuleIRC$fun connect()</ID>
+    <ID>CognitiveComplexMethod:ModuleNewScaffold.kt$ModuleNewScaffold$private fun getBRot(forceRotation: Boolean): Rotation</ID>
+    <ID>CognitiveComplexMethod:ModuleNewScaffold.kt$ModuleNewScaffold$private fun place()</ID>
+    <ID>CognitiveComplexMethod:ModuleOldAutoSave.kt$ModuleOldAutoSave$@Suppress("DEPRECATION") private fun aboveVoid(fromBottom: Boolean = true): Boolean</ID>
+    <ID>CognitiveComplexMethod:NametagTextFormatter.kt$NametagTextFormatter$fun format(): Text</ID>
     <ID>CognitiveComplexMethod:PlacementRenderHandler.kt$PlacementRenderHandler$fun render(event: WorldRenderEvent, time: Long)</ID>
-    <ID>CognitiveComplexMethod:RegistryFunctions.kt$@Suppress("UNUSED_PARAMETER") fun getRegistries(requestObject: RequestObject)</ID>
     <ID>CognitiveComplexMethod:SimulatedArrow.kt$SimulatedArrow$private fun updateCollision(pos: Vec3d, newPos: Vec3d): HitResult?</ID>
+    <ID>CognitiveComplexMethod:extensions.kt$fun Task.getContributors(repoOwner: String, repoName: String): List&lt;String></ID>
+    <ID>ComplexCondition:CriticalsStopSprint.kt$CriticalsStopSprint$player.velocity.y &lt;= -0.08 &amp;&amp; !player.isOnGround &amp;&amp; !player.isInFluid &amp;&amp; !player.isClimbing &amp;&amp; event.sprint &amp;&amp; event.source == SprintEvent.Source.INPUT &amp;&amp; ModuleKillAura.running &amp;&amp; ModuleKillAura.targetTracker.target != null &amp;&amp; ModuleKillAura.targetTracker.target!!.hurtTime in hurtTime</ID>
+    <ID>ComplexCondition:GrimVelocityAttackReduce.kt$GrimVelocityAttackReduce$ModuleFreeze.running || !(!requireKillAura || ModuleKillAura.running) || GrimNoSlowFoodNoC0F.working || PlacementManager.working</ID>
+    <ID>ComplexCondition:GrimVelocityDelay.kt$GrimVelocityDelay$!InventoryManager.isInventoryOpen &amp;&amp; mc.currentScreen !is GenericContainerScreen &amp;&amp; player.isOnGround &amp;&amp; !(NoFallGrim.running &amp;&amp; NoFallGrim.jumping)</ID>
+    <ID>ComplexCondition:GrimVelocityFull.kt$GrimVelocityFull$player.activeItem.useAction != UseAction.EAT &amp;&amp; player.activeItem.useAction != UseAction.DRINK &amp;&amp; !InventoryManager.isInventoryOpen &amp;&amp; mc.currentScreen !is GenericContainerScreen &amp;&amp; (!onlyOnGround || player.isOnGround) &amp;&amp; !hitResult.blockPos.getBlock().isInteractable(blockState) &amp;&amp; blockState.isSolid</ID>
+    <ID>ComplexCondition:GrimVelocityJumpReset.kt$GrimVelocityJumpReset$!InventoryManager.isInventoryOpen &amp;&amp; mc.currentScreen !is GenericContainerScreen &amp;&amp; player.isOnGround &amp;&amp; !(NoFallGrim.running &amp;&amp; NoFallGrim.jumping)</ID>
+    <ID>ComplexCondition:ModuleAutoMLG.kt$ModuleAutoMLG$(!notDuringKillAura || !ModuleKillAura.running || ModuleKillAura.targetTracker.target == null) &amp;&amp; PlacementManager.requester != ModuleAutoMLG &amp;&amp; getWaterBucketSlot() != -1 &amp;&amp; predictLandingTicks() == 3</ID>
+    <ID>ComplexCondition:ModuleClutch.kt$ModuleClutch$(notDuringCombat &amp;&amp; ModuleKillAura.running &amp;&amp; ModuleKillAura.targetTracker.target != null) || ModuleScaffold.enabled || player.isInFluid || (onlyFalling &amp;&amp; player.velocity.y >= -0.08) || !(reachable() &amp;&amp; haveBlock())</ID>
+    <ID>ComplexCondition:ModuleNewScaffold.kt$ModuleNewScaffold$player.onGroundTicks == 1 &amp;&amp; testOnGround &amp;&amp; smoothed &amp;&amp; !noUpTelly &amp;&amp; safeMode &amp;&amp; mc.options.jumpKey.isPressed</ID>
+    <ID>ComplexCondition:ModuleNewScaffold.kt$ModuleNewScaffold$player.onGroundTicks > (if (smoothed &amp;&amp; safeMode &amp;&amp; !testOnGround) 1 else 0) &amp;&amp; !mc.options.jumpKey.isPressed &amp;&amp; player.moving &amp;&amp; mode == Mode.TELLY</ID>
+    <ID>ComplexCondition:ModuleOldAutoSave.kt$ModuleOldAutoSave$(receiveHitTicks > 0 || CombatManager.isInCombat) &amp;&amp; (!ModuleKillAura.running || ModuleKillAura.targetTracker.target == null) &amp;&amp; aboveVoid(AutoScaffold.scaffoldOnlyVoid)</ID>
+    <ID>ComplexCondition:ModuleOldAutoSave.kt$ModuleOldAutoSave$player.y >= world.bottomY &amp;&amp; (!AutoStuck.stuckOnlyVoid || aboveVoid()) &amp;&amp; !player.isOnGround &amp;&amp; player.y &lt;= lastY - AutoStuck.stuckFallDistance</ID>
     <ID>EmptyFunctionBlock:ModuleFreeCam.kt$ModuleFreeCam.Navigation${ }</ID>
-    <ID>FunctionNaming:ProtocolUtil.kt$fun send1_8BlockPlacement(blockPos: BlockPos, face: Int, heldItem: ItemStack, facingXIn: Float, facingYIn: Float, facingZIn: Float)</ID>
-    <ID>FunctionNaming:ProtocolUtil.kt$fun send1_8SignUpdate(blockPos: BlockPos, lines: Array&lt;String>)</ID>
+    <ID>EmptyKtFile:ModuleNoWeb.kt$.ModuleNoWeb.kt</ID>
+    <ID>LargeClass:ModuleNewScaffold.kt$ModuleNewScaffold : ClientModule</ID>
+    <ID>LongMethod:ClientRayTraceUtil.kt$ClientRayTraceUtil$fun getFacedBlock( yaw: Float, pitch: Float, ignorePredicate: Predicate&lt;BlockState> ): BlockHitResult?</ID>
     <ID>LongMethod:CommandClientIntegrationSubcommand.kt$CommandClientIntegrationSubcommand$private fun menuSubcommand()</ID>
     <ID>LongMethod:CommandManager.kt$CommandManager$@ScriptApiRequired @JvmName("execute") fun execute(cmd: String)</ID>
-    <ID>LongParameterList:ProtocolUtil.kt$(blockPos: BlockPos, face: Int, heldItem: ItemStack, facingXIn: Float, facingYIn: Float, facingZIn: Float)</ID>
-    <ID>LoopWithTooManyJumpStatements:BlockPlacer.kt$BlockPlacer$while</ID>
-    <ID>LoopWithTooManyJumpStatements:ModuleKillAura.kt$ModuleKillAura$for</ID>
+    <ID>LongMethod:HelperBlockFluid.kt$HelperBlockFluid$fun handle()</ID>
+    <ID>LongMethod:ModuleNewScaffold.kt$ModuleNewScaffold$private fun getBRot(forceRotation: Boolean): Rotation</ID>
+    <ID>LongParameterList:ClientRayTraceUtil.kt$ClientRayTraceUtil$( player: PlayerEntity?, yaw: Float, pitch: Float, targetPos: BlockPos, expectedFace: Direction?, strict: Boolean, ignorePredicate: Predicate&lt;BlockState> )</ID>
+    <ID>LoopWithTooManyJumpStatements:HelperBlockFluid.kt$HelperBlockFluid$for</ID>
+    <ID>LoopWithTooManyJumpStatements:ModuleColorBlindHelper.kt$ModuleColorBlindHelper$for</ID>
     <ID>LoopWithTooManyJumpStatements:ModuleProjectilePuncher.kt$ModuleProjectilePuncher$for</ID>
     <ID>LoopWithTooManyJumpStatements:TargetFinding.kt$for</ID>
+    <ID>MatchingDeclarationName:tasks.kt$CompareJsonKeysTask : DefaultTask</ID>
+    <ID>MaxLineLength:ItemCategorization.kt$ItemCategorization$if</ID>
     <ID>MaxLineLength:ModuleBookBot.kt$ModuleBookBot.BookBuilder$*</ID>
-    <ID>MaxLineLength:ModuleBookBot.kt$ModuleBookBot.GenerationMode.Random$*</ID>
+    <ID>MaxLineLength:ModuleKillAura.kt$ModuleKillAura$val isInInventoryScreen = (isInventoryOpen || mc.currentScreen is GenericContainerScreen) &amp;&amp; !ModuleEnderChest.shouldHide</ID>
+    <ID>MaxLineLength:ModuleNewScaffold.kt$ModuleNewScaffold$if</ID>
+    <ID>MaxLineLength:build.gradle.kts$testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:${project.property("kotlinx_coroutines_version")}")</ID>
+    <ID>MaxLineLength:extensions.kt$logger.error("Failed to get GitHub API response for $repoOwner:$repoName (HTTP ${response.statusCode()}): ${response.body().bufferedReader().readText()}")</ID>
     <ID>NestedBlockDepth:AStarPathBuilder.kt$AStarPathBuilder$fun findPath(start: Vec3i, end: Vec3i, maxCost: Int): List&lt;Vec3i></ID>
-    <ID>NestedBlockDepth:CommandManager.kt$CommandManager$fun autoComplete(origCmd: String, start: Int): CompletableFuture&lt;Suggestions></ID>
+    <ID>NestedBlockDepth:ClientRayTraceUtil.kt$ClientRayTraceUtil$fun getFacedBlock( yaw: Float, pitch: Float, ignorePredicate: Predicate&lt;BlockState> ): BlockHitResult?</ID>
+    <ID>NestedBlockDepth:HelperBlockTNT.kt$HelperBlockTNT$private fun getWallPositions(player: ClientPlayerEntity, explosivePos: Vec3d): List&lt;BlockPos></ID>
+    <ID>NestedBlockDepth:ModuleClutch.kt$ModuleClutch$private fun reachable(): Boolean</ID>
+    <ID>NestedBlockDepth:ModuleColorBlindHelper.kt$ModuleColorBlindHelper$private fun getPlayerGameMode(player: PlayerEntity): String</ID>
+    <ID>NestedBlockDepth:ModuleColorBlindHelper.kt$ModuleColorBlindHelper$private fun updateFreeTarget(player: PlayerEntity)</ID>
+    <ID>NestedBlockDepth:ModuleColorBlindHelper.kt$ModuleColorBlindHelper$private fun updateTarget(player: PlayerEntity, targetBlock: Block)</ID>
+    <ID>NestedBlockDepth:ModuleFreeze.kt$ModuleFreeze$fun interact()</ID>
+    <ID>NestedBlockDepth:ModuleNewScaffold.kt$ModuleNewScaffold$private fun getBRot(forceRotation: Boolean): Rotation</ID>
+    <ID>NestedBlockDepth:ModuleOldAutoSave.kt$ModuleOldAutoSave$@Suppress("DEPRECATION") private fun aboveVoid(fromBottom: Boolean = true): Boolean</ID>
+    <ID>NestedBlockDepth:NametagTextFormatter.kt$NametagTextFormatter$fun format(): Text</ID>
+    <ID>ReturnCount:ClientRayTraceUtil.kt$ClientRayTraceUtil$private fun getHitFaceFromBox(hit: Vec3d, box: Box): Direction</ID>
+    <ID>ReturnCount:ModuleColorBlindHelper.kt$ModuleColorBlindHelper$private fun getPlayerGameMode(player: PlayerEntity): String</ID>
+    <ID>ReturnCount:ModuleNewScaffold.kt$ModuleNewScaffold$private fun getBRot(forceRotation: Boolean): Rotation</ID>
+    <ID>ReturnCount:ModuleNewScaffold.kt$ModuleNewScaffold$private fun getPos(pos: BlockPos): BlockData?</ID>
     <ID>ThrowsCount:CommandManager.kt$CommandManager$@ScriptApiRequired @JvmName("execute") fun execute(cmd: String)</ID>
+    <ID>TooManyFunctions:ModuleNewScaffold.kt$ModuleNewScaffold : ClientModule</ID>
+    <ID>TooManyFunctions:Utils.kt$net.ccbluex.liquidbounce.bmw.Utils.kt</ID>
     <ID>UnusedPrivateMember:HumanInputDeserializer.kt$HumanInputDeserializer$private fun fail(s: String): Boolean</ID>
+    <ID>VariableNaming:settings.gradle.kts$val kotlin_version: String by settings</ID>
+    <ID>VariableNaming:settings.gradle.kts$val loom_version: String by settings</ID>
   </CurrentIssues>
 </SmellBaseline>

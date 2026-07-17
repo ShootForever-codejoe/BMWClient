@@ -48,11 +48,11 @@
 
 <div class="category-list">
   {#each sortedCategories as cat (cat.name)}
-    <div class="category-item {selected === cat.name ? 'selected' : ''}"
-         on:click={() => onSelect(cat.name)}>
+    <button type="button" class="category-item {selected === cat.name ? 'selected' : ''}"
+            on:click={() => onSelect(cat.name)}>
       <CategoryIcon name={cat.name} selected={selected === cat.name} />
       <span class="name">{cat.name}</span>
-    </div>
+    </button>
   {/each}
 </div>
 
@@ -62,39 +62,45 @@
 .category-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 3px;
   padding: 0 0 0 0;
 }
 .category-item {
   display: flex;
   align-items: center;
-  background: rgba(255, 255, 255, 0.05);
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
-  border-radius: 7.5px;
-  padding: 7.5px 10px;
+  gap: 2px;
+  min-height: 42px;
+  background: linear-gradient(110deg, rgba(var(--accent-color), 0.07), rgba(0, 0, 0, 0.24));
+  border: 1px solid transparent;
+  border-right: 2px solid transparent;
+  border-radius: 18px;
+  padding: 8px 10px;
   cursor: pointer;
-  transition: background 0.25s, box-shadow 0.25s, transform 0.25s ease;
+  width: 100%;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  transition: background 0.18s, border-color 0.18s;
   position: relative;
   &:hover,
   &.selected {
-    background: rgba(var(--accent-color), 0.25);
-    box-shadow: 0 0 10px rgba(var(--accent-color), 0.25);
+    background: rgba(var(--accent-color), 0.1);
+    border-color: rgba(var(--accent-color), 0.22);
+    border-right-color: rgba(var(--accent-color), 0.95);
+    box-shadow: var(--theme-shadow-soft);
   }
   .name {
     flex: 1;
     font-weight: 500;
     color: $clickgui-text-color;
-    text-shadow: 0 3px 6px rgba(0, 0, 0, 0.5);
-    font-size: 16px;
+    font-size: clamp(14px, 0.8vw, 17px);
   }
   &.selected {
-    background: rgba(var(—accent-color), 0.5);
-    box-shadow: 0 0 10px rgba(var(--accent-color), 0.35);
-    transform: translateX(2.5px);
-    transition: 0.25s ease;
+    background: rgba(var(--accent-color), 0.16);
+    box-shadow: var(--theme-shadow);
     .name {
       color: $clickgui-text-color;
-      font-weight: 500;
+      font-weight: 600;
     }
   }
 }

@@ -32,7 +32,7 @@
   .icon {
     height: 64px;
     width: 64px;
-    background-color: $accent-color;
+    background-color: rgb(var(--accent-color));
     display: flex;
     align-items: center;
     justify-content: center;

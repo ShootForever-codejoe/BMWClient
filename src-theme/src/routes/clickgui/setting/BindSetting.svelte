@@ -7,7 +7,6 @@
     import {convertToSpacedString, spaceSeperatedNames} from "../../../theme/theme_config";
     import Dropdown from "./common/Dropdown.svelte";
     export let setting: ModuleSetting;
-    export let moduleName: string;
 
     const cSetting = setting as BindSetting;
 
@@ -121,7 +120,7 @@
   }
 
   .change-bind {
-    background: $clickgui-settings-color;
+    background: linear-gradient(145deg, rgba(var(--accent-color), 0.12), rgba(8, 4, 10, 0.96));
     border: solid 1px $clickgui-border-color;
     border-radius: 5px;
     padding: 8px;

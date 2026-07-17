@@ -1,7 +1,7 @@
 <script lang="ts">
     import "nouislider/dist/nouislider.css";
     import "./nouislider.scss";
-    import {createEventDispatcher, onMount} from "svelte";
+    import {createEventDispatcher, onDestroy, onMount} from "svelte";
     import noUiSlider, {type API} from "nouislider";
     import type {FloatSetting, ModuleSetting,} from "../../../integration/types";
     import ValueInput from "./common/ValueInput.svelte";
@@ -52,6 +52,8 @@
             dispatch("change", setting);
         });
     });
+
+    onDestroy(() => apiSlider?.destroy());
 </script>
 
 <div class="setting" class:has-suffix={cSetting.suffix !== ""}>

@@ -43,7 +43,7 @@
 
   .value {
     width: 100%;
-    background-color: $clickgui-settings-color;
+    background-color: rgba(var(--accent-color), 0.1);
     font-family: monospace;
     font-size: 12px;
     color: $clickgui-text-color;

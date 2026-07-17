@@ -92,7 +92,7 @@
     transition: ease background-color .2s;
 
     &:hover {
-        background-color: color.adjust(color.adjust($accent-color, $saturation: -30%), $lightness: -10%);
+        background-color: rgba(var(--accent-color), 0.72);
     }
   }
 
@@ -103,7 +103,7 @@
     font-size: 12px;
     color: $clickgui-text-color;
     border: none;
-    border-bottom: solid 2px $accent-color;
+    border-bottom: solid 2px rgb(var(--accent-color));
     padding: 6px;
     border-radius: 3px;
     transition: ease border-color .2s;

@@ -3,14 +3,13 @@
     import CategoryList from "./CategoryList.svelte";
     import ModuleComponent from "./Module.svelte";
     import ModuleCard from "./ModuleCard.svelte";
-    import {getModules, getClientInfo, setModuleEnabled} from "../../integration/rest";
-    import {groupByCategory, hexToRgbString} from "../../integration/util";
+    import {getModules, getClientInfo, getModuleSettings, setModuleEnabled} from "../../integration/rest";
+    import {groupByCategory} from "../../integration/util";
     import type {Module, ClientInfo} from "../../integration/types";
     import Search from "./Search.svelte";
     import {listen} from "../../integration/ws";
     import AccentColorPicker from "./AccentColorPicker.svelte";
-    import {accentColorStore} from '../../theme/accentColorStore';
-    import {getClickGuiColor} from '../../integration/persistent_storage';
+    import {refreshAccentColor} from '../../theme/accentColorStore';
 
     const categoryColors: Record<string, string> = {
         "Combat": "#3A86FF",
@@ -31,7 +30,10 @@
     let clientInfo: ClientInfo | null = null;
     let allModules: Module[] = [];
     let moduleSettingsCount: {[name: string]: number} = {};
+    let refreshRevision = 0;
 
+    const VIEWPORT_PADDING = 24;
+    let menuElement: HTMLElement;
     let menuX = 0;
     let menuY = 0;
     let dragging = false;
@@ -41,18 +43,16 @@
     let lastMouseY = 0;
     let animationFrame: number | null = null;
 
-    let accentColor = "dodgerblue";
-    const unsubscribeAccent = accentColorStore.subscribe((color: string) => {
-        accentColor = color;
-        document.documentElement.style.setProperty('--accent-color', hexToRgbString(accentColor));
-    });
-
     async function refreshModules() {
+        const revision = ++refreshRevision;
         const modules = await getModules();
         const grouped = groupByCategory(modules);
         for (const cat of Object.keys(grouped)) {
             grouped[cat] = grouped[cat].map(m => ({...m}));
         }
+
+        if (revision !== refreshRevision) return;
+
         modulesByCategory = {...grouped};
         categories = Object.keys(grouped).map(cat => ({
             name: cat,
@@ -60,69 +60,80 @@
             count: grouped[cat].length
         }));
         allModules = Object.values(grouped).flat();
-        clientInfo = await getClientInfo();
-        for (const cat of Object.keys(grouped)) {
-            for (const mod of grouped[cat]) {
-                const settings = await import("../../integration/rest").then(m => m.getModuleSettings(mod.name));
-                moduleSettingsCount[mod.name] = settings.value.filter(s => s.name !== "Bind" && s.name !== "Hidden").length;
+
+        if (!selectedCategory || !grouped[selectedCategory]) {
+            const savedCategory = localStorage.getItem("lb_selectedCategory");
+            selectedCategory = savedCategory && grouped[savedCategory]
+                ? savedCategory
+                : grouped.Combat ? "Combat" : Object.keys(grouped)[0] ?? "";
+        }
+
+        if (selectedModule) {
+            selectedModule = allModules.find(mod => mod.name === selectedModule?.name) ?? null;
+        }
+
+        void refreshSettingsCounts(modules, revision);
+    }
+
+    async function refreshSettingsCounts(modules: Module[], revision: number) {
+        const countEntries = await Promise.all(modules.map(async (mod) => {
+            try {
+                const settings = await getModuleSettings(mod.name);
+                const count = settings.value.filter(s => s.name !== "Bind" && s.name !== "Hidden").length;
+                return [mod.name, count] as const;
+            } catch (error) {
+                console.error(`Failed to load settings count for ${mod.name}`, error);
+                return [mod.name, -1] as const;
             }
+        }));
+
+        if (revision === refreshRevision) {
+            moduleSettingsCount = Object.fromEntries(countEntries);
         }
     }
 
     onMount(async () => {
-        accentColorStore.set(getClickGuiColor() ?? '#1e90ff');
-
-        const menuWidth = 1200;
-        const menuHeight = 1200;
-        menuX = Math.max(0, (window.innerWidth - menuWidth) / 2);
-        menuY = Math.max(0, (window.innerHeight - menuHeight) / 2);
-
         window.addEventListener('openClickGui', refreshModules);
         window.addEventListener('refreshModules', refreshModules);
         window.addEventListener('moduleSettingsChanged', refreshModules);
+        window.addEventListener('resize', keepMenuInViewport);
 
-        const modules = await getModules();
-        const grouped = groupByCategory(modules);
-        modulesByCategory = grouped;
-        categories = Object.keys(grouped).map(cat => ({
-            name: cat,
-            color: categoryColors[cat] ?? "#888",
-            count: grouped[cat].length
-        }));
-        const savedCategory = localStorage.getItem("lb_selectedCategory");
-        if (savedCategory && categories.some(c => c.name === savedCategory)) {
-            selectedCategory = savedCategory;
-        } else {
-            const defaultCategory = "Combat";
-            selectedCategory = categories.find(c => c.name === defaultCategory)?.name || categories[0]?.name || "";
-        }
-        allModules = Object.values(grouped).flat();
-        clientInfo = await getClientInfo();
+        refreshAccentColor();
+        await Promise.all([
+            refreshModules(),
+            getClientInfo().then(info => clientInfo = info)
+        ]);
+        await centerMenu();
+    });
 
-        for (const cat of Object.keys(grouped)) {
-            for (const mod of grouped[cat]) {
-                const settings = await import("../../integration/rest").then(m => m.getModuleSettings(mod.name));
-                moduleSettingsCount[mod.name] = settings.value.filter(s => s.name !== "Bind" && s.name !== "Hidden").length;
-            }
-        }
-
-        listen("moduleToggle", (e) => {
-            for (const cat of Object.keys(modulesByCategory)) {
-                modulesByCategory[cat] = modulesByCategory[cat].map(m => m.name === e.moduleName ? { ...m, enabled: e.enabled } : { ...m });
-            }
-            allModules = allModules.map(m => m.name === e.moduleName ? { ...m, enabled: e.enabled } : { ...m });
-            if (selectedModule && selectedModule.name === e.moduleName) {
-                selectedModule = { ...selectedModule, enabled: e.enabled };
-            }
-        });
+    listen("moduleToggle", (event) => {
+        updateLocalModuleState(event.moduleName, event.enabled);
     });
 
     onDestroy(() => {
         window.removeEventListener('openClickGui', refreshModules);
         window.removeEventListener('refreshModules', refreshModules);
         window.removeEventListener('moduleSettingsChanged', refreshModules);
-        unsubscribeAccent();
+        window.removeEventListener('resize', keepMenuInViewport);
+        onMouseUp();
     });
+
+    async function centerMenu() {
+        await tick();
+        if (!menuElement) return;
+
+        menuX = Math.max(VIEWPORT_PADDING, (window.innerWidth - menuElement.offsetWidth) / 2);
+        menuY = Math.max(VIEWPORT_PADDING, (window.innerHeight - menuElement.offsetHeight) / 2);
+    }
+
+    function keepMenuInViewport() {
+        if (!menuElement) return;
+
+        const maxX = Math.max(VIEWPORT_PADDING, window.innerWidth - menuElement.offsetWidth - VIEWPORT_PADDING);
+        const maxY = Math.max(VIEWPORT_PADDING, window.innerHeight - menuElement.offsetHeight - VIEWPORT_PADDING);
+        menuX = Math.min(Math.max(VIEWPORT_PADDING, menuX), maxX);
+        menuY = Math.min(Math.max(VIEWPORT_PADDING, menuY), maxY);
+    }
 
     let moduleGridPanel: HTMLElement;
     let highlightedModule: string | null = null;
@@ -180,14 +191,29 @@
         }
     }
     async function handleModuleToggle(module: Module) {
-        module.enabled = !module.enabled;
-        if (typeof setModuleEnabled === 'function') {
-            await setModuleEnabled(module.name, module.enabled);
+        const enabled = !module.enabled;
+        updateLocalModuleState(module.name, enabled);
+
+        try {
+            await setModuleEnabled(module.name, enabled);
+        } catch (error) {
+            console.error(`Failed to update module ${module.name}`, error);
+            await refreshModules();
         }
-        const modules = await getModules();
-        const grouped = groupByCategory(modules);
+    }
+
+    function updateLocalModuleState(moduleName: string, enabled: boolean) {
+        const grouped = {...modulesByCategory};
+        for (const category of Object.keys(grouped)) {
+            grouped[category] = grouped[category].map(mod =>
+                mod.name === moduleName ? {...mod, enabled} : mod
+            );
+        }
         modulesByCategory = grouped;
-        allModules = Object.values(grouped).flat();
+        allModules = allModules.map(mod => mod.name === moduleName ? {...mod, enabled} : mod);
+        if (selectedModule?.name === moduleName) {
+            selectedModule = {...selectedModule, enabled};
+        }
     }
 
     $: if (selectedCategory) {
@@ -220,6 +246,7 @@
         if (dragging) {
             menuX = lastMouseX - offsetX;
             menuY = lastMouseY - offsetY;
+            keepMenuInViewport();
             animationFrame = requestAnimationFrame(updateMenuPosition);
         } else {
             animationFrame = null;
@@ -237,16 +264,21 @@
 
 </script>
 
-<div class="clickgui-menu" style="position: absolute; left: {menuX}px; top: {menuY}px;">
+<div
+    class="clickgui-menu"
+    style="position: absolute; left: {menuX}px; top: {menuY}px;"
+    bind:this={menuElement}
+>
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <div class="top-panel" on:mousedown={onMouseDown} style="cursor: grab; user-select: none;" role="region">
         <div class="window-controls">
-            <img class="lb-watermark" src={`img/lb-watermark.svg`} style="cursor: pointer;" />
+            <span class="lb-watermark" role="img" aria-label="BMWClient logo"></span>
         </div>
         <div class="title-block">
             <span class="title">BMWClient</span>
         </div>
         <div class="search-block">
-            <AccentColorPicker value={accentColor} on:change={e => accentColor = e.detail} />
+            <AccentColorPicker />
             <Search modules={allModules} onJumpToModule={jumpToModule} />
         </div>
     </div>
@@ -256,7 +288,7 @@
         </div>
         <div class="module-grid-panel" bind:this={moduleGridPanel}>
             <div class="module-grid">
-                {#each modulesByCategory[selectedCategory] as module, index}
+                {#each modulesByCategory[selectedCategory] ?? [] as module (module.name)}
                     <ModuleCard
                         module={{
                             ...module,
@@ -265,6 +297,7 @@
                         }}
                         onSettings={() => handleModuleSettings(module)}
                         onToggle={() => handleModuleToggle(module)}
+                        selected={selectedModule?.name === module.name}
                         highlighted={highlightedModule === module.name}
                     />
                 {/each}
@@ -275,13 +308,12 @@
                 {#key selectedModule.name}
                     <ModuleComponent
                         name={selectedModule.name}
-                        enabled={selectedModule.enabled}
                         description={selectedModule.description}
                         aliases={selectedModule.aliases}
                     />
                 {/key}
             {:else}
-                <div class="settings-desc">Here's a modules settings</div>
+                <div class="settings-desc">Select a module to view its settings</div>
             {/if}
         </div>
     </div>
@@ -295,27 +327,28 @@
   @use "../../colors.scss" as *;
 
   .clickgui-menu {
-    //background: $clickgui-base-color;
     background: linear-gradient(
-                    145deg,
-                    #0c0f14 0%,
-                    #141923 50%,
-                    #0a0c10 100%
+      145deg,
+      rgba(var(--accent-color), 0.2) 0%,
+      rgba($clickgui-base-color, 0.96) 24%,
+      rgba($clickgui-base-color, 0.96) 72%,
+      rgba(var(--accent-color), 0.12) 100%
     );
-    border: 1px solid $clickgui-border-color;
-    //box-shadow: 0 0 25px rgba($clickgui-base-color, 0.75);
-    box-shadow: 0 4px 4px #00000030, 0 10px 10px #00000015;
-    border-radius: 10px;
+    backdrop-filter: blur(18px);
+    border: 1px solid rgba(var(--accent-color), 0.32);
+    border-right: 3px solid rgba(var(--accent-color), 0.9);
+    box-shadow: 0 20px 70px rgba(0, 0, 0, 0.62), 0 0 32px rgba(var(--accent-color), 0.14);
+    border-radius: 32px;
     display: flex;
     flex-direction: column;
     position: relative;
-    width: 1200px;
-    max-width: 1500px;
-    height: 650px;
-    max-height: 1000px;
+    width: clamp(980px, 78vw, 1560px);
+    max-width: calc(100vw - 48px);
+    height: clamp(620px, 78vh, 960px);
+    max-height: calc(100vh - 48px);
     overflow: hidden;
-    margin: 17.5vh auto;
-    font-family: "Inter", sans-serif;
+    margin: 0;
+    font-family: "Axiforma", sans-serif;
     transition: none !important;
   }
 
@@ -323,18 +356,24 @@
     display: flex;
     cursor: grab;
     align-items: center;
-    height: 70px;
-    padding: 12px 16px;
-    //background: $clickgui-base-color;
-    border-bottom: 1px solid $clickgui-border-color;
+    min-height: 68px;
+    height: 8.5%;
+    padding: 12px 18px;
+    background: linear-gradient(90deg, rgba(var(--accent-color), 0.16), rgba(0, 0, 0, 0.34) 38%);
+    border-bottom: 1px solid rgba(var(--accent-color), 0.5);
     .window-controls {
       display: flex;
       align-items: center;
       .lb-watermark {
-        width: 40px;
-        height: 40px;
+        width: 38px;
+        height: 38px;
+        display: block;
+        background: rgb(var(--accent-color));
+        filter: drop-shadow(0 0 7px rgba(var(--accent-color), 0.26));
+        -webkit-mask: url("/img/lb-watermark.svg") center / contain no-repeat;
+        mask: url("/img/lb-watermark.svg") center / contain no-repeat;
         user-select: none;
-        /* pointer-events: none; */
+        cursor: pointer;
       }
     }
     .title-block {
@@ -343,17 +382,19 @@
       display:flex;
       flex-direction:column;
       .title {
-        font-size: 16px;
-        font-weight: 1000;
+        font-size: clamp(16px, 0.95vw, 20px);
+        font-weight: 600;
         color: $clickgui-text-color;
+        letter-spacing: 0.2px;
       }
     }
     .search-block {
       margin-left: auto;
       display: flex;
       align-items: center;
-      min-width: 250px;
-      max-width: 400px;
+      min-width: 280px;
+      width: min(32%, 430px);
+      max-width: 430px;
       height: 100%;
       justify-content: flex-end;
     }
@@ -363,14 +404,14 @@
     display: flex;
     flex: 1;
     overflow: hidden;
-    //background: $clickgui-base-color;
+    background: linear-gradient(135deg, rgba(var(--accent-color), 0.045), rgba(0, 0, 0, 0.16));
   }
 
   .category-list-panel {
-    width: 200px;
-    padding: 10px;
-    //background: $clickgui-base-color;
-    border-right: 1px solid $clickgui-border-color;
+    width: clamp(190px, 14vw, 230px);
+    padding: 12px;
+    background: linear-gradient(180deg, rgba(var(--accent-color), 0.09), rgba(0, 0, 0, 0.32));
+    border-right: 1px solid rgba(var(--accent-color), 0.2);
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -379,7 +420,7 @@
 
   .module-grid-panel {
     flex: 2;
-    padding: 7.5px 7.5px;
+    padding: 12px;
     overflow-y: auto;
     scroll-behavior: smooth;
     scrollbar-width: none;
@@ -389,16 +430,16 @@
     }
     .module-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 8px;
     }
   }
 
   .settings-panel {
-    width: 300px;
-    padding: 10px;
-    //background: $clickgui-base-color;
-    border-left: 1px solid $clickgui-border-color;
+    width: clamp(300px, 22vw, 380px);
+    padding: 14px;
+    background: linear-gradient(180deg, rgba(var(--accent-color), 0.08), rgba(0, 0, 0, 0.3));
+    border-left: 1px solid rgba(var(--accent-color), 0.2);
     height: 100%;
     display: flex;
     flex-direction: column;
@@ -411,54 +452,53 @@
     }
     .settings-desc {
       color: $clickgui-text-dimmed-color;
-      font-size: 22.5px;
-      line-height: 450px;
+      font-size: 14px;
+      line-height: 1.5;
+      margin: auto;
+      max-width: 190px;
+      text-align: center;
     }
   }
 
-  .easter-egg-img {
-    position: absolute;
-    left: 1px;
-    top: 65px;
-    z-index: 12;
-    img {
-      max-width: 300px;
-      max-height: 275px;
-      border-radius: 10px;
-    }
-  }
-
-      @media (max-width: 900px) {
+      @media (max-width: 1100px) {
         .clickgui-menu {
-          width: 95vw;
-          height: 90vh;
+          width: calc(100vw - 32px);
+          max-width: none;
+          height: calc(100vh - 32px);
+          max-height: none;
         }
         .category-list-panel {
-          width: 200px;
-          padding: 20px;
+          width: 175px;
+          padding: 10px;
         }
         .settings-panel {
-          width: 300px;
-          padding: 20px;
+          width: 280px;
+          padding: 10px;
         }
       }
 
-      @media (max-width: 600px) {
+      @media (max-width: 760px) {
         .clickgui-menu {
-          flex-direction: column;
-          height: auto;
-          min-height: 100vh;
+          width: calc(100vw - 16px);
+          height: calc(100vh - 16px);
+          border-radius: 24px;
         }
-        .main-content {
-          flex-direction: column;
+        .top-panel {
+          min-height: 58px;
+          padding: 8px 10px;
         }
-        .category-list-panel, .settings-panel {
-          width: 100%;
-          border: none;
-          padding: 20px;
+        .title-block {
+          display: none !important;
         }
-        .module-grid-panel {
-          padding: 20px;
+        .category-list-panel {
+          width: 140px;
+        }
+        .settings-panel {
+          display: none;
+        }
+        .search-block {
+          width: min(70%, 360px) !important;
+          min-width: 0 !important;
         }
       }
 </style>

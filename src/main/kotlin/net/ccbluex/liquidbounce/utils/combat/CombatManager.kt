@@ -25,14 +25,28 @@ import net.ccbluex.liquidbounce.event.events.GameTickEvent
 import net.ccbluex.liquidbounce.event.events.TargetChangeEvent
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.features.module.modules.combat.killaura.ModuleKillAura
-import net.ccbluex.liquidbounce.integration.interop.protocol.rest.v1.game.PlayerData
+import net.ccbluex.liquidbounce.integration.interop.protocol.rest.v1.game.TargetData
+import net.ccbluex.liquidbounce.utils.entity.getActualHealth
+import net.ccbluex.liquidbounce.utils.entity.hasHealthScoreboard
 import net.minecraft.entity.LivingEntity
-import net.minecraft.entity.player.PlayerEntity
 
 /**
- * A rotation manager
+ * 战斗状态管理器
  */
+@Suppress("TooManyFunctions")
 object CombatManager : EventListener {
+
+    private data class TargetVitals(
+        val entityId: Int,
+        val health: Float,
+        val actualHealth: Float,
+        val maxHealth: Float,
+        val absorption: Float,
+        val armor: Int,
+    )
+
+    private var currentHudTarget: LivingEntity? = null
+    private var lastHudTargetVitals: TargetVitals? = null
 
     // useful for something like autoSoup
     private var pauseCombat: Int = 0
@@ -79,7 +93,42 @@ object CombatManager : EventListener {
         // TODO: implement this for killaura autoblock and other
         updatePauseBlocking()
         updateDuringCombat()
+        updateHudTarget()
     }
+
+    /**
+     * 攻击事件会早于服务端和客户端更新实体生命值
+     * 在战斗时间内持续观察目标 并在生命数据变化后的首个游戏刻发送更新事件
+     */
+    private fun updateHudTarget() {
+        val target = currentHudTarget ?: return
+
+        if (duringCombat <= 0 || target.isRemoved) {
+            currentHudTarget = null
+            lastHudTargetVitals = null
+            return
+        }
+
+        publishHudTarget(target)
+    }
+
+    private fun publishHudTarget(target: LivingEntity, force: Boolean = false) {
+        val vitals = TargetVitals(
+            entityId = target.id,
+            health = target.health.finiteOrZero(),
+            actualHealth = target.getActualHealth().finiteOrZero(),
+            maxHealth = target.maxHealth.finiteOrZero(),
+            absorption = if (target.hasHealthScoreboard()) 0f else target.absorptionAmount.finiteOrZero(),
+            armor = target.armor.coerceAtMost(20),
+        )
+
+        if (!force && vitals == lastHudTargetVitals) return
+
+        lastHudTargetVitals = vitals
+        EventManager.callEvent(TargetChangeEvent(TargetData.fromEntity(target)))
+    }
+
+    private fun Float.finiteOrZero() = if (isFinite()) this else 0f
 
     val tickHandler = handler<GameTickEvent> {
         update()
@@ -91,10 +140,10 @@ object CombatManager : EventListener {
 
         if (entity is LivingEntity && entity.shouldBeAttacked()) {
             duringCombat = PAUSE_COMBAT
+            currentHudTarget = entity
 
-            if (entity is PlayerEntity) {
-                EventManager.callEvent(TargetChangeEvent(PlayerData.fromPlayer(entity)))
-            }
+            // 先发送目标信息 收到服务端生命值后再发送最新数据
+            publishHudTarget(entity, force = true)
         }
     }
 

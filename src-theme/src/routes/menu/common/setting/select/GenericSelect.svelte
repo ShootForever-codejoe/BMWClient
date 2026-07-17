@@ -61,7 +61,7 @@
   }
 
   .header {
-    background-color: $accent-color;
+    background-color: rgb(var(--accent-color));
     padding: 20px;
     display: flex;
     column-gap: 20px;

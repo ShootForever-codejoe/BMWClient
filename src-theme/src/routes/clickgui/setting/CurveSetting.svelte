@@ -16,6 +16,7 @@
     import dragDataPlugin from "chartjs-plugin-dragdata";
     import ExpandArrow from "./common/ExpandArrow.svelte";
     import {setItem} from "../../../integration/persistent_storage";
+    import {accentColorStore} from "../../../theme/accentColorStore";
 
     export let setting: ModuleSetting;
     export let path: string;
@@ -33,6 +34,17 @@
 
     let canvasElement: HTMLCanvasElement;
     let chart: TChart | null = null;
+    let accentColor = "#a855f7";
+    const unsubscribeAccent = accentColorStore.subscribe((color: string) => {
+        accentColor = color;
+        if (!chart) return;
+
+        const dataset = chart.data.datasets[0];
+        dataset.borderColor = color;
+        dataset.pointBackgroundColor = color;
+        dataset.pointHoverBackgroundColor = color;
+        chart.update("none");
+    });
 
     Chart.register(LinearScale, PointElement, LineElement, LineController, ScatterController, dragDataPlugin);
 
@@ -40,7 +52,6 @@
     const EPS = 1e-9;
     // Points at the exact edges of the x-axis are locked. This margin prevents additional points from being locked.
     const EDGE_MARGIN = 1e-6;
-    const COLOR_ACCENT = "#4677ff"; // NOTE: This should be read from a color file in the future.
     const COLOR_GRID = "#333333";
     const COLOR_DIMMED_TEXT = "rgba(211, 211, 211, 255)";
 
@@ -138,12 +149,12 @@
                     showLine: true,
                     parsing: false,
                     borderWidth: 2,
-                    borderColor: COLOR_ACCENT,
+                    borderColor: accentColor,
                     pointRadius: 5,
-                    pointBackgroundColor: COLOR_ACCENT,
+                    pointBackgroundColor: accentColor,
                     pointBorderWidth: 0,
                     pointHoverRadius: 6,
-                    pointHoverBackgroundColor: COLOR_ACCENT,
+                    pointHoverBackgroundColor: accentColor,
                     tension: cSetting.tension
                 }]
             },
@@ -270,6 +281,7 @@
     }
 
     onDestroy(() => {
+        unsubscribeAccent();
         chart?.destroy();
         chart = null;
     });

@@ -20,18 +20,20 @@
 package net.ccbluex.liquidbounce.features.module.modules.bmw.newscaffold
 
 import net.ccbluex.liquidbounce.bmw.notifyAsMessage
-import net.ccbluex.liquidbounce.bmw.simulatePlayerMovement
 import net.ccbluex.liquidbounce.config.types.NamedChoice
 import net.ccbluex.liquidbounce.event.events.*
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
-import net.ccbluex.liquidbounce.features.module.modules.world.scaffold.ScaffoldBlockItemSelection
+import net.ccbluex.liquidbounce.render.drawBox
+import net.ccbluex.liquidbounce.render.engine.type.Color4b
+import net.ccbluex.liquidbounce.render.renderEnvironmentForWorld
 import net.ccbluex.liquidbounce.utils.aiming.RotationManager
 import net.ccbluex.liquidbounce.utils.aiming.RotationTarget
 import net.ccbluex.liquidbounce.utils.aiming.data.Rotation
 import net.ccbluex.liquidbounce.utils.aiming.features.MovementCorrection
 import net.ccbluex.liquidbounce.utils.client.RestrictedSingleUseAction
+import net.ccbluex.liquidbounce.utils.client.SilentHotbar
 import net.ccbluex.liquidbounce.utils.client.toRadians
 import net.ccbluex.liquidbounce.utils.entity.airTicks
 import net.ccbluex.liquidbounce.utils.entity.moving
@@ -39,16 +41,19 @@ import net.ccbluex.liquidbounce.utils.entity.onGroundTicks
 import net.ccbluex.liquidbounce.utils.item.isFullBlock
 import net.ccbluex.liquidbounce.utils.kotlin.Priority
 import net.ccbluex.liquidbounce.utils.kotlin.random
+import net.ccbluex.liquidbounce.utils.movement.DirectionalInput
 import net.minecraft.block.*
+import net.minecraft.entity.effect.StatusEffects
 import net.minecraft.item.BlockItem
+import net.minecraft.item.ItemStack
 import net.minecraft.network.packet.c2s.play.HandSwingC2SPacket
-import net.minecraft.util.ActionResult
 import net.minecraft.util.Hand
 import net.minecraft.util.hit.BlockHitResult
 import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Box
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
+import java.util.ArrayDeque
 import java.util.function.ToDoubleFunction
 import kotlin.math.abs
 import kotlin.math.cos
@@ -80,26 +85,38 @@ object ModuleNewScaffold : ClientModule("NewScaffold", Category.BMW) {
         NONE("None")
     }
 
-    private val mode by enumChoice("Mode", Mode.TELLY)
+    private val mode by enumChoice("Mode", Mode.TELLY).apply { tagBy(this) }
     private val alwaysUpdateRot by boolean("AlwaysUpdateRotation", true)
     private val placeTick by int("PlaceTick", 1, 1..5, "ticks")
-    private val rotTick by int("RotationTick", 1, 1..5, "ticks")
+    private val rotTick by int("RotationTick", 3, 1..5, "ticks")
+    private val spoofItem by boolean("SpoofItem", true)
     private val noSwing by boolean("NoSwing", false)
     private val eagle by boolean("Eagle", false)
     private val snap by boolean("Snap", false)
     private val noUpTelly by boolean("NoUpTelly", false)
     private val smoothed by boolean("HeypixelUpTelly", true)
-    private val safeMode by boolean("SafeMode", false)
-    private val testOnGround by boolean("TestOnGround", false)
+    private val safeMode by boolean("SafeMode", true)
+    private val testOnGround by boolean("TestOnGround", true)
+    private val fixRotation by boolean("FixRotation", false)
     private val randomSlow by boolean("SlowUpTelly", false)
-    private val blockSlotMode by enumChoice("BlockSlotMode", BlockSlotMode.FARTHEST)
+    private val abuseRotation by boolean("AbuseRotation", false)
+    private val blockSlotMode by enumChoice("BlockSlotMode", BlockSlotMode.MOST_BLOCKS)
     private val jumpMode by enumChoice("JumpMode", JumpMode.NORMAL)
-    private val safeDistance by float("ClutchSafeDistance", 4.5f, 1.0f..5.0f)
+    private val safeDistance by float("ClutchSafeDistance", 4.25f, 1.0f..5.0f)
     private val tellyEagleTick by int("EagleTick", 1, 1..5)
     private val keepEagleSneakTick by int("KeepEagleTick", 1, 1..5)
-    private val debug by boolean("Debug", false)
+    private val debug by boolean("Debug", true)
+    private val keepFov by boolean("KeepFov", true)
+    private val fov by float("Fov", 1.1f, 1.0f..2.1f)
     private val duplicateRotPlace by boolean("DuplicateRotPlace", true)
-    private val interactItem by boolean("InteractItemBeforePlace", false)
+    private val interactItem by boolean("InteractItemBeforePlace", true)
+    private val mark by boolean("Mark", true)
+    private val markSideColor by color("MarkSideColor", Color4b(255, 48, 48, 70))
+    private val markLineColor by color("MarkLineColor", Color4b(255, 48, 48, 150))
+    private val markDuration by int("MarkDuration", 1000, 100..3000, "ms")
+    private val markFadeIn by int("MarkFadeIn", 100, 0..500, "ms")
+
+    private data class PlacementMark(val position: BlockPos, val time: Long)
 
     private var slot: SlotData? = null
     private var blockSlot: SlotData? = null
@@ -108,7 +125,7 @@ object ModuleNewScaffold : ClientModule("NewScaffold", Category.BMW) {
     private var lastBlockData: BlockData? = null
     private var rotateCount = 0
     private var posY = 0.0
-    private var lastPlacePosition: BlockPos? = null
+    private val placementMarks = ArrayDeque<PlacementMark>()
     private var tellyJumpTicks = 0
     private var waitingForEagleSneak = false
     private var lastRotation: Rotation? = null
@@ -118,7 +135,51 @@ object ModuleNewScaffold : ClientModule("NewScaffold", Category.BMW) {
     private var placeCount = 0
     private var ups = 0
     private var skipTick = false
-    private var lastPlacePitchDiff = 0.0
+
+
+    private val invalidBlocks = setOf(
+        Blocks.ENCHANTING_TABLE,
+        Blocks.OAK_SIGN,
+        Blocks.CHEST,
+        Blocks.ENDER_CHEST,
+        Blocks.TRAPPED_CHEST,
+        Blocks.ANVIL,
+        Blocks.SAND,
+        Blocks.COBWEB,
+        Blocks.TORCH,
+        Blocks.CRAFTING_TABLE,
+        Blocks.FURNACE,
+        Blocks.WATER_CAULDRON,
+        Blocks.DISPENSER,
+        Blocks.STONE_PRESSURE_PLATE,
+        Blocks.BAMBOO_PRESSURE_PLATE,
+        Blocks.NOTE_BLOCK,
+        Blocks.DROPPER,
+        Blocks.TNT,
+        Blocks.REDSTONE_TORCH,
+        Blocks.DAYLIGHT_DETECTOR,
+        Blocks.BIRCH_SIGN,
+        Blocks.SPRUCE_SIGN,
+        Blocks.JUNGLE_SIGN,
+        Blocks.ACACIA_SIGN,
+        Blocks.DARK_OAK_SIGN,
+        Blocks.MANGROVE_SIGN,
+        Blocks.CHERRY_SIGN,
+        Blocks.BAMBOO_SIGN,
+        Blocks.CRIMSON_SIGN,
+        Blocks.WARPED_SIGN,
+        Blocks.OAK_HANGING_SIGN,
+        Blocks.BIRCH_HANGING_SIGN,
+        Blocks.SPRUCE_HANGING_SIGN,
+        Blocks.JUNGLE_HANGING_SIGN,
+        Blocks.ACACIA_HANGING_SIGN,
+        Blocks.DARK_OAK_HANGING_SIGN,
+        Blocks.MANGROVE_HANGING_SIGN,
+        Blocks.CHERRY_HANGING_SIGN,
+        Blocks.BAMBOO_HANGING_SIGN,
+        Blocks.CRIMSON_HANGING_SIGN,
+        Blocks.WARPED_HANGING_SIGN
+    )
 
     override fun onEnabled() {
         placeCount = 0
@@ -130,30 +191,62 @@ object ModuleNewScaffold : ClientModule("NewScaffold", Category.BMW) {
         blockSlot = null
         blockData = null
         canPlace = true
-        lastPlacePosition = null
+        placementMarks.clear()
         tellyJumpTicks = 0
         waitingForEagleSneak = false
         rot = null
         skipTick = false
-        lastPlacePitchDiff = 0.0
+        SilentHotbar.resetSlot(this)
     }
 
     override fun onDisabled() {
-        player.inventory.selectedSlot = slot!!.slot
+        slot?.let { player.inventory.selectedSlot = it.slot }
         player.inventory.selectedSlot = oldSlot
+        SilentHotbar.resetSlot(this)
         mc.options.sneakKey.isPressed = false
+        skipTick = false
+    }
+
+    @JvmStatic
+    fun getFovMultiplier(original: Float): Float {
+        val clientPlayer = mc.player ?: return original
+        if (!running || !keepFov || !clientPlayer.moving) return original
+        val speedLevel = (clientPlayer.getStatusEffect(StatusEffects.SPEED)?.amplifier ?: -1) + 1
+        return fov + speedLevel * 0.13f
     }
 
     @Suppress("unused")
-    private val playerTickHandler = handler<PlayerTickEvent> { event ->
-        if (skipTick) {
-            event.cancelEvent()
+    private val renderHandler = handler<WorldRenderEvent> { event ->
+        if (!mark) {
+            placementMarks.clear()
+            return@handler
+        }
+        val now = System.currentTimeMillis()
+        while (placementMarks.isNotEmpty() && now - placementMarks.first.time >= markDuration) {
+            placementMarks.removeFirst()
+        }
+        if (placementMarks.isEmpty()) return@handler
+        val cameraOffset = mc.entityRenderDispatcher.camera.pos.negate()
+        val fadeIn = markFadeIn.coerceAtMost(markDuration)
+        renderEnvironmentForWorld(event.matrixStack) {
+            placementMarks.forEach { markData ->
+                val elapsed = now - markData.time
+                val opacity = if (fadeIn > 0 && elapsed < fadeIn) {
+                    elapsed.toFloat() / fadeIn
+                } else {
+                    1f - (elapsed - fadeIn).toFloat() / (markDuration - fadeIn).coerceAtLeast(1)
+                }.coerceIn(0f, 1f)
+                val smoothOpacity = opacity * opacity * (3f - 2f * opacity)
+                val box = Box(markData.position).offset(cameraOffset)
+                drawBox(box, markSideColor.fade(smoothOpacity), markLineColor.fade(smoothOpacity))
+            }
         }
     }
 
     @Suppress("unused")
     private val strafeHandler = handler<PlayerVelocityStrafe> {
         if (this.blockSlot == null || blockSlot!!.check()) {
+            skipTick = false
             return@handler
         }
         if (player.onGroundTicks > (if (smoothed && safeMode && !testOnGround) 1 else 0)
@@ -338,25 +431,20 @@ object ModuleNewScaffold : ClientModule("NewScaffold", Category.BMW) {
             ) {
                 return
             }
-            if (this.blockSlot!!.hand == Hand.MAIN_HAND) {
-                player.inventory.selectedSlot = this.blockSlot!!.slot
-                interaction.syncSelectedSlot()
-            }
-            if (duplicateRotPlace && abs(player.pitch - player.lastPitch) > 2.0) {
-                val xDiff: Double = abs(abs(player.pitch - player.lastPitch) - lastPlacePitchDiff)
-                if (xDiff < 0.0001) {
-                    return
-                }
-            }
+            selectBlockSlot()
             if (interactItem) {
                 interaction.interactItem(player, Hand.MAIN_HAND)
             }
             val result = interaction.interactBlock(player, this.blockSlot!!.hand, block)
-            if (result == ActionResult.SUCCESS) {
+            if (result.isAccepted) {
                 placeCount++
-                lastPlacePosition = blockData!!.pos.offset(blockData!!.facing)
-                if (abs(player.pitch - player.lastPitch) > 0.0) {
-                    lastPlacePitchDiff = abs(player.pitch - player.lastPitch).toDouble()
+                if (mark) {
+                    val markData = PlacementMark(
+                        blockData!!.pos.offset(blockData!!.facing),
+                        System.currentTimeMillis()
+                    )
+                    placementMarks.removeIf { it.position == markData.position }
+                    placementMarks.addLast(markData)
                 }
                 if (noSwing) {
                     network.sendPacket(HandSwingC2SPacket(this.blockSlot!!.hand))
@@ -367,23 +455,38 @@ object ModuleNewScaffold : ClientModule("NewScaffold", Category.BMW) {
         }
     }
 
+
+    private fun selectBlockSlot() {
+        val selected = blockSlot ?: return
+        if (selected.hand != Hand.MAIN_HAND) {
+            return
+        }
+
+        if (spoofItem) {
+            SilentHotbar.selectSlotSilently(this, selected.slot, 2)
+        } else {
+            SilentHotbar.resetSlot(this)
+            player.inventory.selectedSlot = selected.slot
+        }
+        interaction.syncSelectedSlot()
+    }
+
     @Suppress("unused")
     private val rotationUpdateHandler = handler<RotationUpdateEvent> {
         this.blockSlot = null
 
-        if (player.offHandStack.isFullBlock() && ScaffoldBlockItemSelection.isValidBlock(
-                player.offHandStack
-            )
-        ) {
+        if (isValidBlock(player.offHandStack)) {
             this.blockSlot = SlotData(99, Hand.OFF_HAND)
         }
 
         if (blockSlot == null && blockSlotMode != BlockSlotMode.MOST_BLOCKS) {
-            if (player.mainHandStack.isFullBlock() && ScaffoldBlockItemSelection.isValidBlock(
-                    player.mainHandStack
-                )
-            ) {
-                this.blockSlot = SlotData(player.inventory.selectedSlot, Hand.MAIN_HAND)
+            val selectedSlot = if (SilentHotbar.isSlotModifiedBy(this)) {
+                SilentHotbar.serversideSlot
+            } else {
+                player.inventory.selectedSlot
+            }
+            if (isValidBlock(player.inventory.getStack(selectedSlot))) {
+                this.blockSlot = SlotData(selectedSlot, Hand.MAIN_HAND)
             }
         }
 
@@ -438,14 +541,13 @@ object ModuleNewScaffold : ClientModule("NewScaffold", Category.BMW) {
             }
         }
 
-        if (this.blockSlot!!.hand == Hand.MAIN_HAND) {
-            player.inventory.selectedSlot = this.blockSlot!!.slot
-        }
-        val simResult1 = simulatePlayerMovement(ticks = 1) // 玩家预测
+        selectBlockSlot()
+        val fallingPlayer = FallingPlayer(player) // 使用纯空中预测器计算位置
+        fallingPlayer.calculate(1)
         var reachable = true
-        val nextEyePos: Vec3d = simResult1.position.add(0.0, player.standingEyeHeight.toDouble(), 0.0) // 1tick后的eye pos
-        val simResult2 = simulatePlayerMovement(ticks = 2) // 再预测2tick
-        val predictedY = simResult2.position.y // 2tick后的Y坐标
+        val nextEyePos = fallingPlayer.eyePos // 预测一 tick 后的视线位置
+        fallingPlayer.calculate(1)
+        val predictedY = fallingPlayer.y // 预测两 tick 后的高度
         val placement: BlockData? = getBlockData(
             BlockPos(
                 floor(player.x).toInt(), (player.blockY - 1), floor(
@@ -491,6 +593,7 @@ object ModuleNewScaffold : ClientModule("NewScaffold", Category.BMW) {
             skipTick = true
             rotateCount++
         } else {
+            skipTick = false
             rotateCount = 0
         }
         rot = getBRot(forceRotation)
@@ -504,11 +607,28 @@ object ModuleNewScaffold : ClientModule("NewScaffold", Category.BMW) {
                 rot!!.pitch = -90f
             }
         }
-        if (didHitBlockFace(blockData, rot!!)) {
+        if (fixRotation) {
+            rot = rot?.normalize()
+        }
+        var rotationHitsTarget = didHitBlockFace(blockData, rot!!)
+        if (!rotationHitsTarget && blockData != null && (safeMode || !reachable)) {
+            var centerRotation = Rotation.lookingAt(
+                blockData!!.pos.toCenterPos().add(Vec3d.of(blockData!!.facing.vector).multiply(0.5)),
+                player.eyePos
+            )
+            if (fixRotation) {
+                centerRotation = centerRotation.normalize()
+            }
+            if (didHitBlockFace(blockData, centerRotation)) {
+                rot = centerRotation
+                lastRotation = centerRotation
+                rotationHitsTarget = true
+            }
+        }
+        if (rotationHitsTarget) {
             skipTick = false
             rotateCount = 0
         }
-        rot = rot?.normalize()
         if (rot != null) {
             RotationManager.setRotationTarget(
                 RotationTarget(
@@ -518,6 +638,9 @@ object ModuleNewScaffold : ClientModule("NewScaffold", Category.BMW) {
                     considerInventory = true,
                     movementCorrection = MovementCorrection.SILENT,
                     whenReached = RestrictedSingleUseAction({ true }) {
+                        if (abuseRotation) {
+                            rotationAbuse(30f, RotationManager.currentRotation?.yaw ?: rot!!.yaw)
+                        }
                         place()
                     }
                 ),
@@ -526,6 +649,10 @@ object ModuleNewScaffold : ClientModule("NewScaffold", Category.BMW) {
             )
         }
         if (blockData == null) return@handler
+        if (player.isSpectator) {
+            enabled = false
+            return@handler
+        }
         if (mode == Mode.TELLY) {
             return@handler
         }
@@ -543,11 +670,19 @@ object ModuleNewScaffold : ClientModule("NewScaffold", Category.BMW) {
     }
 
     private fun didHitBlockFace(blockData: BlockData?, rot: Rotation): Boolean {
-        return blockData == null || !ClientRayTraceUtil.didHitBlockFace(rot, blockData.pos, blockData.facing, true)
+        return blockData != null && ClientRayTraceUtil.didHitBlockFace(
+            rot,
+            blockData.pos,
+            blockData.facing,
+            true
+        )
     }
 
     @Suppress("unused")
     private val movementInputHandler = handler<MovementInputEvent> { event ->
+        if (skipTick) {
+            event.directionalInput = DirectionalInput.NONE
+        }
         if (mode == Mode.TELLY && eagle) {
             event.sneak = placeCount % 4 == 0
         }
@@ -573,7 +708,7 @@ object ModuleNewScaffold : ClientModule("NewScaffold", Category.BMW) {
         var slot = -1
         for (i in 0..8) {
             val stack = player.inventory.getStack(i)
-            if (stack.isFullBlock() && ScaffoldBlockItemSelection.isValidBlock(stack)) {
+            if (isValidBlock(stack)) {
                 slot = i
             }
         }
@@ -581,24 +716,52 @@ object ModuleNewScaffold : ClientModule("NewScaffold", Category.BMW) {
     }
 
     private fun getMostBlocksHotbarSlot(): Int {
-        val selectedSlot = player.inventory.selectedSlot
+        val selectedSlot = if (SilentHotbar.isSlotModifiedBy(this)) {
+            SilentHotbar.serversideSlot
+        } else {
+            player.inventory.selectedSlot
+        }
         var bestSlot = -1
         var bestCount = -1
 
         val selectedStack = player.inventory.getStack(selectedSlot)
-        if (selectedStack.isFullBlock() && ScaffoldBlockItemSelection.isValidBlock(selectedStack)) {
+        if (isValidBlock(selectedStack)) {
             bestSlot = selectedSlot
             bestCount = selectedStack.count
         }
 
         for (i in 0..8) {
             val stack = player.inventory.getStack(i)
-            if (stack.isFullBlock() && ScaffoldBlockItemSelection.isValidBlock(stack) && stack.count > bestCount) {
+            if (isValidBlock(stack) && stack.count > bestCount) {
                 bestSlot = i
                 bestCount = stack.count
             }
         }
         return bestSlot
+    }
+
+    private fun isValidBlock(stack: ItemStack): Boolean {
+        val item = stack.item as? BlockItem ?: return false
+        return stack.isFullBlock() && item.block !is FallingBlock && item.block !in invalidBlocks
+    }
+
+
+    private fun rotationAbuse(step: Float, targetYaw: Float) {
+        val appliedRotation = RotationManager.currentRotation ?: return
+        val previousRotation = RotationManager.previousRotation ?: RotationManager.serverRotation
+        val change = RotationUtils.yawDiffDirectly(targetYaw, previousRotation.yaw)
+        val times = (abs(change) / step).toInt()
+        var currentYaw = previousRotation.yaw
+
+        repeat(times) {
+            currentYaw += RotationUtils.smooth(change.toFloat(), step)
+            appliedRotation.yaw = currentYaw
+            interaction.interactItem(player, Hand.MAIN_HAND)
+        }
+        appliedRotation.yaw = targetYaw
+        if (times > 0) {
+            interaction.interactItem(player, Hand.MAIN_HAND)
+        }
     }
 
     private fun getBlockData(pos: BlockPos): BlockData? {

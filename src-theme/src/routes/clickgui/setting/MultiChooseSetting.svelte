@@ -1,5 +1,5 @@
 <script lang="ts">
-    import {createEventDispatcher} from "svelte";
+    import {createEventDispatcher, onDestroy} from "svelte";
     import type {ModuleSetting, MultiChooseSetting,} from "../../../integration/types";
     import {slide} from "svelte/transition";
     import {convertToSpacedString, spaceSeperatedNames} from "../../../theme/theme_config";
@@ -47,6 +47,8 @@
     function toggleExpanded() {
         expanded = !expanded;
     }
+
+    onDestroy(() => clearTimeout(timeoutId));
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->
@@ -92,7 +94,7 @@
 
   .choice {
     color: rgba(255, 255, 255, 0.6);
-    background-color: $clickgui-settings-color;
+    background-color: rgba(var(--accent-color), 0.1);
     border-radius: 5px;
     padding: 3px 5px;
     cursor: pointer;
@@ -134,8 +136,8 @@
   }
 
   .choices {
-    background: rgba($clickgui-settings-color, 0.5);
-    border-radius: 10px;
+    background: linear-gradient(145deg, rgba(var(--accent-color), 0.12), rgba(8, 4, 10, 0.72));
+    border-radius: 16px;
     border: 1px solid $clickgui-border-color;
     color: $clickgui-text-color;
     padding: 7.5px 7.5px;

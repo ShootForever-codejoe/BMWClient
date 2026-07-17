@@ -41,7 +41,7 @@
   }
 
   .entries {
-    background-color: rgba($scoreboard-base-color, 0.5);
+    background: linear-gradient(90deg, rgba(var(--accent-color), 0.16), rgba($scoreboard-base-color, 0.55));
     padding: 10px;
   }
 
@@ -53,7 +53,7 @@
 
   .header {
     text-align: center;
-    background-color: rgba($scoreboard-base-color, 0.68);
+    background: linear-gradient(90deg, rgba(var(--accent-color), 0.1), rgba($scoreboard-base-color, 0.72));
     padding: 7px 10px;
   }
 </style>

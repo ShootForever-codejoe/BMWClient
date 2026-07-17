@@ -52,7 +52,7 @@
 
   .key {
     height: 50px;
-    background-color: rgba($keystrokes-base-color, .68);
+    background: linear-gradient(145deg, rgba(var(--accent-color), 0.12), rgba($keystrokes-base-color, 0.72));
     color: $keystrokes-text-color;
     display: flex;
     align-items: center;
@@ -62,11 +62,11 @@
     font-weight: 500;
     transition: ease box-shadow .2s;
     position: relative;
-    box-shadow: inset 0 0 0 0 $md-dark-primary;
+    box-shadow: inset 0 0 0 0 rgb(var(--accent-color)), var(--theme-shadow-soft);
     text-align: center;
 
     &.active {
-      box-shadow: inset 0 0 0 25px $md-dark-primary;
+    box-shadow: inset 0 0 0 25px rgb(var(--accent-color)), var(--theme-glow);
     }
   }
 </style>

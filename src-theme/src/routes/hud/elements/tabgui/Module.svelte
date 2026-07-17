@@ -46,7 +46,7 @@
         }
 
         &.selected {
-            background-color: rgba($tabgui-base-color, 0.36);
+    background: linear-gradient(110deg, rgba(var(--accent-color), 0.09), rgba($tabgui-base-color, 0.42));
 
             .name {
                 transform: translateX(5px);

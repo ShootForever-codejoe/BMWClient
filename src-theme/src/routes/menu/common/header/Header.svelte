@@ -51,7 +51,7 @@
 </script>
 
 <div class="header">
-    <img class="logo" src="img/lb-logo.svg" alt="logo">
+    <span class="logo" role="img" aria-label="BMWClient"></span>
 
     <Notifications />
 
@@ -64,5 +64,15 @@
     justify-content: space-between;
     margin-bottom: 60px;
     align-items: center;
+  }
+
+  .logo {
+    display: block;
+    width: 165px;
+    height: 42px;
+    background: rgb(var(--accent-color));
+    -webkit-mask: url("/img/lb-logo.svg") left center / contain no-repeat;
+    mask: url("/img/lb-logo.svg") left center / contain no-repeat;
+    filter: drop-shadow(0 0 8px rgba(var(--accent-color), 0.2));
   }
 </style>

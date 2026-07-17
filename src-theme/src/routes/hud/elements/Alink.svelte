@@ -37,13 +37,15 @@
   }
 
   .alink-box {
-    background: rgba($md-dark-on-primary, 0.3);
-    border-radius: 8px;
+    background:
+            linear-gradient(135deg, rgba(var(--accent-color), 0.16), rgba(var(--accent-color), 0.04)),
+            rgba(10, 9, 13, 0.72);
+    border-radius: 12px;
     padding: 6px 12px;
     min-width: 200px;
-    box-shadow: 0 4px 14px rgba($md-dark-primary, 0.5);
-    backdrop-filter: blur(8px);
-    border: 1px solid rgba(73, 69, 79, 0.6);
+    box-shadow: var(--theme-shadow);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(var(--accent-color), 0.26);
   }
 
   .alink-title {
@@ -58,7 +60,8 @@
   .progress-container {
     width: 100%;
     height: 8px;
-    background: rgba(54, 52, 59, 0.6);
+    background: rgba(var(--accent-color), 0.1);
+    border: 1px solid rgba(var(--accent-color), 0.12);
     border-radius: 4px;
     overflow: hidden;
     position: relative;
@@ -68,15 +71,15 @@
     height: 100%;
     border-radius: 4px;
     background: linear-gradient(90deg,
-            #D0BCFF 0%,
-            #CCC2DC 25%,
-            #43e97b 50%,
-            #38f9d7 75%,
-            #D0BCFF 100%);
+            rgba(var(--accent-color), 0.55) 0%,
+            rgb(var(--accent-color)) 25%,
+            #ffffff 50%,
+            rgb(var(--accent-color)) 75%,
+            rgba(var(--accent-color), 0.55) 100%);
     background-size: 200% 100%;
     animation: gradientShift 2s ease-in-out infinite;
     transition: width 0.1s ease-out;
-    box-shadow: 0 0 6px rgba(208, 188, 255, 0.3);
+    box-shadow: 0 0 8px rgba(var(--accent-color), 0.18);
   }
 
   @keyframes gradientShift {

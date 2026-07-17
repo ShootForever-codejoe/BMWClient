@@ -22,10 +22,13 @@ import com.google.gson.JsonArray
 import com.google.gson.JsonNull
 import com.google.gson.JsonObject
 import com.google.gson.JsonPrimitive
+import net.ccbluex.liquidbounce.config.gson.fileGson
 import net.ccbluex.liquidbounce.config.types.*
 import net.ccbluex.liquidbounce.config.types.CurveValue.Axis
 import net.ccbluex.liquidbounce.config.types.NamedChoice.Companion.asNamedChoice
 import net.ccbluex.liquidbounce.event.EventListener
+import net.ccbluex.liquidbounce.features.module.ClientModule
+import net.ccbluex.liquidbounce.features.module.ModuleManager
 import net.ccbluex.liquidbounce.render.engine.type.Color4b
 import net.ccbluex.liquidbounce.utils.client.toLowerCamelCase
 import net.ccbluex.liquidbounce.utils.input.InputBind
@@ -37,6 +40,7 @@ import net.minecraft.client.util.InputUtil
 import net.minecraft.entity.EntityType
 import net.minecraft.entity.effect.StatusEffect
 import net.minecraft.item.Item
+import net.minecraft.screen.ScreenHandlerType
 import net.minecraft.sound.SoundEvent
 import net.minecraft.util.Identifier
 import net.minecraft.util.math.Vec3d
@@ -479,34 +483,40 @@ open class Configurable(
 
             ValueType.INT -> {
                 val value = valueObject["value"].asInt
-                val min = valueObject["range"].asJsonObject["min"].asInt
-                val max = valueObject["range"].asJsonObject["max"].asInt
+                val range = valueObject["range"]?.asJsonObject
+                val min = range?.intEndpoint("min", "from") ?: value
+                val max = range?.intEndpoint("max", "to") ?: value
                 val suffix = valueObject["suffix"]?.asString ?: ""
                 int(name, value, min..max, suffix)
             }
 
             ValueType.INT_RANGE -> {
-                val valueMin = valueObject["value"].asJsonObject["min"].asInt
-                val valueMax = valueObject["value"].asJsonObject["max"].asInt
-                val min = valueObject["range"].asJsonObject["min"].asInt
-                val max = valueObject["range"].asJsonObject["max"].asInt
+                val valueRange = valueObject["value"].asJsonObject
+                val valueMin = valueRange.intEndpoint("min", "from")
+                val valueMax = valueRange.intEndpoint("max", "to")
+                val range = valueObject["range"]?.asJsonObject
+                val min = range?.intEndpoint("min", "from") ?: valueMin
+                val max = range?.intEndpoint("max", "to") ?: valueMax
                 val suffix = valueObject["suffix"]?.asString ?: ""
                 intRange(name, valueMin..valueMax, min..max, suffix)
             }
 
             ValueType.FLOAT -> {
                 val value = valueObject["value"].asFloat
-                val min = valueObject["range"].asJsonObject["min"].asFloat
-                val max = valueObject["range"].asJsonObject["max"].asFloat
+                val range = valueObject["range"]?.asJsonObject
+                val min = range?.floatEndpoint("min", "from") ?: value
+                val max = range?.floatEndpoint("max", "to") ?: value
                 val suffix = valueObject["suffix"]?.asString ?: ""
                 float(name, value, min..max, suffix)
             }
 
             ValueType.FLOAT_RANGE -> {
-                val valueMin = valueObject["value"].asJsonObject["min"].asFloat
-                val valueMax = valueObject["value"].asJsonObject["max"].asFloat
-                val min = valueObject["range"].asJsonObject["min"].asFloat
-                val max = valueObject["range"].asJsonObject["max"].asFloat
+                val valueRange = valueObject["value"].asJsonObject
+                val valueMin = valueRange.floatEndpoint("min", "from")
+                val valueMax = valueRange.floatEndpoint("max", "to")
+                val range = valueObject["range"]?.asJsonObject
+                val min = range?.floatEndpoint("min", "from") ?: valueMin
+                val max = range?.floatEndpoint("max", "to") ?: valueMax
                 val suffix = valueObject["suffix"]?.asString ?: ""
                 floatRange(name, valueMin..valueMax, min..max, suffix)
             }
@@ -561,9 +571,51 @@ open class Configurable(
                 multiEnumChoice(name, value, choices, canBeNone)
             }
 
+            ValueType.REGISTRY_LIST -> addRegistryListFromJson(name, valueObject)
+
             else -> error("Unsupported type: $type")
         }
     }
+
+    private fun addRegistryListFromJson(name: String, valueObject: JsonObject) {
+        val innerValueType = enumValueOf<ValueType>(valueObject["innerValueType"].asString)
+
+        when (innerValueType) {
+            ValueType.BLOCK -> blocks(name, valueObject.registryValues())
+            ValueType.ITEM -> items(name, valueObject.registryValues())
+            ValueType.SOUND -> sounds(name, valueObject.registryValues())
+            ValueType.STATUS_EFFECT -> statusEffects(name, valueObject.registryValues())
+            ValueType.CLIENT_PACKET -> clientPackets(name, valueObject.registryValues())
+            ValueType.SERVER_PACKET -> serverPackets(name, valueObject.registryValues())
+            ValueType.ENTITY_TYPE -> entityTypes(name, valueObject.registryValues())
+            ValueType.SCREEN_HANDLER -> registryList<MutableSet<ScreenHandlerType<*>>, ScreenHandlerType<*>>(
+                name,
+                valueObject.registryValues(),
+                innerValueType,
+            )
+            ValueType.CLIENT_MODULE -> registryList<MutableSet<ClientModule>, ClientModule>(
+                name,
+                valueObject["value"].asJsonArray.mapTo(linkedSetOf()) { element ->
+                    requireNotNull(ModuleManager[element.asString]) { "Unknown module '${element.asString}'" }
+                },
+                innerValueType,
+            )
+            else -> error("Unsupported registry list inner type: $innerValueType")
+        }
+    }
+
+    private inline fun <reified E> JsonObject.registryValues(): MutableSet<E> =
+        this["value"].asJsonArray.mapTo(linkedSetOf()) { fileGson.fromJson(it, E::class.java) }
+
+    private fun JsonObject.intEndpoint(currentName: String, legacyName: String): Int =
+        requireNotNull(this[currentName] ?: this[legacyName]) {
+            "Missing '$currentName' (or legacy '$legacyName') in numeric range: $this"
+        }.asInt
+
+    private fun JsonObject.floatEndpoint(currentName: String, legacyName: String): Float =
+        requireNotNull(this[currentName] ?: this[legacyName]) {
+            "Missing '$currentName' (or legacy '$legacyName') in numeric range: $this"
+        }.asFloat
 
 
 }

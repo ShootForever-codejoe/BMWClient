@@ -35,9 +35,14 @@ import net.ccbluex.liquidbounce.utils.entity.ping
 import net.ccbluex.netty.http.model.RequestObject
 import net.ccbluex.netty.http.util.httpNoContent
 import net.ccbluex.netty.http.util.httpOk
+import net.minecraft.client.render.entity.LivingEntityRenderer
+import net.minecraft.client.render.entity.model.EntityModel
+import net.minecraft.client.render.entity.state.LivingEntityRenderState
 import net.minecraft.entity.effect.StatusEffectInstance
+import net.minecraft.entity.LivingEntity
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.item.ItemStack
+import net.minecraft.registry.Registries
 import net.minecraft.scoreboard.Scoreboard
 import net.minecraft.scoreboard.ScoreboardDisplaySlot
 import net.minecraft.scoreboard.ScoreboardEntry
@@ -130,6 +135,57 @@ data class PlayerData(
     }
 
 }
+
+/**
+ * 用于网页主题显示的紧凑目标数据
+ *
+ * 支持动物和敌对生物 这些实体没有玩家背包 饥饿 游戏模式和计分板数据
+ */
+data class TargetData(
+    val username: String,
+    val uuid: String,
+    val entityType: Identifier,
+    val isPlayer: Boolean,
+    val texture: Identifier?,
+    val position: Vec3d,
+    val health: Float,
+    val actualHealth: Float,
+    val maxHealth: Float,
+    val absorption: Float,
+    val armor: Int,
+    val armorItems: List<ItemStack> = emptyList(),
+) {
+
+    companion object {
+
+        @JvmStatic
+        fun fromEntity(entity: LivingEntity) = TargetData(
+            username = ModuleNameProtect.replace(
+                if (entity is PlayerEntity) entity.nameForScoreboard else entity.name.string
+            ),
+            uuid = entity.uuidAsString,
+            entityType = Registries.ENTITY_TYPE.getId(entity.type),
+            isPlayer = entity is PlayerEntity,
+            texture = if (entity is PlayerEntity) null else resolveEntityTexture(entity),
+            position = entity.pos,
+            health = entity.health.fixNaN(),
+            actualHealth = entity.getActualHealth().fixNaN(),
+            maxHealth = entity.maxHealth.fixNaN(),
+            absorption = if (entity.hasHealthScoreboard()) 0f else entity.absorptionAmount.fixNaN(),
+            armor = entity.armor.coerceAtMost(20),
+            armorItems = entity.armorItems.toList(),
+        )
+    }
+}
+
+@Suppress("UNCHECKED_CAST")
+private fun resolveEntityTexture(entity: LivingEntity): Identifier? = runCatching {
+    val renderer = mc.entityRenderDispatcher.getRenderer(entity)
+        as? LivingEntityRenderer<LivingEntity, LivingEntityRenderState, EntityModel<LivingEntityRenderState>>
+        ?: return@runCatching null
+    val state = renderer.getAndUpdateRenderState(entity, mc.renderTickCounter.getTickDelta(true))
+    renderer.getTexture(state)
+}.getOrNull()
 
 data class PlayerInventoryData(
     val armor: List<ItemStack>,

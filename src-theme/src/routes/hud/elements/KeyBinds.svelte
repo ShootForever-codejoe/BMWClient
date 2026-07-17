@@ -63,22 +63,22 @@
 <style lang="scss">
   /* Android 16 / MD3 Design Tokens - Dark Theme */
   :global(body) {
-    --md-sys-color-primary: #D0BCFF;
+    --md-sys-color-primary: rgb(var(--accent-color));
     --md-sys-color-on-primary: #381E72;
-    --md-sys-color-primary-container: #4F378B;
+    --md-sys-color-primary-container: rgba(var(--accent-color), 0.28);
     --md-sys-color-on-primary-container: #EADDFF;
 
-    --md-sys-color-secondary-container: #4A4458;
+    --md-sys-color-secondary-container: rgba(var(--accent-color), 0.22);
     --md-sys-color-on-secondary-container: #E8DEF8;
 
-    --md-sys-color-surface: #141218;
-    --md-sys-color-surface-container: #211F26;
-    --md-sys-color-surface-container-high: #2B2930;
-    --md-sys-color-surface-container-highest: #36343B;
+    --md-sys-color-surface: rgba(8, 4, 10, 0.94);
+    --md-sys-color-surface-container: rgba(var(--accent-color), 0.13);
+    --md-sys-color-surface-container-high: rgba(var(--accent-color), 0.18);
+    --md-sys-color-surface-container-highest: rgba(var(--accent-color), 0.24);
 
     --md-sys-color-on-surface: #E6E0E9;
     --md-sys-color-on-surface-variant: #CAC4D0;
-    --md-sys-color-outline-variant: #49454F;
+    --md-sys-color-outline-variant: rgba(var(--accent-color), 0.28);
 
     /* 字体 */
     --md-sys-typescale-body-large: 16px;
@@ -87,7 +87,7 @@
   }
 
   .md3-widget {
-    background-color: transparent;
+    background: linear-gradient(145deg, rgba(var(--accent-color), 0.14), rgba(8, 4, 10, 0.45));
     border-radius: 24px; /* MD3 标准圆角 */
     width: 240px;
     padding-bottom: 8px;
@@ -96,7 +96,7 @@
     flex-direction: column;
     overflow: hidden;
     /* 透明背景下的阴影调整 */
-    box-shadow: 0 1px 3px 1px rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+    box-shadow: var(--theme-shadow);
   }
 
   .header {

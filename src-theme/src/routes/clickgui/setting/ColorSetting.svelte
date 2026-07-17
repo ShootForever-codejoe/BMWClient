@@ -1,7 +1,7 @@
 <script lang="ts">
     import "@simonwep/pickr/dist/themes/classic.min.css";
     import "./pickr.scss";
-    import {createEventDispatcher, onMount} from "svelte";
+    import {createEventDispatcher, onDestroy, onMount} from "svelte";
     import type {ColorSetting, ModuleSetting,} from "../../../integration/types.js";
     import Pickr from "@simonwep/pickr";
     import {convertToSpacedString, spaceSeperatedNames} from "../../../theme/theme_config";
@@ -57,6 +57,8 @@
         });
     });
 
+    onDestroy(() => pickr?.destroyAndRemove());
+
     function handleValueInput() {
         pickr.setColor(hex);
     }
@@ -110,7 +112,7 @@
   .value {
     font-weight: 500;
     color: $clickgui-text-color;
-    background: $clickgui-settings-color;
+    background: linear-gradient(145deg, rgba(var(--accent-color), 0.12), rgba(8, 4, 10, 0.96));
     border-radius: 5px;
     text-align: center;
     font-size: 12px;

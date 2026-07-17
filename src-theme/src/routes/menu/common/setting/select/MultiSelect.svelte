@@ -54,7 +54,7 @@
     }
 
     &.active {
-      color: $accent-color;
+      color: rgb(var(--accent-color));
     }
   }
 </style>

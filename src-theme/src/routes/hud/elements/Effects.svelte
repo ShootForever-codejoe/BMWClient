@@ -51,7 +51,7 @@
 
         // 如果没有最大时长或时长为0，直接返回默认背景色
         if (!max || max <= 0) {
-            return 'background-color: rgba(20, 20, 20, 0.5);';
+                return 'background: linear-gradient(110deg, rgba(var(--accent-color), 0.12), rgba(20, 20, 20, 0.56));';
         }
 
         const progress = (current / max) * 100;
@@ -124,7 +124,7 @@
     padding: 7px;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
     /* 移除固定的 background-color，因为它现在由 style 属性动态控制 */
-    box-shadow: 0 0 5px 3px rgba(rgb(0, 0, 0), 0.3);
+    box-shadow: var(--theme-shadow-soft);
     border-radius: 10px;
     width: 160px;
 
@@ -135,8 +135,8 @@
   .icon-con {
     width: 34px;
     height:34px;
-    background-color: rgba(20, 20, 20, 0.5);
-    box-shadow: 0 0 5px 3px rgba(rgb(0, 0, 0), 0.3);
+    background: linear-gradient(110deg, rgba(var(--accent-color), 0.12), rgba(20, 20, 20, 0.56));
+    box-shadow: var(--theme-shadow-soft);
     border-radius: 10px;
     margin-right: 8px;
     display: flex;

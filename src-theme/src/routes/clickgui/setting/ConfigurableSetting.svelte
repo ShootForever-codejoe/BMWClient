@@ -69,8 +69,8 @@
   }
 
   .nested-settings {
-    background: rgba($clickgui-settings-color, 0.65);
-    border-radius: 10px;
+    background: linear-gradient(145deg, rgba(var(--accent-color), 0.12), rgba(8, 4, 10, 0.78));
+    border-radius: 16px;
     border: 1px solid $clickgui-border-color;
     padding: 5px 10px 5px 10px;
   }

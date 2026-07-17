@@ -241,7 +241,7 @@
             {:else}
                 <div class="info-wrapper" bind:this={infoWrapperEl}>
                     <div class="client-icon">
-                        <img src="img/clickgui/icon-client.svg" alt="client icon" class="client-logo" />
+                        <span class="client-logo" role="img" aria-label="BMWClient"></span>
                     </div>
                     <div class="client-name">BMWClient</div>
                 </div>
@@ -371,31 +371,31 @@
 
     /* Android 16 Material Design 3 Dark Theme Variables */
     :global(:root) {
-        --md-sys-color-primary: #D0BCFF;
+        --md-sys-color-primary: rgb(var(--accent-color));
         --md-sys-color-on-primary: #381E72;
-        --md-sys-color-primary-container: #4F378B;
+        --md-sys-color-primary-container: rgba(var(--accent-color), 0.28);
         --md-sys-color-on-primary-container: #EADDFF;
 
-        --md-sys-color-secondary: #CCC2DC;
+        --md-sys-color-secondary: rgba(var(--accent-color), 0.7);
         --md-sys-color-on-secondary: #332D41;
-        --md-sys-color-secondary-container: #4A4458;
+        --md-sys-color-secondary-container: rgba(var(--accent-color), 0.22);
         --md-sys-color-on-secondary-container: #E8DEF8;
 
-        --md-sys-color-surface: #141218;
-        --md-sys-color-surface-container: #211F26;
-        --md-sys-color-surface-container-high: #2B2930;
-        --md-sys-color-surface-container-highest: #36343B;
+        --md-sys-color-surface: rgba(8, 4, 10, 0.94);
+        --md-sys-color-surface-container: rgba(var(--accent-color), 0.13);
+        --md-sys-color-surface-container-high: rgba(var(--accent-color), 0.18);
+        --md-sys-color-surface-container-highest: rgba(var(--accent-color), 0.24);
         --md-sys-color-on-surface: #E6E0E9;
         --md-sys-color-on-surface-variant: #CAC4D0;
 
-        --md-sys-color-outline: #938F99;
-        --md-sys-color-outline-variant: #49454F;
+        --md-sys-color-outline: rgba(var(--accent-color), 0.55);
+        --md-sys-color-outline-variant: rgba(var(--accent-color), 0.28);
 
-        --md-sys-elevation-level1: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px 1px rgba(0, 0, 0, 0.15);
-        --md-sys-elevation-level2: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 6px 2px rgba(0, 0, 0, 0.15);
-        --md-sys-elevation-level3: 0 4px 8px 3px rgba(0, 0, 0, 0.15), 0 1px 3px rgba(0, 0, 0, 0.3);
-        --md-sys-elevation-level4: 0 6px 10px 4px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.3);
-        --md-sys-elevation-level5: 0 8px 12px 6px rgba(0, 0, 0, 0.15), 0 4px 4px rgba(0, 0, 0, 0.3);
+        --md-sys-elevation-level1: var(--theme-elevation-1);
+        --md-sys-elevation-level2: var(--theme-elevation-2);
+        --md-sys-elevation-level3: var(--theme-elevation-3);
+        --md-sys-elevation-level4: var(--theme-elevation-4);
+        --md-sys-elevation-level5: var(--theme-elevation-5);
     }
 
     .DynamicIsland {
@@ -459,7 +459,11 @@
     .client-logo {
         width: 24px;
         height: 24px;
-        object-fit: contain;
+        display: block;
+        background: rgb(var(--accent-color));
+        -webkit-mask: url("/img/clickgui/icon-client.svg") center / contain no-repeat;
+        mask: url("/img/clickgui/icon-client.svg") center / contain no-repeat;
+        filter: drop-shadow(0 0 6px rgba(var(--accent-color), 0.24));
     }
 
     .client-name {

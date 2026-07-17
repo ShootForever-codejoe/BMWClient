@@ -224,6 +224,21 @@ export interface PlayerData {
     scoreboard: Scoreboard;
 }
 
+export interface TargetData {
+    username: string;
+    uuid: string;
+    entityType: string;
+    isPlayer: boolean;
+    texture: string | null;
+    position: Vec3;
+    health: number;
+    actualHealth: number;
+    maxHealth: number;
+    absorption: number;
+    armor: number;
+    armorItems: ItemStack[];
+}
+
 export interface StatusEffect {
     effect: string;
     localizedName: string;

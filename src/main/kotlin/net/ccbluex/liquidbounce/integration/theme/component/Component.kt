@@ -39,6 +39,7 @@ abstract class Component(
 
     val id: UUID = UUID.randomUUID()
     val alignment = tree(alignment)
+    val scale by float("Scale", 1.0F, 0.25F..3.0F)
 
     protected fun registerComponentListen(configurable: Configurable) {
         for (v in configurable.inner) {

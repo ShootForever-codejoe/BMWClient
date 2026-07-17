@@ -46,7 +46,7 @@
     border-radius: 5px;
     column-gap: 25px;
 
-    background: linear-gradient(to left, rgba($menu-base-color, .68) 50%, $accent-color 50%);
+    background: linear-gradient(to left, rgba($menu-base-color, .68) 50%, rgb(var(--accent-color)) 50%);
     background-size: 200% 100%;
     background-position: right bottom;
     will-change: background-position;
@@ -62,7 +62,7 @@
   }
 
   .icon {
-    background-color: $accent-color;
+    background-color: rgb(var(--accent-color));
     width: 90px;
     height: 90px;
     border-radius: 50%;

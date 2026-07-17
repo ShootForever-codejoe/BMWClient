@@ -21,6 +21,7 @@ package net.ccbluex.liquidbounce.injection.mixins.minecraft.entity;
 
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.mojang.authlib.GameProfile;
+import net.ccbluex.liquidbounce.features.module.modules.bmw.newscaffold.ModuleNewScaffold;
 import net.ccbluex.liquidbounce.features.module.modules.render.ModuleNoFov;
 import net.ccbluex.liquidbounce.features.module.modules.render.ModuleSkinChanger;
 import net.minecraft.client.MinecraftClient;
@@ -44,9 +45,9 @@ public abstract class MixinAbstractClientPlayerEntity extends PlayerEntity {
     @ModifyReturnValue(method = "getFovMultiplier", at = @At("RETURN"))
     private float injectFovMultiplier(float original) {
         if (ModuleNoFov.INSTANCE.getRunning()) {
-            return ModuleNoFov.INSTANCE.getFovMultiplier(original);
+            original = ModuleNoFov.INSTANCE.getFovMultiplier(original);
         }
-        return original;
+        return ModuleNewScaffold.getFovMultiplier(original);
     }
 
     @Inject(method = "getSkinTextures", at = @At("TAIL"), cancellable = true)

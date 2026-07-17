@@ -126,7 +126,8 @@
 
     .modules {
       background-clip: content-box;
-      background-color: rgba($tabgui-base-color, 0.5);
+    background: linear-gradient(145deg, rgba(var(--accent-color), 0.14), rgba($tabgui-base-color, 0.56));
+    box-shadow: var(--theme-shadow);
       margin-left: 6px;
       border-radius: 5px;
       min-width: 100px;

@@ -179,7 +179,8 @@ object ClientRayTraceUtil : MinecraftShortcuts {
 
     fun isIgnoredBlock(state: BlockState): Boolean {
         val block = state.block
-        return block is PlantBlock || block is SnowBlock || block is AirBlock || block is FluidBlock
+        return block is PlantBlock || block is SnowBlock || block is AirBlock ||
+            block is ShortPlantBlock || block is FluidBlock
     }
 
     private fun getHitFaceFromBox(hit: Vec3d, box: Box): Direction {

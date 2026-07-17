@@ -69,7 +69,7 @@
   }
 
   .head {
-    background: $clickgui-settings-color;
+    background: linear-gradient(145deg, rgba(var(--accent-color), 0.12), rgba(8, 4, 10, 0.96));
     border: 1px solid $clickgui-border-color;
     padding: 8px;
     display: flex;
@@ -111,7 +111,7 @@
     position: absolute;
     top: 35px;
     width: 100%;
-    background: $clickgui-settings-color;
+    background: linear-gradient(145deg, rgba(var(--accent-color), 0.12), rgba(8, 4, 10, 0.96));
     border: 1px solid $clickgui-border-color;
     border-radius: 10px;
     box-shadow: 0 4px 8px rgba(0,0,0,0.35);

@@ -32,15 +32,6 @@
   let loadingBind = false;
   let bindPanelContainer: HTMLElement;
 
-  let enabled = module.enabled;
-
-  $: if (module.enabled !== enabled) enabled = module.enabled;
-
-  function handleToggle() {
-    enabled = !enabled;
-    onToggle();
-  }
-
   function openBindPanel(event: MouseEvent) {
     event.stopPropagation();
     showBindPanel = !showBindPanel;
@@ -86,14 +77,23 @@
     }
     window.addEventListener('closeClickGui', closeBindPanelOnMenuClose);
     window.addEventListener('closeBindPanels', closeBindPanelOnMenuClose);
-    onDestroy(() => {
+    return () => {
       window.removeEventListener('closeClickGui', closeBindPanelOnMenuClose);
       window.removeEventListener('closeBindPanels', closeBindPanelOnMenuClose);
-    });
+    };
+  });
+
+  onDestroy(() => {
+    window.removeEventListener('mousedown', handleClickOutsideBindPanel);
   });
 </script>
 
-<div class="module-card" class:selected-module={selected} class:highlighted={highlighted}>
+<div
+  class="module-card"
+  class:enabled-card={module.enabled}
+  class:selected-module={selected}
+  class:highlighted={highlighted}
+>
   <div class="main">
     <span class="name {module.enabled ? 'enabled' : ''}">{module.name}</span>
     {#if module.settingsCount > -1}
@@ -105,7 +105,7 @@
           <svg xmlns="http://www.w3.org/2000/svg" height="20" width="20" viewBox="0 0 640 640"><!--!Font Awesome Free v7.0.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free Copyright 2025 Fonticons, Inc.--><path fill="#ffffff" d="M96 128C60.7 128 32 156.7 32 192L32 448C32 483.3 60.7 512 96 512L544 512C579.3 512 608 483.3 608 448L608 192C608 156.7 579.3 128 544 128L96 128zM112 192L144 192C152.8 192 160 199.2 160 208L160 240C160 248.8 152.8 256 144 256L112 256C103.2 256 96 248.8 96 240L96 208C96 199.2 103.2 192 112 192zM96 304C96 295.2 103.2 288 112 288L144 288C152.8 288 160 295.2 160 304L160 336C160 344.8 152.8 352 144 352L112 352C103.2 352 96 344.8 96 336L96 304zM208 192L240 192C248.8 192 256 199.2 256 208L256 240C256 248.8 248.8 256 240 256L208 256C199.2 256 192 248.8 192 240L192 208C192 199.2 199.2 192 208 192zM192 304C192 295.2 199.2 288 208 288L240 288C248.8 288 256 295.2 256 304L256 336C256 344.8 248.8 352 240 352L208 352C199.2 352 192 344.8 192 336L192 304zM208 384L432 384C440.8 384 448 391.2 448 400L448 432C448 440.8 440.8 448 432 448L208 448C199.2 448 192 440.8 192 432L192 400C192 391.2 199.2 384 208 384zM288 208C288 199.2 295.2 192 304 192L336 192C344.8 192 352 199.2 352 208L352 240C352 248.8 344.8 256 336 256L304 256C295.2 256 288 248.8 288 240L288 208zM304 288L336 288C344.8 288 352 295.2 352 304L352 336C352 344.8 344.8 352 336 352L304 352C295.2 352 288 344.8 288 336L288 304C288 295.2 295.2 288 304 288zM384 208C384 199.2 391.2 192 400 192L432 192C440.8 192 448 199.2 448 208L448 240C448 248.8 440.8 256 432 256L400 256C391.2 256 384 248.8 384 240L384 208zM400 288L432 288C440.8 288 448 295.2 448 304L448 336C448 344.8 440.8 352 432 352L400 352C391.2 352 384 344.8 384 336L384 304C384 295.2 391.2 288 400 288zM480 208C480 199.2 487.2 192 496 192L528 192C536.8 192 544 199.2 544 208L544 240C544 248.8 536.8 256 528 256L496 256C487.2 256 480 248.8 480 240L480 208zM496 288L528 288C536.8 288 544 295.2 544 304L544 336C544 344.8 536.8 352 528 352L496 352C487.2 352 480 344.8 480 336L480 304C480 295.2 487.2 288 496 288z"/></svg>
       </button>
       <label class="switch">
-          <input type="checkbox" bind:checked={module.enabled} on:change={onToggle} />
+          <input type="checkbox" checked={module.enabled} on:change={onToggle} />
           <span class="slider"></span>
       </label>
   </div>
@@ -117,7 +117,7 @@
       {#if loadingBind}
         <div class="bind-loading">Loading bind...</div>
       {:else if bindSetting}
-        <BindSetting bind:setting={bindSetting} moduleName={module.name} on:change={handleBindChange} />
+        <BindSetting bind:setting={bindSetting} on:change={handleBindChange} />
       {:else}
         <div class="bind-loading">Bind not found</div>
       {/if}
@@ -129,47 +129,53 @@
   @use "../../colors.scss" as *;
 
 .module-card {
-  background: $modulecard-main-color;
-  border-radius: 10px;
-  padding: 7.5px 7.5px 15px 7.5px;
+  background: linear-gradient(145deg, rgba(var(--accent-color), 0.07), $modulecard-main-color 62%);
+  border-radius: 18px;
+  padding: 10px 10px 12px;
   border: 1px solid $clickgui-border-color;
+  border-right: 2px solid transparent;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 7px;
   position: relative;
-  min-width: 220px;
-  box-shadow: 0 4px 8px rgba($modulecard-main-color, 0.5);
-  transition: box-shadow 0.2s, background 0.2s, transform 0.2s ease;
+  min-width: 240px;
+  min-height: 88px;
+  box-shadow: var(--theme-shadow-soft);
+  transition: border-color 0.18s, background 0.18s;
   &:hover {
-    box-shadow: 0 4px 8px rgba(var(--accent-color), 0.5);
-    border-color: rgba(var(--accent-color), 1);
-    background: $modulecard-hover-color;
+    border-color: rgba(var(--accent-color), 0.34);
+    border-right-color: rgba(var(--accent-color), 0.75);
+    background: linear-gradient(145deg, rgba(var(--accent-color), 0.15), $modulecard-hover-color 70%);
+    box-shadow: var(--theme-shadow);
+  }
+  &.enabled-card {
+    background: rgba(var(--accent-color), 0.075);
+    border-right-color: rgba(var(--accent-color), 0.95);
+    box-shadow: var(--theme-shadow);
   }
   &.highlighted {
     border-color: rgba(var(--accent-color), 1);
-    box-shadow: 0 0 10px rgba(var(--accent-color), 0.5);
+    box-shadow: var(--theme-glow);
   }
   .main {
     display: flex;
     align-items: center;
     gap: 5px;
     .name {
-      font-size: 18px;
-      font-weight: 700;
+      font-size: clamp(15px, 0.9vw, 18px);
+      font-weight: 600;
       color: $clickgui-text-color;
-      text-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
       flex: 1;
       transition: color 0.2s;
       &.enabled {
-        color: rgba(var(--accent-color), 0.75);
-        text-shadow: 0 0 10px rgba(var(--accent-color), 0.5);
+        color: $clickgui-text-color;
       }
     }
     .bind-btn,
     .settings-icon {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid $clickgui-border-color;
-      border-radius: 5px;
+      background: rgba(var(--accent-color), 0.08);
+      border: 1px solid rgba(var(--accent-color), 0.18);
+      border-radius: 12px;
       padding: 2px;
       width: 24px;
       height: 24px;
@@ -183,9 +189,8 @@
         height: 24px;
       }
       &:hover {
-        background: rgba(var(--accent-color), 0.25);
-        border-color: rgba(var(--accent-color), 1);
-        box-shadow: 0 0 8px rgba(var(--accent-color), 0.5);
+        background: rgba(var(--accent-color), 0.14);
+        border-color: rgba(var(--accent-color), 0.75);
       }
     }
     .switch {
@@ -205,13 +210,12 @@
         left: 0;
         right: 0;
         bottom: 0;
-        background: rgba(var(--accent-color), 0.15);
+        background: rgba(255, 255, 255, 0.1);
         border-radius: 50px;
         transition: .35s;
       }
       input:checked + .slider {
-        background: rgba(var(--accent-color), 0.75);
-        box-shadow: 0 0 10px rgba(var(--accent-color), 0.5);
+        background: rgba(var(--accent-color), 0.88);
       }
       .slider:before {
         position: absolute;
@@ -230,26 +234,27 @@
     }
   }
   .module-description {
-    font-size: 12px;
+    font-size: clamp(12px, 0.7vw, 14px);
     color: $clickgui-text-dimmed-color;
     margin-top: 1px;
     margin-left: 1.5px;
     margin-bottom: 0;
-    line-height: 1;
+    line-height: 1.25;
     font-weight: 400;
     word-break: break-word;
-    min-height: 28.5px;
-    max-height: 28.5px;
+    min-height: 30px;
+    max-height: 34px;
   }
   .bind-panel {
     position: absolute;
     top: 35px;
     left: 100px;
     z-index: 10;
-    background: $clickgui-settings-color;
+    background: linear-gradient(145deg, rgba(var(--accent-color), 0.12), rgba(8, 4, 10, 0.96));
     border: 1px solid $clickgui-border-color;
-    border-radius: 10px;
-    box-shadow: 0 5px 5px rgba($clickgui-settings-color, 0.3);
+    border-radius: 18px;
+    border-right: 2px solid rgba(var(--accent-color), 0.85);
+    box-shadow: var(--theme-shadow-raised);
     padding: 6px 8px;
     min-width: 200px;
     max-width: 200px;

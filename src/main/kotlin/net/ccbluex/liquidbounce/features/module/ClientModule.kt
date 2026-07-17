@@ -118,7 +118,11 @@ open class ClientModule(
     /**
      * Called when the module is registered in the module manager.
      */
-    open fun onRegistration() {}
+    open fun onRegistration() {
+        if (tagValue == null) {
+            inner.firstOrNull { it.name.equals("Mode", ignoreCase = true) }?.let(::tagBy)
+        }
+    }
 
     final override fun onEnabledValueRegistration(value: Value<Boolean>) =
         super.onEnabledValueRegistration(value).also { value ->

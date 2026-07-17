@@ -56,6 +56,9 @@ export async function getModuleSettings(name: string): Promise<ConfigurableSetti
     const searchParams = new URLSearchParams({name});
 
     const response = await fetch(`${API_BASE}/client/modules/settings?${searchParams.toString()}`);
+    if (!response.ok) {
+        throw new Error(`Failed to load settings for ${name}: ${response.status} ${await response.text()}`);
+    }
     const data = await response.json();
 
     return data;
@@ -64,13 +67,16 @@ export async function getModuleSettings(name: string): Promise<ConfigurableSetti
 export async function setModuleSettings(name: string, settings: ConfigurableSetting) {
     const searchParams = new URLSearchParams({name});
 
-    await fetch(`${API_BASE}/client/modules/settings?${searchParams.toString()}`, {
+    const response = await fetch(`${API_BASE}/client/modules/settings?${searchParams.toString()}`, {
         method: "PUT",
         headers: {
             "Content-Type": "application/json"
         },
         body: JSON.stringify(settings)
     });
+    if (!response.ok) {
+        throw new Error(`Failed to update settings for ${name}: ${response.status} ${await response.text()}`);
+    }
 }
 
 export async function getSpooferSettings(): Promise<ConfigurableSetting> {
@@ -90,17 +96,36 @@ export async function setSpooferSettings(settings: ConfigurableSetting) {
     });
 }
 
+const moduleToggleQueues = new Map<string, Promise<void>>();
+
 export async function setModuleEnabled(name: string, enabled: boolean) {
-    await fetch(`${API_BASE}/client/modules/toggle`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            name,
-            enabled
-        })
+    const previous = moduleToggleQueues.get(name) ?? Promise.resolve();
+    const current = previous.catch(() => undefined).then(async () => {
+        const response = await fetch(`${API_BASE}/client/modules/toggle`, {
+            method: enabled ? "PUT" : "DELETE",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                name,
+                enabled
+            })
+        });
+        if (!response.ok) {
+            throw new Error(
+                `Failed to ${enabled ? "enable" : "disable"} ${name}: ${response.status} ${await response.text()}`
+            );
+        }
     });
+
+    moduleToggleQueues.set(name, current);
+    try {
+        await current;
+    } finally {
+        if (moduleToggleQueues.get(name) === current) {
+            moduleToggleQueues.delete(name);
+        }
+    }
 }
 
 export async function getPersistentStorageItems(): Promise<PersistentStorageItem[]> {

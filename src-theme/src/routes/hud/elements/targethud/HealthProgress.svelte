@@ -31,15 +31,14 @@
   width: 100%;
   height: 10px;
   border-radius: 10px;
-  background: rgba(0, 15, 25, 0.6);
+  background: linear-gradient(90deg, rgba(var(--accent-color), 0.1), rgba(0, 8, 12, 0.65));
   overflow: hidden;
 }
 
 .delayed-thumb {
   position: absolute;
   height: 100%;
-//   background: linear-gradient(90deg, rgba($accent-color, 0.3), rgba($accent-color-2, 0.3));
-  background-color: rgba(255, 59, 59, 0.726);
+  background-color: rgba(var(--accent-color), 0.38);
   transition: width 0.1s ease-out;
   clip-path: inset(0 0 0 0 round 10px);
 }
@@ -47,8 +46,7 @@
 .thumb {
   position: absolute;
   height: 100%;
-//   background: linear-gradient(90deg, rgba($accent-color, 0.8), rgba($accent-color-2, 0.8));
-  background-color: rgba(255, 59, 59, 0.692);
+  background-color: rgb(var(--accent-color));
   transition: width 0.2s ease-in-out;
   clip-path: inset(0 0 0 0 round 10px);
 }

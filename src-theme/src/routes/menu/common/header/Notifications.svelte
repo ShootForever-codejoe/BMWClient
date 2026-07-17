@@ -82,7 +82,7 @@
       grid-area: a;
       height: 65px;
       width: 65px;
-      background-color: $accent-color;
+      background-color: rgb(var(--accent-color));
       display: flex;
       align-items: center;
       justify-content: center;

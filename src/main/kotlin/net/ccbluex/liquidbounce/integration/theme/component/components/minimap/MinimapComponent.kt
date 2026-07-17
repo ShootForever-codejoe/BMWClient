@@ -89,7 +89,7 @@ object MinimapComponent : NativeComponent("Minimap", false, Alignment(
         val playerPos = player.interpolateCurrentPosition(event.tickDelta)
         val playerRotation = player.interpolateCurrentRotation(event.tickDelta)
 
-        val minimapSize = size
+        val minimapSize = size * scale
 
         val boundingBox = alignment.getBounds(minimapSize.toFloat(), minimapSize.toFloat())
         val scaleFactor = mc.window.scaleFactor

@@ -36,7 +36,7 @@
   .button-setting {
     position: relative;
     border: none;
-    background-color: $accent-color;
+    background-color: rgb(var(--accent-color));
     color: $menu-text-color;
     font-family: "Inter", sans-serif;
     padding: 20px;
@@ -53,7 +53,7 @@
     }
 
     &:not([disabled]):hover {
-      background-color: color.adjust(color.adjust($accent-color, $saturation: -30%), $lightness: -10%);
+      background-color: rgba(var(--accent-color), 0.72);
       cursor: pointer;
 
       &.secondary {

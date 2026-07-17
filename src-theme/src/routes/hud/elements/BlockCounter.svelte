@@ -22,7 +22,8 @@
   @use "../../../colors.scss" as *;
 
   .counter {
-    background-color: rgba($blockcounter-base-color, 0.68);
+    background: linear-gradient(145deg, rgba(var(--accent-color), 0.16), rgba($blockcounter-base-color, 0.72));
+    box-shadow: var(--theme-shadow);
     border-radius: 5px;
     white-space: nowrap;
     padding: 5px 8px;

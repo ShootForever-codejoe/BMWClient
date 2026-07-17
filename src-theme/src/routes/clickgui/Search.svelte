@@ -54,11 +54,12 @@
                 selectedIndex = (selectedIndex + 1) % filteredModules.length;
                 break;
             case "key.keyboard.up":
-                selectedIndex =
-                    (selectedIndex - 1 + filteredModules.length) %
-                    filteredModules.length;
+                selectedIndex = selectedIndex <= 0 ? filteredModules.length - 1 : selectedIndex - 1;
                 break;
             case "key.keyboard.enter":
+                if (selectedIndex < 0 || selectedIndex >= filteredModules.length) {
+                    break;
+                }
                 await toggleModule(
                     filteredModules[selectedIndex].name,
                     !filteredModules[selectedIndex].enabled,
@@ -85,11 +86,15 @@
     }
 
     async function toggleModule(name: string, enabled: boolean) {
-        await setModuleEnabled(name, enabled);
+        try {
+            await setModuleEnabled(name, enabled);
+        } catch (error) {
+            console.error(`Failed to update module ${name}`, error);
+        }
     }
 
     function handleWindowClick(e: MouseEvent) {
-        if (!searchContainerElement.contains(e.target as Node)) {
+        if (searchContainerElement && !searchContainerElement.contains(e.target as Node)) {
             reset();
         }
     }
@@ -123,6 +128,7 @@
             return;
         }
         mod.enabled = e.enabled;
+        modules = modules;
         filteredModules = filteredModules;
     });
 
@@ -166,9 +172,9 @@
       <div class="results open">
         {#if filteredModules.length > 0}
           {#each filteredModules as {name, enabled, aliases}, index (name)}
-            <div class="result"
+            <button type="button" class="result"
     class:enabled
-    on:click={() => { if (!enabled) toggleModule(name, true); }}
+    on:click={() => toggleModule(name, !enabled)}
     on:contextmenu|preventDefault={() => { onJumpToModule && onJumpToModule(name); reset(); }}
     class:selected={selectedIndex === index}
     on:mouseenter={() => selectedIndex = index}
@@ -183,7 +189,7 @@
                   (aka {aliases.map(name => $spaceSeperatedNames ? convertToSpacedString(name) : name).join(", ")})
                 {/if}
               </div>
-            </div>
+            </button>
           {/each}
         {:else}
           <div class="placeholder">No modules found...<img src="./img/clickgui/icon-nomodules.gif" alt="search" class="search-nomodules-found"/></div>
@@ -205,25 +211,26 @@
     padding-right: 0;
   }
   .search {
-    width: 250px;
-    max-width: 400px;
-    background: $clickgui-settings-color;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.25);
-    border-radius: 10px;
+    width: 100%;
+    max-width: 430px;
+    background: linear-gradient(110deg, rgba(var(--accent-color), 0.09), rgba(0, 0, 0, 0.38));
+    box-shadow: var(--theme-shadow-soft);
+    border-radius: 18px;
     display: flex;
     flex-direction: column;
     align-items: stretch;
     margin: 0;
     position: relative;
     border: 1px solid $clickgui-border-color;
-    transition: box-shadow 0.2s, border-color 0.2s, border-radius 0.18s;
+    transition: border-color 0.18s, border-radius 0.18s;
     &:focus-within, &.open {
-      border: 1px solid rgba(var(--accent-color), 1);
-      box-shadow: 0 0 10px rgba(var(--accent-color), 0.5);
-      border-radius: 10px 10px 0 0;
+      border-color: rgba(var(--accent-color), 0.8);
+      border-right: 2px solid rgba(var(--accent-color), 0.95);
+      box-shadow: var(--theme-glow);
+      border-radius: 18px 18px 0 0;
     }
     &.open {
-      border-radius: 10px 10px 0 0;
+      border-radius: 18px 18px 0 0;
     }
   }
   .search-input-wrapper {
@@ -259,7 +266,7 @@
     color: $clickgui-text-color;
     border: none;
     outline: none;
-    border-radius: 10px;
+    border-radius: 18px;
     transition: background 0.2s;
     &::placeholder {
       color: $clickgui-text-dimmed-color;
@@ -273,17 +280,17 @@
     top: 100%;
     width: 100%;
     z-index: 10;
-    background: $clickgui-settings-color;
-    border-radius: 0 0 10px 10px;
+    background: linear-gradient(145deg, rgba(var(--accent-color), 0.12), rgba(8, 4, 10, 0.96));
+    border-radius: 0 0 18px 18px;
     max-height: 225px;
     overflow-y: auto;
-    border-top: 1px solid rgba(var(--accent-color), 1);
+    border: 1px solid rgba(var(--accent-color), 0.55);
+    border-right: 2px solid rgba(var(--accent-color), 0.95);
     margin-top: 0;
     animation: fadeIn 0.18s;
     transition: box-shadow 0.2s, border-radius 0.2s;
     &.open {
-      border: 1px solid rgba(var(--accent-color), 1);
-      box-shadow: 0 0 10px rgba(var(--accent-color), 0.5);
+      box-shadow: var(--theme-shadow-raised);
     }
     scrollbar-width: none;
     -ms-overflow-style: none;
@@ -296,20 +303,28 @@
     to { opacity: 1; transform: translateY(0); }
   }
   .result {
+    width: calc(100% - 4px);
+    border: 0;
+    text-align: left;
+    font: inherit;
     padding: 10px 10px;
     cursor: pointer;
     display: flex;
     flex-direction: column;
     transition: background 0.15s;
-    border-radius: 5px;
+    border-radius: 12px;
     overflow: hidden;
     margin: 2px 2px;
     color: $clickgui-text-color;
     &:hover, &.selected {
-      background: rgba(var(--accent-color), 0.1);
+      background: rgba(var(--accent-color), 0.13);
     }
     &.enabled {
-      color: var(--accent-color);
+      color: rgb(var(--accent-color));
+
+      .module-name {
+        color: rgb(var(--accent-color));
+      }
     }
   }
   .module-name {
@@ -341,15 +356,15 @@
       width: 100%;
       min-width: 0;
       max-width: 100%;
-      border-radius: 10px;
+      border-radius: 18px;
     }
     .search-input {
       font-size: 15px;
       padding-left: 38px;
-      border-radius: 10px;
+      border-radius: 18px;
     }
     .results {
-      border-radius: 0 0 10px 10px;
+      border-radius: 0 0 18px 18px;
       max-height: 120px;
     }
   }

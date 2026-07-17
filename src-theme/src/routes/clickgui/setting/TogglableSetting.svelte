@@ -25,6 +25,7 @@
     $: setItem(thisPath, expanded.toString());
 
     function handleChange() {
+        cSetting.value = [enabledSetting, ...nestedSettings];
         setting = { ...cSetting };
         dispatch("change");
     }
@@ -85,8 +86,8 @@
     }
 
     .nested-settings {
-      background: rgba($clickgui-settings-color, 0.75);
-      border-radius: 10px;
+      background: linear-gradient(145deg, rgba(var(--accent-color), 0.12), rgba(8, 4, 10, 0.82));
+      border-radius: 16px;
       border: 1px solid $clickgui-border-color;
       padding: 2.5px 7.5px 2.5px 7.5px;
     }

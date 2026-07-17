@@ -269,7 +269,7 @@
       padding: 15px 15px 15px 50px;
       width: 100%;
       font-size: 18px;
-      border-bottom: solid 4px $accent-color;
+      border-bottom: solid 4px rgb(var(--accent-color));
       background-image: url("/img/menu/icon-search.svg");
       background-repeat: no-repeat;
       background-position: 18px center;
@@ -311,7 +311,7 @@
 
       &.active {
         .username {
-          color: $accent-color;
+          color: rgb(var(--accent-color));
         }
       }
     }

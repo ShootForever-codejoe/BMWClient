@@ -79,7 +79,7 @@
         <div class="status">
 
             <div class="pair">
-                {#if playerData.armor > 0}
+                {#if playerData.gameMode !== "creative" && playerData.armor > 0}
                     <Status
                             max={20}
                             value={playerData.armor}
@@ -133,7 +133,7 @@
                     />
                 </div>
             {/if}
-            {#if playerData.experienceLevel > 0}
+            {#if playerData.gameMode !== "creative" && playerData.experienceLevel > 0}
                 <Status
                         max={100} value={playerData.experienceProgress * 100}
                         color="#88C657"
@@ -183,13 +183,14 @@
   }
 
   .hotbar-elements {
-    background-color: rgba($hotbar-base-color, 0.68);
+    background: linear-gradient(180deg, rgba(var(--accent-color), 0.16), rgba($hotbar-base-color, 0.72));
+    box-shadow: var(--theme-shadow);
     position: relative;
     border-radius: 5px;
     overflow: hidden;
 
     .slider {
-      border: solid 2px $accent-color;
+      border: solid 2px rgb(var(--accent-color));
       height: 45px;
       width: 45px;
       position: absolute;
@@ -211,7 +212,8 @@
     height: 45px;
     width: 45px;
     border-radius: 5px;
-    background-color: rgba($hotbar-base-color, 0.68);
+    background: linear-gradient(180deg, rgba(var(--accent-color), 0.16), rgba($hotbar-base-color, 0.72));
+    box-shadow: var(--theme-shadow-soft);
     position: absolute;
     bottom: 0;
     left: -65px;
@@ -222,7 +224,8 @@
     font-size: 14px;
     margin: 0 auto 15px;
     font-weight: 500;
-    background-color: rgba($hotbar-base-color, .68);
+    background: linear-gradient(110deg, rgba(var(--accent-color), 0.14), rgba($hotbar-base-color, 0.72));
+    box-shadow: var(--theme-shadow-soft);
     padding: 5px 8px;
     border-radius: 5px;
     width: max-content;

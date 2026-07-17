@@ -8,6 +8,7 @@ import type {
     Screen,
     Server,
     Session, Setting,
+    TargetData,
     TextComponent,
 } from "./types";
 
@@ -135,7 +136,7 @@ export interface KeyEvent {
 }
 
 export interface TargetChangeEvent {
-    target: PlayerData | null;
+    target: TargetData | null;
 }
 
 export interface BlockCountChangeEvent {

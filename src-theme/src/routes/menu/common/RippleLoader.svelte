@@ -12,7 +12,7 @@
   @use "../../../colors.scss" as *;
  
   .lds-ripple {
-    color: $accent-color;
+    color: rgb(var(--accent-color));
   }
 
   .lds-ripple,

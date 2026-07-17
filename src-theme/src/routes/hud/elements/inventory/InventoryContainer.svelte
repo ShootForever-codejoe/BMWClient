@@ -32,7 +32,8 @@
   @use "../../../../colors" as *;
 
   .container {
-    background-color: rgba($hotbar-base-color, 0.5);
+    background: linear-gradient(145deg, rgba(var(--accent-color), 0.13), rgba($hotbar-base-color, 0.58));
+    box-shadow: var(--theme-shadow);
     padding: 4px;
     border-radius: 5px;
     display: grid;

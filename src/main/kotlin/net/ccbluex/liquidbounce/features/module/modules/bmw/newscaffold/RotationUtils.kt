@@ -32,6 +32,8 @@ import kotlin.math.abs
  */
 object RotationUtils {
 
+    private const val FACE_INSET = 0.05
+
     /**
      * 计算一个能够看向 [pos] 指定 [face] 的 Rotation，并尽量贴近给定的 [yaw]/[pitch]。
      *
@@ -92,21 +94,28 @@ object RotationUtils {
         val maxY = minY + 1.0
         val maxZ = minZ + 1.0
 
+        val innerMinX = minX + FACE_INSET
+        val innerMinY = minY + FACE_INSET
+        val innerMinZ = minZ + FACE_INSET
+        val innerMaxX = maxX - FACE_INSET
+        val innerMaxY = maxY - FACE_INSET
+        val innerMaxZ = maxZ - FACE_INSET
+
         return when (face) {
             Direction.DOWN, Direction.UP -> Vec3d(
-                point.x.coerceIn(minX, maxX),
+                point.x.coerceIn(innerMinX, innerMaxX),
                 if (face == Direction.DOWN) minY else maxY,
-                point.z.coerceIn(minZ, maxZ)
+                point.z.coerceIn(innerMinZ, innerMaxZ)
             )
             Direction.NORTH, Direction.SOUTH -> Vec3d(
-                point.x.coerceIn(minX, maxX),
-                point.y.coerceIn(minY, maxY),
+                point.x.coerceIn(innerMinX, innerMaxX),
+                point.y.coerceIn(innerMinY, innerMaxY),
                 if (face == Direction.NORTH) minZ else maxZ
             )
             Direction.WEST, Direction.EAST -> Vec3d(
                 if (face == Direction.WEST) minX else maxX,
-                point.y.coerceIn(minY, maxY),
-                point.z.coerceIn(minZ, maxZ)
+                point.y.coerceIn(innerMinY, innerMaxY),
+                point.z.coerceIn(innerMinZ, innerMaxZ)
             )
         }
     }

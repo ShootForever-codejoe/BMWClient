@@ -31,7 +31,7 @@ import net.ccbluex.liquidbounce.features.chat.packet.User
 import net.ccbluex.liquidbounce.features.misc.proxy.Proxy
 import net.ccbluex.liquidbounce.integration.VirtualScreenType
 import net.ccbluex.liquidbounce.integration.interop.protocol.event.WebSocketEvent
-import net.ccbluex.liquidbounce.integration.interop.protocol.rest.v1.game.PlayerData
+import net.ccbluex.liquidbounce.integration.interop.protocol.rest.v1.game.TargetData
 import net.ccbluex.liquidbounce.integration.theme.component.Component
 import net.ccbluex.liquidbounce.utils.block.bed.BedState
 import net.ccbluex.liquidbounce.utils.client.Nameable
@@ -88,7 +88,7 @@ class NotificationEvent(val title: String, val message: String, val severity: Se
 class GameModeChangeEvent(val gameMode: GameMode) : Event(), WebSocketEvent
 
 @Nameable("targetChange")
-class TargetChangeEvent(val target: PlayerData?) : Event(), WebSocketEvent
+class TargetChangeEvent(val target: TargetData?) : Event(), WebSocketEvent
 
 @Nameable("blockCountChange")
 class BlockCountChangeEvent(val count: Int?) : Event(), WebSocketEvent

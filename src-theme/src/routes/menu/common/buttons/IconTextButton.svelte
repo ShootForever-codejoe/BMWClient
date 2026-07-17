@@ -27,7 +27,7 @@
       border-radius: 5px;
       align-items: center;
       overflow: hidden;
-      background: linear-gradient(to left, rgba($menu-base-color, .36) 50%, $accent-color 50%);
+      background: linear-gradient(to left, rgba($menu-base-color, .36) 50%, rgb(var(--accent-color)) 50%);
       background-size: 200% 100%;
       background-position: right bottom;
       will-change: background-position;
@@ -48,7 +48,7 @@
     .icon {
       height: 58px;
       width: 58px;
-      background-color: $accent-color;
+      background-color: rgb(var(--accent-color));
       display: flex;
       align-items: center;
       justify-content: center;

@@ -70,7 +70,7 @@
       display: block;
       height: 8px;
       width: calc(90%);
-      background-color: $accent-color;
+      background-color: rgb(var(--accent-color));
       bottom: -25px;
       left: 50%;
       transform: translateX(-50%);

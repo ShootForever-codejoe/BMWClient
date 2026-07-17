@@ -69,12 +69,12 @@
     }
 
     input:checked + .slider {
-      background-color: color.adjust($accent-color, $saturation: -60%, $lightness: -15%);
+      background-color: rgba(var(--accent-color), 0.45);
     }
 
     input:checked + .slider:before {
       transform: translateX(27px);
-      background-color: $accent-color;
+      background-color: rgb(var(--accent-color));
     }
   }
 </style>

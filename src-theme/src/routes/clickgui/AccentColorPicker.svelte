@@ -31,10 +31,8 @@
     let hidden = true;
     let hex: string;
 
-    let r = 255, g = 255, b = 255, a = 1;
+    let r = 255, g = 255, b = 255;
     let unsubscribeAccent: () => void;
-
-    export let value: string;
 
     function parseHexToRgb(hex: string) {
         if (hex.startsWith('#')) {
@@ -56,16 +54,6 @@
         r = Math.round(arr[0]);
         g = Math.round(arr[1]);
         b = Math.round(arr[2]);
-        a = Math.round(arr[3] * 100) / 100;
-    }
-
-    function updatePickrFromInputs() {
-        if (pickr) {
-            const hexStr = pickr.getColor().toHEXA().toString();
-            hex = hexStr;
-            setAccentColor(hexStr);
-            dispatch("change", hexStr);
-        }
     }
 
     function rgbToHex(r: number, g: number, b: number): string {
@@ -176,10 +164,10 @@
   @use "../../colors.scss" as *;
 
   .color-picker {
-    background: $clickgui-settings-color;
-    border: 1px solid $clickgui-border-color;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.35);
-    border-radius: 7.5px;
+    background: linear-gradient(145deg, rgba(var(--accent-color), 0.12), rgba(8, 4, 10, 0.96));
+    border: 1px solid rgba(var(--accent-color), 0.3);
+    box-shadow: var(--theme-shadow-raised);
+    border-radius: 20px;
     padding: 2.5px 7.5px 5px 7.5px;
     margin-top: 5px;
     margin-left: -10px;
@@ -191,7 +179,7 @@
     padding: 2px;
     margin-right: 10px;
     cursor: pointer;
-    border-radius: 5px;
+    border-radius: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -201,9 +189,6 @@
     }
     &:hover {
         background: #2a2b38;
-    }
-    svg {
-        display: block;
     }
 }
 
@@ -224,9 +209,9 @@
         align-items: center;
         input {
             width: 35px;
-            border-radius: 5px;
-            border: 1px solid $clickgui-border-color;
-            background: $clickgui-settings-color;
+            border-radius: 12px;
+            border: 1px solid rgba(var(--accent-color), 0.22);
+            background: rgba(var(--accent-color), 0.08);
             color: $clickgui-text-color;
             padding: 2px;
             text-align: center;

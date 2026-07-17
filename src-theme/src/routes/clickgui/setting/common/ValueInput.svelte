@@ -46,7 +46,7 @@
   .value {
     font-family: monospace;
     color: $clickgui-text-color;
-    background: $clickgui-settings-color;
+    background: linear-gradient(145deg, rgba(var(--accent-color), 0.12), rgba(8, 4, 10, 0.96));
     border-radius: 5px;
     padding: 2.5px 3.5px 2.5px 3.5px;
     font-weight: 500;

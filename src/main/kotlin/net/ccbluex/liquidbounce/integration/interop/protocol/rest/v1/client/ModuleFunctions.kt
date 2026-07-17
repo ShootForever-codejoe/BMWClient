@@ -34,8 +34,10 @@ import net.ccbluex.liquidbounce.utils.client.logger
 import net.ccbluex.liquidbounce.utils.client.mc
 import net.ccbluex.netty.http.model.RequestObject
 import net.ccbluex.netty.http.util.httpForbidden
+import net.ccbluex.netty.http.util.httpInternalServerError
 import net.ccbluex.netty.http.util.httpNoContent
 import net.ccbluex.netty.http.util.httpOk
+import java.util.function.Supplier
 
 private fun ClientModule.toJsonObject() = JsonObject().apply {
     addProperty("name", name)
@@ -114,33 +116,45 @@ data class ModuleRequest(val name: String) {
         val supposedNew = method == HttpMethod.PUT || (method == HttpMethod.POST && !module.enabled)
 
         if (module.enabled == supposedNew) {
-            return httpForbidden("$name already ${if (supposedNew) "enabled" else "disabled"}")
+            return httpNoContent()
         }
 
-        mc.execute {
-            runCatching {
+        return runCatching {
+            mc.executeSync {
                 module.enabled = supposedNew
-
                 ConfigSystem.store(modulesConfigurable)
-            }.onFailure {
-                logger.error("Failed to toggle module $name", it)
             }
+            httpNoContent()
+        }.getOrElse {
+            logger.error("Failed to toggle module $name", it)
+            httpInternalServerError("Failed to toggle module $name")
         }
-        return httpNoContent()
     }
 
     fun acceptGetSettingsRequest(): FullHttpResponse {
         val module = ModuleManager[name] ?: return httpForbidden("$name not found")
-        return httpOk(ConfigSystem.serializeConfigurable(module, gson = interopGson))
+        return runCatching {
+            mc.submit(Supplier {
+                httpOk(ConfigSystem.serializeConfigurable(module, gson = interopGson))
+            }).join()
+        }.getOrElse {
+            logger.error("Failed to load settings for module $name", it)
+            httpInternalServerError("Failed to load settings for module $name")
+        }
     }
 
     fun acceptPutSettingsRequest(content: String): FullHttpResponse {
         val module = ModuleManager[name] ?: return httpForbidden("$name not found")
-        mc.execute {
-            ConfigSystem.deserializeConfigurable(module, content.reader())
-            ConfigSystem.store(modulesConfigurable)
+        return runCatching {
+            mc.executeSync {
+                ConfigSystem.deserializeConfigurable(module, content.reader())
+                ConfigSystem.store(modulesConfigurable)
+            }
+            httpNoContent()
+        }.getOrElse {
+            logger.error("Failed to update settings for module $name", it)
+            httpInternalServerError("Failed to update settings for module $name")
         }
-        return httpNoContent()
     }
 
 }

@@ -1,5 +1,25 @@
 @use "colors.scss" as *;
 
+:root {
+    --accent-color: 168, 85, 247;
+    --accent-color-hex: #a855f7;
+    --theme-surface-soft: rgba(var(--accent-color), 0.08);
+    --theme-surface: rgba(var(--accent-color), 0.13);
+    --theme-surface-strong: rgba(var(--accent-color), 0.2);
+    --theme-border: rgba(var(--accent-color), 0.32);
+    /* 阴影以中性投影为主 再叠加少量主题色 这样看起来更自然 */
+    --theme-shadow-soft: 0 3px 10px rgba(0, 0, 0, 0.22), 0 0 10px rgba(var(--accent-color), 0.07);
+    --theme-shadow: 0 7px 22px rgba(0, 0, 0, 0.3), 0 0 16px rgba(var(--accent-color), 0.1);
+    --theme-shadow-raised: 0 12px 34px rgba(0, 0, 0, 0.38), 0 0 22px rgba(var(--accent-color), 0.13);
+    --theme-glow: 0 0 16px rgba(var(--accent-color), 0.16);
+    --theme-glow-strong: 0 0 20px rgba(var(--accent-color), 0.22);
+    --theme-elevation-1: 0 2px 7px rgba(0, 0, 0, 0.2), 0 0 8px rgba(var(--accent-color), 0.05);
+    --theme-elevation-2: 0 4px 13px rgba(0, 0, 0, 0.24), 0 0 11px rgba(var(--accent-color), 0.07);
+    --theme-elevation-3: 0 6px 18px rgba(0, 0, 0, 0.28), 0 0 14px rgba(var(--accent-color), 0.09);
+    --theme-elevation-4: 0 8px 24px rgba(0, 0, 0, 0.32), 0 0 18px rgba(var(--accent-color), 0.11);
+    --theme-elevation-5: 0 11px 32px rgba(0, 0, 0, 0.38), 0 0 22px rgba(var(--accent-color), 0.14);
+}
+
 @font-face {
     font-family: "Axiforma";
     src: url("../fonts/axiforma/Axiforma-SemiBold.ttf") format("truetype");
@@ -72,6 +92,6 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-    background-color: $accent-color;
+    background-color: rgb(var(--accent-color));
     border-radius: 10px;
 }
