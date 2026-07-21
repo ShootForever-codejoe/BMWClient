@@ -28,6 +28,7 @@ import net.ccbluex.liquidbounce.bmw.topCenter
 import net.ccbluex.liquidbounce.event.tickHandler
 import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
+import net.ccbluex.liquidbounce.features.module.modules.bmw.newscaffold.ModuleNewScaffold
 import net.ccbluex.liquidbounce.features.module.modules.combat.killaura.ModuleKillAura
 import net.ccbluex.liquidbounce.utils.kotlin.Priority
 
@@ -49,6 +50,9 @@ object ModuleAutoMLG : ClientModule("AutoMLG", Category.BMW) {
 
     @Suppress("unused")
     private val tickHandler = tickHandler {
+        // 自救搭桥时不抢占旋转
+        if (ModuleNewScaffold.isRescueActive()) return@tickHandler
+
         if (player.fallDistance < fallDistance || player.velocity.y >= -0.08) return@tickHandler
 
         if ((!notDuringKillAura || !ModuleKillAura.running || ModuleKillAura.targetTracker.target == null)

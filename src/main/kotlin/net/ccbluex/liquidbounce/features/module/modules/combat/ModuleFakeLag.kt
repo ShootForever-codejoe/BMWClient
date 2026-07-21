@@ -27,6 +27,7 @@ import net.ccbluex.liquidbounce.event.tickHandler
 import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
 import net.ccbluex.liquidbounce.features.module.modules.movement.autododge.ModuleAutoDodge
+import net.ccbluex.liquidbounce.features.module.modules.bmw.newscaffold.ModuleNewScaffold
 import net.ccbluex.liquidbounce.utils.client.Chronometer
 import net.ccbluex.liquidbounce.utils.client.PacketQueueManager
 import net.ccbluex.liquidbounce.utils.client.PacketQueueManager.positions
@@ -90,6 +91,10 @@ object ModuleFakeLag : ClientModule("FakeLag", Category.COMBAT) {
     private val gameTickHandler = tickHandler {
         isEnemyNearby = world.findEnemy(range) != null
 
+        if (ModuleNewScaffold.isRescueActive()) {
+            return@tickHandler
+        }
+
         if (ModuleAutoDodge.running) {
             val position = positions.firstOrNull() ?: return@tickHandler
 
@@ -119,9 +124,17 @@ object ModuleFakeLag : ClientModule("FakeLag", Category.COMBAT) {
 
     @Suppress("unused", "ComplexCondition")
     private val fakeLagHandler = handler<QueuePacketEvent> { event ->
-        if (event.origin != TransferOrigin.OUTGOING || player.isDead || player.isTouchingWater
-            || mc.currentScreen != null
-        ) {
+        if (event.origin != TransferOrigin.OUTGOING) {
+            return@handler
+        }
+
+        // 自救期间所有包直接通过
+        if (ModuleNewScaffold.isRescueActive()) {
+            event.action = PacketQueueManager.Action.PASS
+            return@handler
+        }
+
+        if (player.isDead || player.isTouchingWater || mc.currentScreen != null) {
             return@handler
         }
 

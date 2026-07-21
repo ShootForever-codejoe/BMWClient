@@ -630,6 +630,7 @@
   "liquidbounce.module.noRotateSet.description": "防止服务器改变你的视角。",
   "liquidbounce.module.noSlotSet.description": "阻止服务器设置你的物品栏。",
   "liquidbounce.module.noSlow.description": "取消灵魂沙或物品导致的缓慢效果。",
+  "liquidbounce.module.noSlowTest.description": "吃东西或喝饮品时恢复移动速度，可选支持弓和弩。",
   "liquidbounce.module.noSlowBreak.description": "消除负面影响造成的破坏减速。",
   "liquidbounce.module.noPose.description": "在低版本服务器上阻止实体姿态改变。",
   "liquidbounce.module.noSwing.description": "禁用挥手动画。",

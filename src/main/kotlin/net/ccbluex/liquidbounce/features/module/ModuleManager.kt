@@ -317,6 +317,7 @@ object ModuleManager : EventListener, Collection<ClientModule> by modules {
             ModuleNoPose,
             ModuleNoPush,
             ModuleNoSlow,
+            ModuleNoSlowTest,
             ModuleNoWeb,
             ModuleParkour,
             ModuleEntityControl,

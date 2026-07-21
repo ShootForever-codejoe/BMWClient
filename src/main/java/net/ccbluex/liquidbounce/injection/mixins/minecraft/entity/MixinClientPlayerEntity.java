@@ -28,6 +28,7 @@ import net.ccbluex.liquidbounce.features.module.modules.exploit.ModulePortalMenu
 import net.ccbluex.liquidbounce.features.module.modules.movement.ModuleEntityControl;
 import net.ccbluex.liquidbounce.features.module.modules.movement.ModuleNoPush;
 import net.ccbluex.liquidbounce.features.module.modules.movement.ModuleSprint;
+import net.ccbluex.liquidbounce.features.module.modules.movement.ModuleNoSlowTest;
 import net.ccbluex.liquidbounce.features.module.modules.movement.NoPushBy;
 import net.ccbluex.liquidbounce.features.module.modules.movement.noslow.ModuleNoSlow;
 import net.ccbluex.liquidbounce.features.module.modules.render.ModuleClickGui;
@@ -267,7 +268,8 @@ public abstract class MixinClientPlayerEntity extends MixinPlayerEntity implemen
      */
     @ModifyExpressionValue(method = "canStartSprinting", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/network/ClientPlayerEntity;isUsingItem()Z"))
     private boolean hookSprintAffectStart(boolean original) {
-        if (ModuleNoSlow.INSTANCE.getRunning()) {
+        // 使用物品时同步解除疾跑限制
+        if (ModuleNoSlow.INSTANCE.getRunning() || ModuleNoSlowTest.shouldBypassItemSlowdown()) {
             return false;
         }
 

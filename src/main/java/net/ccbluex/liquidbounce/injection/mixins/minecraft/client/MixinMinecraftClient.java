@@ -312,10 +312,10 @@ public abstract class MixinMinecraftClient {
         EventManager.INSTANCE.callEvent(TickPacketProcessEvent.INSTANCE);
     }
 
-    /**
-     * Hook input handling
-     */
-    @Inject(method = "handleInputEvents", at = @At("RETURN"))
+    /** 在原版输入处理前发送本刻交互 */
+    @Inject(method = "tick", at = @At(value = "INVOKE",
+            target = "Lnet/minecraft/client/MinecraftClient;handleInputEvents()V",
+            shift = At.Shift.BEFORE))
     private void hookHandleInputEvent(CallbackInfo callbackInfo) {
         EventManager.INSTANCE.callEvent(InputHandleEvent.INSTANCE);
     }

@@ -632,6 +632,7 @@
   "liquidbounce.module.noRotateSet.description": "Prevents the server from being able to rotate your head.",
   "liquidbounce.module.noSlotSet.description": "Disallows forced slot changes by server.",
   "liquidbounce.module.noSlow.description": "Cancels slowness effects caused by blocks and using items.",
+  "liquidbounce.module.noSlowTest.description": "Restores movement while eating or drinking, with optional bow/crossbow support.",
   "liquidbounce.module.noSlowBreak.description": "Automatically adjusts breaking speed when in negatively affecting situations.",
   "liquidbounce.module.noPose.description": "Prevents entity pose changes for low version servers.",
   "liquidbounce.module.noSwing.description": "Disables the hand swing animation.",

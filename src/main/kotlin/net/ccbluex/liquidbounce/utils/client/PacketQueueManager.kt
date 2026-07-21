@@ -20,6 +20,7 @@ package net.ccbluex.liquidbounce.utils.client
 
 import com.google.common.collect.Queues
 import net.ccbluex.fastutil.mapToArray
+import net.ccbluex.liquidbounce.LiquidBounce
 import net.ccbluex.liquidbounce.event.EventListener
 import net.ccbluex.liquidbounce.event.EventManager
 import net.ccbluex.liquidbounce.event.events.*
@@ -30,6 +31,7 @@ import net.ccbluex.liquidbounce.render.engine.type.Vec3
 import net.ccbluex.liquidbounce.render.renderEnvironmentForWorld
 import net.ccbluex.liquidbounce.utils.aiming.RotationManager
 import net.ccbluex.liquidbounce.utils.kotlin.EventPriorityConvention.FINAL_DECISION
+import net.ccbluex.liquidbounce.utils.kotlin.EventPriorityConvention.FIRST_PRIORITY
 import net.ccbluex.liquidbounce.utils.render.WireframePlayer
 import net.minecraft.client.option.Perspective
 import net.minecraft.network.packet.Packet
@@ -54,7 +56,18 @@ import java.util.concurrent.ConcurrentLinkedQueue
  * Fires [QueuePacketEvent] to determine whether a packet should be queued or not. They can be
  * from origin [TransferOrigin.INCOMING] or [TransferOrigin.OUTGOING], but will be handled separately.
  */
+@Suppress("TooManyFunctions")
 object PacketQueueManager : EventListener {
+
+    @Volatile
+    private var rescueActiveProvider: (() -> Boolean)? = null
+
+    private var rescueDrainTick = 0L
+    private var rescueDropTotal = 0L
+
+    @Volatile
+    var lastRescueDrainReport: RescueDrainReport = RescueDrainReport.INACTIVE
+        private set
 
     val packetQueue: ConcurrentLinkedQueue<PacketSnapshot> = Queues.newConcurrentLinkedQueue()
     val positions
@@ -67,6 +80,99 @@ object PacketQueueManager : EventListener {
     val isLagging
         get() = packetQueue.isNotEmpty()
 
+    // 注册自救状态 避免队列反向依赖模块
+    fun registerRescueActiveProvider(provider: (() -> Boolean)?) {
+        rescueActiveProvider = provider
+    }
+
+    // 自救开始后丢弃旧移动包 保留控制包顺序
+    fun discardRescueMovementBacklog(): RescueDrainReport {
+        if (!isRescueDrainActive()) {
+            lastRescueDrainReport = RescueDrainReport.INACTIVE
+            return RescueDrainReport.INACTIVE
+        }
+
+        val queueSizeBefore = packetQueue.size
+        val movements = queuedOutgoingMovements()
+        val dropped = movements.count(packetQueue::remove)
+        rescueDropTotal += dropped
+
+        val report = RescueDrainReport(
+            active = true,
+            tick = rescueDrainTick,
+            dropped = dropped,
+            queuedMovementsBefore = movements.size,
+            queuedMovementsAfter = 0,
+            queueSizeBefore = queueSizeBefore,
+            queueSizeAfter = packetQueue.size,
+            totalDropped = rescueDropTotal,
+        )
+        lastRescueDrainReport = report
+        logRescueDrain(report)
+        return report
+    }
+
+    // 清空自救队列统计
+    fun resetRescueDrain() {
+        rescueDrainTick = 0L
+        rescueDropTotal = 0
+        lastRescueDrainReport = RescueDrainReport.INACTIVE
+    }
+
+    // 按原顺序发送自救前的控制包
+    fun flushOutgoingRescueControlBacklog(): Int {
+        val snapshots = packetQueue.filter {
+            it.origin == TransferOrigin.OUTGOING && it.packet !is PlayerMoveC2SPacket
+        }
+        var flushed = 0
+        snapshots.forEach { snapshot ->
+            if (packetQueue.remove(snapshot)) {
+                flushSnapshot(snapshot)
+                flushed++
+            }
+        }
+        if (flushed > 0) {
+            val types = snapshots
+                .groupingBy { it.packet::class.simpleName ?: "unknown" }
+                .eachCount()
+                .entries
+                .sortedByDescending { it.value }
+                .joinToString(limit = 8) { "${it.key}:${it.value}" }
+            LiquidBounce.logger.info(
+                "[PacketQueue][Rescue] flushed ordered non-movement backlog " +
+                    "count=$flushed types=[$types] queueAfter=${packetQueue.size}"
+            )
+        }
+        return flushed
+    }
+
+    // 只发送最新基线 其余旧移动包直接丢弃
+    fun flushLatestOutgoingRescueMovementBaseline(): RescueMovementBaselineResult {
+        val movements = packetQueue.filter {
+            it.origin == TransferOrigin.OUTGOING && it.packet is PlayerMoveC2SPacket
+        }
+        val latest = movements.lastOrNull()
+        var dropped = 0
+        var flushed = 0
+        movements.forEach { snapshot ->
+            if (!packetQueue.remove(snapshot)) return@forEach
+            if (snapshot === latest) {
+                flushSnapshot(snapshot)
+                flushed++
+            } else {
+                dropped++
+            }
+        }
+        rescueDropTotal += dropped
+        if (movements.isNotEmpty()) {
+            LiquidBounce.logger.info(
+                "[PacketQueue][Rescue] movement baseline flushed=$flushed " +
+                    "olderDropped=$dropped queueAfter=${packetQueue.size}"
+            )
+        }
+        return RescueMovementBaselineResult(flushed, dropped)
+    }
+
     @Suppress("unused")
     private val flushHandler = handler<GameRenderTaskQueueEvent> {
         if (mc.networkHandler?.connection?.isOpen != true) {
@@ -76,6 +182,15 @@ object PacketQueueManager : EventListener {
 
         if (fireEvent(null, TransferOrigin.OUTGOING) == Action.FLUSH) {
             flush(TransferOrigin.OUTGOING)
+        }
+    }
+
+    // 每刻清理一次残留移动包
+    @Suppress("unused")
+    private val rescueDrainTickHandler = handler<GameTickEvent>(priority = FIRST_PRIORITY) {
+        rescueDrainTick++
+        if (isRescueDrainActive()) {
+            discardRescueMovementBacklog()
         }
     }
 
@@ -100,6 +215,12 @@ object PacketQueueManager : EventListener {
 
         val packet = event.packet
         val origin = event.origin
+
+        // 自救移动包始终直发
+        if (origin == TransferOrigin.OUTGOING && packet is PlayerMoveC2SPacket && isRescueDrainActive()) {
+            discardRescueMovementBacklog()
+            return@handler
+        }
 
         // If we shouldn't lag, don't do anything
         val lagResult = fireEvent(packet, origin)
@@ -157,6 +278,7 @@ object PacketQueueManager : EventListener {
         // Clear packets on disconnect
         if (event.world == null) {
             packetQueue.clear()
+            resetRescueDrain()
         }
     }
 
@@ -183,6 +305,9 @@ object PacketQueueManager : EventListener {
     }
 
     fun flush(flushWhen: (PacketSnapshot) -> Boolean) {
+        if (isRescueDrainActive()) {
+            discardRescueMovementBacklog()
+        }
         packetQueue.removeIf { snapshot ->
             if (flushWhen(snapshot)) {
                 flushSnapshot(snapshot)
@@ -194,10 +319,18 @@ object PacketQueueManager : EventListener {
     }
 
     fun flush(origin: TransferOrigin) {
+        if (origin == TransferOrigin.OUTGOING && isRescueDrainActive()) {
+            discardRescueMovementBacklog()
+            return
+        }
         flush { it.origin == origin }
     }
 
     fun flush(count: Int) {
+        if (isRescueDrainActive()) {
+            discardRescueMovementBacklog()
+            return
+        }
         // Take all packets until the counter of move packets reaches count and send them
         var counter = 0
 
@@ -255,12 +388,59 @@ object PacketQueueManager : EventListener {
     private fun fireEvent(packet: Packet<*>?, origin: TransferOrigin) =
         EventManager.callEvent(QueuePacketEvent(packet, origin)).action
 
+    private fun isRescueDrainActive(): Boolean =
+        runCatching { rescueActiveProvider?.invoke() == true }.getOrDefault(false)
+
+    private fun queuedOutgoingMovements(): List<PacketSnapshot> = packetQueue
+        .filter { it.origin == TransferOrigin.OUTGOING && it.packet is PlayerMoveC2SPacket }
+
+    private fun logRescueDrain(report: RescueDrainReport) {
+        if (report.dropped <= 0) return
+
+        val message =
+            "[PacketQueue][Rescue] tick=${report.tick} dropped=${report.dropped} " +
+                "movements=${report.queuedMovementsBefore}->" +
+                "${report.queuedMovementsAfter} queue=${report.queueSizeBefore}->" +
+                "${report.queueSizeAfter} totalDropped=${report.totalDropped}"
+        LiquidBounce.logger.info(message)
+    }
+
     enum class Action(val priority: Int) {
         FLUSH(0),
         PASS(1),
         QUEUE(2)
     }
 
+}
+
+data class RescueMovementBaselineResult(
+    val flushed: Int,
+    val dropped: Int,
+)
+
+// 最近一次自救队列清理结果
+data class RescueDrainReport(
+    val active: Boolean,
+    val tick: Long,
+    val dropped: Int,
+    val queuedMovementsBefore: Int,
+    val queuedMovementsAfter: Int,
+    val queueSizeBefore: Int,
+    val queueSizeAfter: Int,
+    val totalDropped: Long,
+) {
+    companion object {
+        val INACTIVE = RescueDrainReport(
+            active = false,
+            tick = Long.MIN_VALUE,
+            dropped = 0,
+            queuedMovementsBefore = 0,
+            queuedMovementsAfter = 0,
+            queueSizeBefore = 0,
+            queueSizeAfter = 0,
+            totalDropped = 0,
+        )
+    }
 }
 
 data class PacketSnapshot(
