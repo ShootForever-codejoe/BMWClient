@@ -39,6 +39,7 @@ import net.ccbluex.liquidbounce.features.module.ModuleManager
 import net.ccbluex.liquidbounce.features.module.modules.combat.killaura.ModuleKillAura
 import net.ccbluex.liquidbounce.utils.client.notification
 import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket
+import net.minecraft.network.packet.s2c.play.TitleS2CPacket
 import java.util.EnumSet
 
 /**
@@ -98,6 +99,10 @@ object ModuleAutoDisable : ClientModule("AutoDisable", Category.WORLD) {
     val worldChangesHandler = handler<PacketEvent> {
         if (it.packet is PlayerPositionLookS2CPacket && DisableOn.FLAG in disableOn) {
             disableAndNotify("flag")
+        }
+
+        if (it.packet is TitleS2CPacket && it.packet.text.string.contains("胜利")) {
+            disableAndNotify("heypixel")
         }
     }
 
