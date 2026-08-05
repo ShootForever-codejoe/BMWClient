@@ -24,12 +24,14 @@ package net.ccbluex.liquidbounce.utils.inventory
 
 import it.unimi.dsi.fastutil.objects.ObjectRBTreeSet
 import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet
+import net.ccbluex.liquidbounce.bmw.PlacementManager
 import net.ccbluex.liquidbounce.config.types.NamedChoice
 import net.ccbluex.liquidbounce.config.types.ValueType
 import net.ccbluex.liquidbounce.config.types.nesting.Configurable
 import net.ccbluex.liquidbounce.config.types.nesting.ToggleableConfigurable
 import net.ccbluex.liquidbounce.event.EventListener
 import net.ccbluex.liquidbounce.features.module.modules.bmw.grimnoslow.food.GrimNoSlowFoodNoC0F
+import net.ccbluex.liquidbounce.features.module.modules.bmw.grimvelocity.modes.GrimVelocityAttackReduce
 import net.ccbluex.liquidbounce.features.module.modules.world.scaffold.ModuleScaffold
 import net.ccbluex.liquidbounce.utils.aiming.RotationManager
 import net.ccbluex.liquidbounce.utils.block.SwingMode
@@ -82,14 +84,16 @@ open class InventoryConstraints : Configurable("Constraints") {
         InventoryRequirements.NO_SPRINTING,
         InventoryRequirements.NO_SHIFT_CLICKING,
         InventoryRequirements.NO_USING_ITEM,
-        InventoryRequirements.NO_SCAFFOLD
+        InventoryRequirements.NO_SCAFFOLD,
+        InventoryRequirements.NO_ATTACK_REDUCE,
+        InventoryRequirements.NO_PLACE_WATER
     )
 
     /**
      * Whether the constraints are met, this will be checked before any inventory actions are performed.
      */
-    fun passesRequirements(action: InventoryAction) =
-        requirements.all { it.test(action) }
+    fun passesRequirements(action: InventoryAction?) =
+        requirements.all { if (action != null) it.test(action) else it.check(null) }
 
 }
 
@@ -120,6 +124,10 @@ enum class InventoryRequirements(
 
     NO_SCAFFOLD("NoScaffold"),
 
+    NO_ATTACK_REDUCE("NoAttackReduce"),
+
+    NO_PLACE_WATER("NoPlaceWater"),
+
     /**
      * When this option is not enabled, the inventory will be opened silently
      * depending on the Minecraft version chosen using ViaFabricPlus.
@@ -136,14 +144,18 @@ enum class InventoryRequirements(
      */
     OPEN_INVENTORY("InventoryOpen");
 
-    override fun test(action: InventoryAction): Boolean = when (this) {
+    override fun test(action: InventoryAction): Boolean = check(action)
+
+    fun check(action: InventoryAction?): Boolean = when (this) {
         NO_MOVEMENT -> player.input.movementForward == 0.0f && player.input.movementSideways == 0.0f && !player.jumping
         NO_ROTATION -> RotationManager.rotationMatchesPreviousRotation()
         NO_SPRINTING -> !player.input.playerInput.sprint
         NO_SHIFT_CLICKING -> !player.input.playerInput.sneak
         NO_USING_ITEM -> !player.usingItem && !GrimNoSlowFoodNoC0F.working
         NO_SCAFFOLD -> !ModuleScaffold.running
-        OPEN_INVENTORY -> !action.requiresPlayerInventoryOpen() || InventoryManager.isInventoryOpen
+        NO_ATTACK_REDUCE -> GrimVelocityAttackReduce.alinkTicks == -1 && GrimVelocityAttackReduce.attackQueue == 0
+        NO_PLACE_WATER -> !(PlacementManager.working && PlacementManager.request is PlacementManager.PlaceWaterRequest)
+        OPEN_INVENTORY -> !(action?.requiresPlayerInventoryOpen() ?: true) || InventoryManager.isInventoryOpen
     }
 }
 

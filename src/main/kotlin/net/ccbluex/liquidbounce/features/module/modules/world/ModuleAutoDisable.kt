@@ -18,7 +18,6 @@
  */
 package net.ccbluex.liquidbounce.features.module.modules.world
 
-import it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet
 import net.ccbluex.liquidbounce.bmw.HEYPIXEL_SW_END_MESSAGE
 import net.ccbluex.liquidbounce.config.types.NamedChoice
 import net.ccbluex.liquidbounce.config.types.ValueType
@@ -32,7 +31,6 @@ import net.ccbluex.liquidbounce.event.events.WorldChangeEvent
 import net.ccbluex.liquidbounce.event.handler
 import net.ccbluex.liquidbounce.event.tickHandler
 import net.ccbluex.liquidbounce.event.tickUntil
-import net.ccbluex.liquidbounce.features.command.commands.module.CommandAutoDisable
 import net.ccbluex.liquidbounce.features.module.Category
 import net.ccbluex.liquidbounce.features.module.ClientModule
 import net.ccbluex.liquidbounce.features.module.ModuleManager
@@ -47,21 +45,15 @@ import java.util.EnumSet
  *
  * Automatically disables modules, when special event happens.
  *
- * Command: [CommandAutoDisable]
  */
 object ModuleAutoDisable : ClientModule("AutoDisable", Category.WORLD) {
-    val modules: Set<ClientModule>
-        field: MutableSet<ClientModule> = ReferenceOpenHashSet()
 
     private val moduleNames by registryList(
         "Modules",
         hashSetOf<String>(),
         ValueType.CLIENT_MODULE
-    ).onChange { state ->
-        modules.clear()
-        state.forEach { ModuleManager.getModuleByName(it)?.let { element -> modules.add(element) } }
-        state
-    }
+    )
+
     private val disableOn by multiEnumChoice<DisableOn>(
         "On",
         EnumSet.of(
@@ -71,29 +63,6 @@ object ModuleAutoDisable : ClientModule("AutoDisable", Category.WORLD) {
             DisableOn.HEYPIXEL
         )
     )
-
-    fun clear() {
-        modules.clear()
-        moduleNames.clear()
-    }
-
-    fun add(module: ClientModule): Boolean {
-        return if (modules.add(module)) {
-            moduleNames.add(module.name)
-            true
-        } else {
-            false
-        }
-    }
-
-    fun remove(module: ClientModule): Boolean {
-        return if (modules.remove(module)) {
-            moduleNames.remove(module.name)
-            true
-        } else {
-            false
-        }
-    }
 
     @Suppress("unused")
     val worldChangesHandler = handler<PacketEvent> {
@@ -160,7 +129,8 @@ object ModuleAutoDisable : ClientModule("AutoDisable", Category.WORLD) {
     }
 
     private fun disableAndNotify(reason: String) {
-        val anyDisabled = modules.any { module ->
+        val anyDisabled = moduleNames.any {
+            val module = ModuleManager.getModuleByName(it) ?: return@any false
             if (module.enabled) {
                 module.enabled = false
                 true
@@ -182,4 +152,5 @@ object ModuleAutoDisable : ClientModule("AutoDisable", Category.WORLD) {
         QUIT("Quit"),
         HEYPIXEL("Heypixel")
     }
+
 }

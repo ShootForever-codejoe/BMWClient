@@ -32,7 +32,7 @@ import net.ccbluex.liquidbounce.utils.kotlin.Priority
 import net.minecraft.entity.EntityType
 import net.minecraft.entity.SpawnReason
 import net.minecraft.entity.decoration.EndCrystalEntity
-import net.minecraft.network.packet.c2s.play.HandSwingC2SPacket
+import net.minecraft.network.packet.c2s.play.PlayerInteractEntityC2SPacket
 import net.minecraft.network.packet.s2c.play.EntitySpawnS2CPacket
 import net.minecraft.util.Hand
 
@@ -47,7 +47,6 @@ object ModuleAttackCrystal : ClientModule("AttackCrystal", Category.BMW) {
     private var targetRotation: Rotation? = null
 
     private val rotations = tree(RotationsConfigurable(this))
-//    private val clicker = tree(Clicker(this@ModuleAttackCrystal, mc.options.attackKey, null))
 
     @Suppress("unused")
     private val entitySpawnHandler = handler<PacketEvent> { event ->
@@ -113,13 +112,11 @@ object ModuleAttackCrystal : ClientModule("AttackCrystal", Category.BMW) {
         val originalPitch = player.pitch
         val attackRotation = RotationManager.currentRotation ?: rotation
 
-
         player.yaw = attackRotation.yaw
         player.pitch = attackRotation.pitch
 
+        network.sendPacket(PlayerInteractEntityC2SPacket.attack(targetCrystal, player.isSneaking))
         player.swingHand(Hand.MAIN_HAND)
-        network.sendPacket(HandSwingC2SPacket(Hand.MAIN_HAND))
-
 
         player.yaw = originalYaw
         player.pitch = originalPitch

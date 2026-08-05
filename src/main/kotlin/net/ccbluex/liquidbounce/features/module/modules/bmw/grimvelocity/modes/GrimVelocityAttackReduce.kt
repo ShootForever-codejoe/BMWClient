@@ -112,6 +112,13 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
                 || ModuleKillAura.targetTracker.target == null)
     })
 
+    private val jumpReset = tree(object : ToggleableConfigurable(
+        GrimVelocityAttackReduce, "JumpReset", true
+    ) {
+        val onlyPressJumpKey by boolean("OnlyPressJumpKey", true)
+        val chance by int("Chance", 100, 1..100, "%")
+    })
+
     private val requireKillAura by boolean("RequireKillAura", true)
     private val debug by boolean("Debug", false)
 
@@ -131,6 +138,7 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
         private set
     private var releaseReason: String? = null
     private var velocity = 0.0
+    private var jumpResetStep = JumpResetStep.NONE
     private val packets = Queues.newConcurrentLinkedQueue<Packet<*>>()
 
     override val shouldStopBacktrack: Boolean
@@ -139,8 +147,16 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
     private val isInAir: Boolean
         get() = !player.isOnGround && !player.isInFluid && !player.isInsideWall
 
+    private enum class JumpResetStep {
+        NONE,
+        SHOULD_JUMP,
+        JUMP,
+        NO_JUMP
+    }
+
     override fun disable() {
         reset()
+        jumpResetStep = JumpResetStep.NONE
         EventManager.callEvent(AlinkUpdateEvent(0, alinkMaxDelay, false))
     }
 
@@ -380,14 +396,21 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
 
             when (attackMode) {
                 AttackMode.ONE_TIME -> {
+                    if (!player.isSprinting) {
+                        if (debug) {
+                            notifyAsMessage(ModuleGrimVelocity, "Not sprinting")
+                        }
+                        reset()
+                        return@tickHandler
+                    }
+
                     for (i in 1..attackQueue) {
                         if (target !in world.entities) break
 
-                        val sprinting = player.isSprinting
-                        if (sprinting) player.isSprinting = false
+                        player.isSprinting = false
                         interaction.attackEntity(player, target!!)
                         player.swingHand(Hand.MAIN_HAND)
-                        if (sprinting) player.setVelocity(
+                        player.setVelocity(
                             player.velocity.x * 0.6,
                             player.velocity.y,
                             player.velocity.z * 0.6
@@ -409,15 +432,25 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
                         return@tickHandler
                     }
 
+                    if (!player.isSprinting) {
+                        if (debug) {
+                            notifyAsMessage(ModuleGrimVelocity, "Not sprinting")
+                        }
+                        attackQueue--
+                        if (attackQueue == 0) {
+                            reset()
+                        }
+                        return@tickHandler
+                    }
+
                     if (autoRotate.canRotate) {
                         rotate(target!!, target!!.pos)
                     }
 
-                    val sprinting = player.isSprinting
-                    if (sprinting) player.isSprinting = false
+                    player.isSprinting = false
                     interaction.attackEntity(player, target!!)
                     player.swingHand(Hand.MAIN_HAND)
-                    if (sprinting) player.setVelocity(
+                    player.setVelocity(
                         player.velocity.x * 0.6,
                         player.velocity.y,
                         player.velocity.z * 0.6
@@ -436,19 +469,28 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
     private val tickPacketProcessEventHandler = handler<TickPacketProcessEvent> {
         if (releaseReason != null) {
             handlePackets()
-            alinkTicks = -1
-            renderTarget = null
-            renderTargetPos = null
             if (debug) {
                 if (releaseReason!!.isEmpty()) {
                     notifyAsMessage(ModuleGrimVelocity, "Finish alink")
                     notifyAsMessage(ModuleGrimVelocity, "Attack count: $attackQueue")
+                    alinkTicks = -1
+                    renderTarget = null
+                    renderTargetPos = null
+                    releaseReason = null
                 } else {
                     notifyAsMessage(ModuleGrimVelocity, "Finish alink ($releaseReason)")
                     reset()
                 }
             }
-            releaseReason = null
+            if (jumpResetStep == JumpResetStep.SHOULD_JUMP) {
+                jumpResetStep = if (jumpReset.onlyPressJumpKey) {
+                    JumpResetStep.NONE
+                } else {
+                    JumpResetStep.JUMP
+                }
+            } else if (jumpResetStep == JumpResetStep.NO_JUMP) {
+                jumpResetStep = JumpResetStep.NONE
+            }
         }
     }
 
@@ -491,6 +533,28 @@ object GrimVelocityAttackReduce : GrimVelocityMode("AttackReduce") {
                     player.isSprinting = false
                 }
             }
+        }
+
+        if (releaseReason != null && jumpReset.enabled) {
+            val shouldJump = (1..100).random() <= jumpReset.chance
+            if (shouldJump) {
+                jumpResetStep = JumpResetStep.SHOULD_JUMP
+                event.jump = false
+            } else {
+                jumpResetStep = JumpResetStep.NO_JUMP
+            }
+        }
+
+        if (jumpResetStep == JumpResetStep.JUMP) {
+            event.jump = true
+            jumpResetStep = JumpResetStep.NONE
+        }
+    }
+
+    @Suppress("unused")
+    private val playerVelocityStrafeHandler = handler<PlayerVelocityStrafe> {
+        if (jumpResetStep == JumpResetStep.JUMP) {
+            player.isSprinting = true
         }
     }
 

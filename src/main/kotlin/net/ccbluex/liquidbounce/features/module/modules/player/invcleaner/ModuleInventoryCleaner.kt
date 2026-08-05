@@ -42,29 +42,15 @@ object ModuleInventoryCleaner : ClientModule("InventoryCleaner", Category.PLAYER
     aliases = listOf("InventoryManager")
 ) {
 
-    private val inventoryConstraints = tree(PlayerInventoryConstraints())
+    val inventoryConstraints = tree(PlayerInventoryConstraints())
 
     object BlockWhiteList : ToggleableConfigurable(this, "BlockWhiteList", true) {
-        val shouldKeepBlocks by blocks("shouldKeepBlocks", ReferenceOpenHashSet.of(
-            Blocks.STONE,
-            Blocks.OAK_PLANKS,
-            Blocks.WHITE_WOOL,
-            Blocks.ORANGE_WOOL,
-            Blocks.MAGENTA_WOOL,
-            Blocks.LIGHT_BLUE_WOOL,
-            Blocks.YELLOW_WOOL,
-            Blocks.LIME_WOOL,
-            Blocks.PINK_WOOL,
-            Blocks.GRAY_WOOL,
-            Blocks.LIGHT_GRAY_WOOL,
-            Blocks.CYAN_WOOL,
-            Blocks.PURPLE_WOOL,
-            Blocks.BLUE_WOOL,
-            Blocks.BROWN_WOOL,
-            Blocks.GREEN_WOOL,
-            Blocks.RED_WOOL,
-            Blocks.BLACK_WOOL
-        ))
+        val shouldKeepBlocks by blocks(
+            "shouldKeepBlocks", ReferenceOpenHashSet.of(
+                Blocks.STONE,
+                Blocks.OAK_PLANKS
+            )
+        )
     }
 
     init {

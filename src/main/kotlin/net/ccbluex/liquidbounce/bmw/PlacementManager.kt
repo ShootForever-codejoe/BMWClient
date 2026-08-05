@@ -50,7 +50,8 @@ object PlacementManager : EventListener, MinecraftShortcuts {
         private set
     var requester: ClientModule? = null
         private set
-    private var request: PlacementRequest? = null
+    var request: PlacementRequest? = null
+        private set
     private var oldSlot = -1
     private var scaffold = false
     private var killAura = false

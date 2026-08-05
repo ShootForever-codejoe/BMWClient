@@ -13,6 +13,7 @@ import net.minecraft.network.packet.s2c.play.EntityVelocityUpdateS2CPacket
 
 object GrimVelocityJumpReset : GrimVelocityMode("JumpReset") {
 
+    private val chance by int("Chance", 100, 0..100, "%")
     private val requireKillAura by boolean("RequireKillAura", true)
 
     private var jump = false
@@ -44,7 +45,7 @@ object GrimVelocityJumpReset : GrimVelocityMode("JumpReset") {
 
         if (damage && packet is EntityVelocityUpdateS2CPacket && packet.entityId == player.id) {
             if (!requireKillAura || (ModuleKillAura.running && ModuleKillAura.targetTracker.target != null)) {
-                jump = true
+                jump = (1..100).random() <= chance
             }
             damage = false
         }

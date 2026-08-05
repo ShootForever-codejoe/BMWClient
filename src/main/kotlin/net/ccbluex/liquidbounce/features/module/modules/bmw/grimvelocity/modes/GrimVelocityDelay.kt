@@ -65,6 +65,7 @@ object GrimVelocityDelay : GrimVelocityMode("Delay") {
             get() = mode
 
         val jumpReset by boolean("JumpReset", true)
+        val jumpResetChance by int("JumpResetChance", 100, 0..100, "%")
     }
 
     private object DelayByTicks : Choice("ByTicks") {
@@ -180,18 +181,24 @@ object GrimVelocityDelay : GrimVelocityMode("Delay") {
 
         if (damage && packet is EntityVelocityUpdateS2CPacket && packet.entityId == player.id) {
             if (!requireKillAura || (ModuleKillAura.running && ModuleKillAura.targetTracker.target != null)) {
-                delayTicks = when (mode.activeChoice) {
-                    DelayInAir -> 30
-                    DelayByTicks -> DelayByTicks.delay.random()
-                    else -> 0
+                if (mode.activeChoice != DelayInAir || !player.isOnGround) {
+                    delayTicks = when (mode.activeChoice) {
+                        DelayInAir -> 40
+                        DelayByTicks -> DelayByTicks.delay.random()
+                        else -> 0
+                    }
+                    delaying = true
+                    if (ModuleKillAura.running && ModuleKillAura.targetTracker.target != null) {
+                        target = ModuleKillAura.targetTracker.target
+                        targetPos = TrackedPosition().apply { pos = target!!.pos }
+                    }
+                    event.cancelEvent()
+                    packets.add(packet)
+                } else {
+                    if (DelayInAir.jumpReset) {
+                        jump = (1..100).random() <= DelayInAir.jumpResetChance
+                    }
                 }
-                delaying = true
-                if (ModuleKillAura.running && ModuleKillAura.targetTracker.target != null) {
-                    target = ModuleKillAura.targetTracker.target
-                    targetPos = TrackedPosition().apply { pos = target!!.pos }
-                }
-                event.cancelEvent()
-                packets.add(packet)
             }
             damage = false
         }
@@ -214,7 +221,7 @@ object GrimVelocityDelay : GrimVelocityMode("Delay") {
         ) {
             handle()
             if (mode.activeChoice == DelayInAir && DelayInAir.jumpReset) {
-                jump = true
+                jump = (1..100).random() <= DelayInAir.jumpResetChance
             }
             target = null
             targetPos = null

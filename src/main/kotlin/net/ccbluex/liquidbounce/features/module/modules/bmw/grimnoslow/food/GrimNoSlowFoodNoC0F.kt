@@ -72,7 +72,8 @@ internal class GrimNoSlowFoodNoC0F(
         NONE,
         CANCEL_C0F,
         SWAP_HANDS,
-        EATING
+        EATING,
+        RESET
     }
 
     private fun clear() {
@@ -93,8 +94,9 @@ internal class GrimNoSlowFoodNoC0F(
     )
 
     fun release() {
+        if (step == Step.RESET) return
+
         mc.options.useKey.isPressed = false
-        clear()
         packets.removeIf {
             handlePacket(it)
             true
@@ -106,6 +108,8 @@ internal class GrimNoSlowFoodNoC0F(
                 Direction.DOWN
             )
         )
+        clear()
+        step = Step.RESET
     }
 
     @Suppress("unused")
@@ -131,7 +135,7 @@ internal class GrimNoSlowFoodNoC0F(
 
             if (player.isUsingItem) {
                 eatingTicks = 0
-                if (itemUseTimeLeft in 1..player.itemUseTimeLeft) {
+                if (itemUseTimeLeft in (player.itemUseTimeLeft / 2)..player.itemUseTimeLeft) {
                     release()
                     return@tickHandler
                 } else {
@@ -171,7 +175,7 @@ internal class GrimNoSlowFoodNoC0F(
             mc.options.useKey.isPressed = false
         }
 
-        if (step == Step.NONE && mc.currentScreen == null) {
+        if ((step == Step.NONE || step == Step.RESET) && mc.currentScreen == null) {
             step = Step.CANCEL_C0F
             useHand = player.activeHand
             waitTicks = 0
@@ -188,7 +192,7 @@ internal class GrimNoSlowFoodNoC0F(
     private val packetHandler = handler<PacketEvent> { event ->
         val packet = event.packet
 
-        if (step != Step.NONE) {
+        if (step != Step.NONE && step != Step.RESET) {
             if (packet is CommonPingS2CPacket) {
                 event.cancelEvent()
                 packets.add(packet)
@@ -236,6 +240,12 @@ internal class GrimNoSlowFoodNoC0F(
 
             if (packet is PlayerInteractEntityC2SPacket) {
                 event.cancelEvent()
+            }
+        }
+
+        if (step == Step.RESET) {
+            if (packet is ScreenHandlerSlotUpdateS2CPacket) {
+                step = Step.NONE
             }
         }
     }
