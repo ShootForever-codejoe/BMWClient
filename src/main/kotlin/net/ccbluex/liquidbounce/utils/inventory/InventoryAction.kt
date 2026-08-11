@@ -19,12 +19,16 @@
 
 package net.ccbluex.liquidbounce.utils.inventory
 
+import net.ccbluex.liquidbounce.features.module.modules.exploit.disabler.disablers.DisablerSilentInventory
 import net.ccbluex.liquidbounce.utils.client.interaction
 import net.ccbluex.liquidbounce.utils.client.mc
+import net.ccbluex.liquidbounce.utils.client.network
 import net.ccbluex.liquidbounce.utils.client.player
 import net.ccbluex.liquidbounce.utils.kotlin.Priority
 import net.minecraft.client.gui.screen.ingame.HandledScreen
 import net.minecraft.item.ItemStack
+import net.minecraft.network.packet.c2s.play.ClientCommandC2SPacket
+import net.minecraft.network.packet.c2s.play.CloseHandledScreenC2SPacket
 import net.minecraft.screen.slot.SlotActionType
 
 sealed interface InventoryAction {
@@ -122,6 +126,14 @@ sealed interface InventoryAction {
                 return false
             }
 
+            if (DisablerSilentInventory.running && mc.currentScreen == null) {
+                if (DisablerSilentInventory.shouldSpoofSprint) {
+                    if (DisablerSilentInventory.updated == 0) return false
+                } else {
+                    if (player.lastSprinting) return false
+                }
+            }
+
             // Screen is null, which means we are targeting the player inventory
             if (requiresPlayerInventoryOpen() && player.currentScreenHandler.isPlayerInventory &&
                 !interaction.hasRidingInventory()
@@ -134,9 +146,61 @@ sealed interface InventoryAction {
             return screen.syncId == this.screen.syncId
         }
 
+        private fun clickSlot(syncId: Int, action: () -> Unit) {
+            if (mc.currentScreen != null || !DisablerSilentInventory.running) {
+                action()
+                return
+            }
+
+            val shouldStopSprint = player.lastSprinting && DisablerSilentInventory.shouldSpoofSprint
+
+            if (shouldStopSprint) {
+                network.sendPacket(
+                    ClientCommandC2SPacket(
+                        player,
+                        ClientCommandC2SPacket.Mode.STOP_SPRINTING
+                    )
+                )
+            }
+
+            action()
+
+            if (shouldStopSprint) {
+                network.sendPacket(
+                    ClientCommandC2SPacket(
+                        player,
+                        ClientCommandC2SPacket.Mode.START_SPRINTING
+                    )
+                )
+            }
+
+            if (shouldStopSprint) {
+                network.sendPacket(
+                    ClientCommandC2SPacket(
+                        player,
+                        ClientCommandC2SPacket.Mode.STOP_SPRINTING
+                    )
+                )
+            }
+
+            network.sendPacket(CloseHandledScreenC2SPacket(syncId))
+
+            if (shouldStopSprint) {
+                network.sendPacket(
+                    ClientCommandC2SPacket(
+                        player,
+                        ClientCommandC2SPacket.Mode.START_SPRINTING
+                    )
+                )
+            }
+        }
+
         override fun performAction(): Boolean {
             val slotId = slot.getIdForServer(screen) ?: return false
-            interaction.clickSlot(screen?.syncId ?: 0, slotId, button, actionType, player)
+
+            clickSlot(screen?.syncId ?: 0) {
+                interaction.clickSlot(screen?.syncId ?: 0, slotId, button, actionType, player)
+            }
             InventoryManager.lastClickedSlot = slotId
 
             return true
@@ -154,7 +218,9 @@ sealed interface InventoryAction {
                 .minByOrNull { slot.distance(it) } ?: return false
 
             val slotId = closestEmptySlot.getIdForServer(screen)
-            interaction.clickSlot(screen.syncId, slotId, 0, SlotActionType.PICKUP, player)
+            clickSlot(screen.syncId) {
+                interaction.clickSlot(screen.syncId, slotId, 0, SlotActionType.PICKUP, player)
+            }
             InventoryManager.lastClickedSlot = slotId
             return true
         }

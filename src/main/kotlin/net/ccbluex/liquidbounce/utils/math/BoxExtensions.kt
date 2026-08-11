@@ -86,3 +86,21 @@ fun Box.getNearestPoint(from: Position): Vec3d {
         from.z.coerceIn(minZ, maxZ),
     )
 }
+
+fun Box.centerOnSide(side: Direction): Vec3d {
+    val cx = minX + lengthX * 0.5
+    val cy = minY + lengthY * 0.5
+    val cz = minZ + lengthZ * 0.5
+
+    return pointOnSide(cx, cy, cz, side)
+}
+
+private fun Box.pointOnSide(x: Double, y: Double, z: Double, side: Direction): Vec3d =
+    when (side) {
+        Direction.DOWN -> Vec3d(x, minY, z)
+        Direction.UP -> Vec3d(x, maxY, z)
+        Direction.NORTH -> Vec3d(x, y, minZ)
+        Direction.SOUTH -> Vec3d(x, y, maxZ)
+        Direction.WEST -> Vec3d(minX, y, z)
+        Direction.EAST -> Vec3d(maxX, y, z)
+    }

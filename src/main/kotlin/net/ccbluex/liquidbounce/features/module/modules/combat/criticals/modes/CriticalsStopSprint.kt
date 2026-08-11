@@ -40,8 +40,7 @@ object CriticalsStopSprint : Choice("StopSprint") {
             && !player.isOnGround
             && !player.isInFluid
             && !player.isClimbing
-            && event.sprint
-            && event.source == SprintEvent.Source.INPUT
+            && player.isSprinting
             && ModuleKillAura.running
             && ModuleKillAura.targetTracker.target != null
             && ModuleKillAura.targetTracker.target!!.hurtTime in hurtTime
@@ -49,7 +48,9 @@ object CriticalsStopSprint : Choice("StopSprint") {
             if (controlSprintKey) {
                 mc.options.sprintKey.isPressed = false
             } else {
-                event.sprint = false
+                if (event.source == SprintEvent.Source.INPUT || event.source == SprintEvent.Source.MOVEMENT_TICK) {
+                    event.sprint = false
+                }
             }
         }
     }

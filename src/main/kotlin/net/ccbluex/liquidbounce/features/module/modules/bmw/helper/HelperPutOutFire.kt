@@ -22,6 +22,8 @@ package net.ccbluex.liquidbounce.features.module.modules.bmw.helper
 import net.ccbluex.liquidbounce.bmw.PlacementManager
 import net.ccbluex.liquidbounce.bmw.getStandingBlock
 import net.ccbluex.liquidbounce.bmw.getWaterBucketSlot
+import net.ccbluex.liquidbounce.bmw.isOnGround
+import net.ccbluex.liquidbounce.bmw.simulatePlayerMovement
 import net.ccbluex.liquidbounce.bmw.topCenter
 import net.ccbluex.liquidbounce.config.types.nesting.ToggleableConfigurable
 import net.ccbluex.liquidbounce.features.module.modules.world.scaffold.ModuleScaffold
@@ -43,31 +45,27 @@ object HelperPutOutFire : ToggleableConfigurable(ModuleHelper, "PutOutFire", tru
 
     fun handle() {
         if (!player.isOnFire) {
-            if (paused) {
-                paused = false
-                tryCount = 0
-                lastTryTime = 0
-            }
+            paused = false
+            tryCount = 0
+            lastTryTime = 0
             return
         }
 
-        if (paused) {
+        if (paused || System.currentTimeMillis() - lastTryTime < interval * 50L) {
             return
         }
 
-        if (player.isOnGround
+        val predictPos = simulatePlayerMovement(2).position
+
+        if ((player.isOnGround || isOnGround(predictPos))
             && PlacementManager.requester != ModuleHelper
             && getWaterBucketSlot() != -1
             && !ModuleScaffold.running
         ) {
-            if (System.currentTimeMillis() - lastTryTime < interval * 50L) {
-                return
-            }
-
             PlacementManager.place(
                 ModuleHelper,
                 PlacementManager.PlaceWaterRequest(
-                    getStandingBlock()?.topCenter,
+                    getStandingBlock(predictPos)?.topCenter,
                     debug = PlacementManager.PlaceWaterDebug(
                         "No water bucket to put out fire",
                         "Failed to put out fire",

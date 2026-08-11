@@ -55,6 +55,7 @@ internal class GrimNoSlowFoodNoC0F(
     private var pendingInteract = false
     private var eatingTicks = 0
     private var itemUseTimeLeft = 0
+    private var resetTicks = 0
 
     companion object {
         val working: Boolean
@@ -83,6 +84,7 @@ internal class GrimNoSlowFoodNoC0F(
         pendingInteract = false
         eatingTicks = 0
         itemUseTimeLeft = 0
+        resetTicks = 0
     }
 
     private fun isUsable(stack: ItemStack) = stack.useAction in arrayOf(
@@ -110,10 +112,18 @@ internal class GrimNoSlowFoodNoC0F(
         )
         clear()
         step = Step.RESET
+        resetTicks = 5
     }
 
     @Suppress("unused")
     private val tickHandler = tickHandler {
+        if (resetTicks > 0) {
+            resetTicks--
+            if (resetTicks == 0) {
+                step = Step.NONE
+            }
+        }
+
         if (step != Step.NONE && ModuleScaffold.enabled) {
             release()
             return@tickHandler
@@ -219,6 +229,10 @@ internal class GrimNoSlowFoodNoC0F(
             if (packet is PlayerPositionLookS2CPacket) {
                 release()
             }
+
+            if (packet is PlayerInteractEntityC2SPacket) {
+                event.cancelEvent()
+            }
         }
 
         if (step == Step.SWAP_HANDS) {
@@ -237,15 +251,12 @@ internal class GrimNoSlowFoodNoC0F(
             ) {
                 release()
             }
-
-            if (packet is PlayerInteractEntityC2SPacket) {
-                event.cancelEvent()
-            }
         }
 
         if (step == Step.RESET) {
             if (packet is ScreenHandlerSlotUpdateS2CPacket) {
                 step = Step.NONE
+                resetTicks = 0
             }
         }
     }

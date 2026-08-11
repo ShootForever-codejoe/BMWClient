@@ -22,7 +22,9 @@ import net.ccbluex.liquidbounce.config.types.NamedChoice
 import net.ccbluex.liquidbounce.utils.aiming.RotationManager
 import net.ccbluex.liquidbounce.utils.aiming.data.Rotation
 import net.ccbluex.liquidbounce.utils.block.canBeReplacedWith
+import net.ccbluex.liquidbounce.utils.block.getClosestSquaredDistanceTo
 import net.ccbluex.liquidbounce.utils.block.getState
+import net.ccbluex.liquidbounce.utils.block.offset
 import net.ccbluex.liquidbounce.utils.block.outlineBox
 import net.ccbluex.liquidbounce.utils.block.toBlockPos
 import net.ccbluex.liquidbounce.utils.client.getFace
@@ -44,6 +46,8 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.util.math.Direction
 import net.minecraft.util.math.Vec3d
 import net.minecraft.util.math.Vec3i
+import net.minecraft.util.shape.VoxelShapes
+import java.util.function.ToDoubleFunction
 
 enum class AimMode(override val choiceName: String) : NamedChoice {
     CENTER("Center"),
@@ -101,7 +105,27 @@ class BlockPlacementTargetFindingOptions(
 class BlockOffsetOptions(
     val offsetsToInvestigate: List<Vec3i>,
     val priorityComparator: Comparator<Vec3i>,
-)
+) {
+    companion object {
+        @JvmField
+        val Default = BlockOffsetOptions(
+            BlockPosOffsets.NO_OFFSET.offsets,
+            compareBy { blockPos ->
+                val pos = player.pos
+                val block = blockPos.toBlockPos()
+                val shape = block.getState()?.getOutlineShape(world, block) ?: VoxelShapes.empty().offset(block)
+                if (shape.isEmpty) {
+                    -blockPos.getSquaredDistance(pos)
+                } else {
+                    -shape.getClosestSquaredDistanceTo(pos)
+                }
+            },
+        )
+    }
+}
+
+private fun <T> compareBy(keyExtractor: ToDoubleFunction<T>): Comparator<T> =
+    Comparator.comparingDouble(keyExtractor)
 
 /**
  * Decides how scaffold processes the faces of the considered target blocks.
